@@ -1,0 +1,161 @@
+{
+  "users": [
+    {
+      "id": "e77ae171-f0b0-489d-93a8-4f82e29a6af8",
+      "name": "Ana Ribeiro",
+      "cpf_hash": "534a4a8eafcd8489af32356d5a7a25f88c70cfe0448539a7c42964c1b897a359",
+      "cpf_encrypted": "enc:MTExMTExMTExMTE",
+      "role": "DEV",
+      "created_at": "2026-01-12T09:00:00.000Z",
+      "updated_at": "2026-01-12T09:00:00.000Z"
+    },
+    {
+      "id": "68998502-6549-49c2-9b6d-b1ebddc460a9",
+      "name": "Carlos Menezes",
+      "cpf_hash": "d5996b25e580c95b90cfc8a69898b31ee8edb66bea003ac99801b8cab34c2bb4",
+      "cpf_encrypted": "enc:MjIyMjIyMjIyMjI",
+      "role": "DIRETOR",
+      "created_at": "2026-01-12T09:00:00.000Z",
+      "updated_at": "2026-01-12T09:00:00.000Z"
+    },
+    {
+      "id": "ce0f1b4c-ee1c-4038-857c-c8a13a1982a9",
+      "name": "Beatriz Fontes",
+      "cpf_hash": "90bdb56dba0745a3236c1c38f185878fcdce441ee4e5ab171dfe0e08a6170016",
+      "cpf_encrypted": "enc:MzMzMzMzMzMzMzM",
+      "role": "SECRETARIA",
+      "created_at": "2026-01-12T09:00:00.000Z",
+      "updated_at": "2026-01-12T09:00:00.000Z"
+    },
+    {
+      "id": "d9c61580-67cd-48cd-97e5-9d7ef730d810",
+      "name": "Diego Alcântara",
+      "cpf_hash": "34ce32f4cacdd770d6bb0977e066f74724b170f3ccf7002baa802170711f99df",
+      "cpf_encrypted": "enc:NDQ0NDQ0NDQ0NDQ",
+      "role": "RECEPCIONISTA",
+      "created_at": "2026-01-12T09:00:00.000Z",
+      "updated_at": "2026-01-12T09:00:00.000Z"
+    },
+    {
+      "id": "8f340c75-f6f7-43b9-9d52-29f1589f1840",
+      "name": "Elisa Tavares",
+      "cpf_hash": "a96fb099c9fe2b2866c515ce063539186c7103dd14b9df1a91741a7afd7f94fd",
+      "cpf_encrypted": "enc:NTU1NTU1NTU1NTU",
+      "role": "REGULADOR",
+      "created_at": "2026-01-12T09:00:00.000Z",
+      "updated_at": "2026-01-12T09:00:00.000Z"
+    }
+  ],
+  "apecs": [
+    {
+      "id": "2c220ceb-8976-49f7-be50-78aaee21afbc",
+      "name": "João da Silva",
+      "birth_date": "1990-05-15T00:00:00.000Z",
+      "cns": "enc:MTIzNDU2Nzg5MDEyMzQ1",
+      "cpf": "enc:OTg3NjU0MzIxMDA",
+      "status": "PENDENTE",
+      "municipality": "São José dos Ramos",
+      "procedure": "EXAME",
+      "priority": "URGENTE",
+      "created_at": "2026-06-02T13:20:00.000Z",
+      "updated_at": "2026-06-02T13:20:00.000Z"
+    },
+    {
+      "id": "96946f8b-c9a1-45b1-95d6-69a87cf34356",
+      "name": "Maria Aparecida Souza",
+      "birth_date": "1978-11-03T00:00:00.000Z",
+      "cns": "enc:MjM0NTY3ODkwMTIzNDU2",
+      "cpf": "enc:ODc2NTQzMjEwMTE",
+      "status": "AGUARDO",
+      "municipality": "São José dos Ramos",
+      "procedure": "CIRURGIA",
+      "priority": "URGENTE",
+      "created_at": "2026-06-05T10:45:00.000Z",
+      "updated_at": "2026-06-05T10:45:00.000Z"
+    },
+    {
+      "id": "e27a6948-a256-4ef7-99fe-2917303a558e",
+      "name": "Antônio Bezerra Lima",
+      "birth_date": "1954-02-27T00:00:00.000Z",
+      "cns": "enc:MzQ1Njc4OTAxMjM0NTY3",
+      "cpf": null,
+      "status": "APROVADO",
+      "municipality": "Sapé",
+      "procedure": "EXAME",
+      "priority": "NORMAL",
+      "created_at": "2026-06-08T08:10:00.000Z",
+      "updated_at": "2026-06-08T08:10:00.000Z"
+    },
+    {
+      "id": "6b4cc01b-f57d-47dd-872c-c9c864f2f833",
+      "name": "Luzia Nascimento",
+      "birth_date": "1966-09-19T00:00:00.000Z",
+      "cns": "enc:NDU2Nzg5MDEyMzQ1Njc4",
+      "cpf": "enc:NzY1NDMyMTAxMjI",
+      "status": "NEGADO",
+      "municipality": "Caldas Brandão",
+      "procedure": "CIRURGIA",
+      "priority": "NORMAL",
+      "created_at": "2026-06-11T16:05:00.000Z",
+      "updated_at": "2026-06-11T16:05:00.000Z"
+    },
+    {
+      "id": "2a740c9e-3c89-47f0-9834-0dea054fa3fa",
+      "name": "Rafael Queiroz",
+      "birth_date": "2001-07-08T00:00:00.000Z",
+      "cns": "enc:NTY3ODkwMTIzNDU2Nzg5",
+      "cpf": "enc:NjU0MzIxMDEyMzM",
+      "status": "CANCELADO",
+      "municipality": "São José dos Ramos",
+      "procedure": "EXAME",
+      "priority": "URGENTE",
+      "created_at": "2026-06-15T11:30:00.000Z",
+      "updated_at": "2026-06-15T11:30:00.000Z"
+    },
+    {
+      "id": "ca882a1e-d1b1-49c6-a754-7f20080e12f9",
+      "name": "Sebastiana Alves",
+      "birth_date": null,
+      "cns": "enc:Njc4OTAxMjM0NTY3ODkw",
+      "cpf": null,
+      "status": "PENDENTE",
+      "municipality": null,
+      "procedure": "EXAME",
+      "priority": "NORMAL",
+      "created_at": "2026-06-20T14:55:00.000Z",
+      "updated_at": "2026-06-20T14:55:00.000Z"
+    }
+  ],
+  "_credentials": [
+    {
+      "user_id": "e77ae171-f0b0-489d-93a8-4f82e29a6af8",
+      "cpf": "11111111111",
+      "password": "dev123",
+      "password_hash": "87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b"
+    },
+    {
+      "user_id": "68998502-6549-49c2-9b6d-b1ebddc460a9",
+      "cpf": "22222222222",
+      "password": "diretor123",
+      "password_hash": "25e7ea978138bf9e57a6254209a9c6e490a4432e04bdc7fd1d5b1bdff83d60f0"
+    },
+    {
+      "user_id": "ce0f1b4c-ee1c-4038-857c-c8a13a1982a9",
+      "cpf": "33333333333",
+      "password": "secretaria123",
+      "password_hash": "b78847eb7959618ed22e43389ff68944a55a6a26893f9c74be4e7216bab6f4d5"
+    },
+    {
+      "user_id": "d9c61580-67cd-48cd-97e5-9d7ef730d810",
+      "cpf": "44444444444",
+      "password": "recepcao123",
+      "password_hash": "2b2f7d1f89222d7211f2befb172fa7267c44ef66f9e074a7902dc39ce7c829a2"
+    },
+    {
+      "user_id": "8f340c75-f6f7-43b9-9d52-29f1589f1840",
+      "cpf": "55555555555",
+      "password": "regulador123",
+      "password_hash": "95fc043c42987cdc2f83036559b5fc7907c7dfa3f8adf462a0d4efa047c59879"
+    }
+  ]
+}

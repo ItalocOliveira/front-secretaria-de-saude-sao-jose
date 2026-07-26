@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Banco da API mockada — gerado a partir de mock/db.seed.json
+mock/db.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
