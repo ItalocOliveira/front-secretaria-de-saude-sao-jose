@@ -1,0 +1,11 @@
+# `set -e` é obrigatório: o husky 9 não injeta mais o shebang/opções, então sem
+# isso um comando que falha não aborta o script e o hook sai 0 (liberando o push).
+set -e
+
+echo "▶ Typecheck (tsc -b --noEmit)"
+pnpm run typecheck
+
+echo "▶ Build (tsc -b && vite build)"
+pnpm run build
+
+echo "✔ Pronto para push"
