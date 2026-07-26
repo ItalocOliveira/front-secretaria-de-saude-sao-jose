@@ -1,7 +1,14 @@
 import { SearchIcon, XIcon } from "lucide-react"
 
-import { MUNICIPALITIES, UNITS } from "@/data/apacs-mock"
-import { APAC_STATUS_LABEL, APAC_STATUS_LIST, type ApacStatus } from "@/lib/apac"
+import { MUNICIPALITIES } from "@/data/apacs-mock"
+import {
+  APAC_PRIORITY_LABEL,
+  APAC_PRIORITY_LIST,
+  APAC_STATUS_LABEL,
+  APAC_STATUS_LIST,
+  type ApacPriority,
+  type ApacStatus,
+} from "@/lib/apac"
 import { ALL, EMPTY_FILTERS, isFiltersDirty, type ApacFiltersValue } from "@/lib/apac-filters"
 import { DateRangePicker } from "@/components/apacs/date-range-picker"
 import { Button } from "@/components/ui/button"
@@ -35,7 +42,7 @@ export function ApacFilters({
               </InputGroupAddon>
               <InputGroupInput
                 id="apac-search"
-                placeholder="Buscar por paciente, Nº da APAC, procedimento..."
+                placeholder="Buscar por paciente ou município..."
                 value={value.search}
                 onChange={(event) => patch({ search: event.target.value })}
               />
@@ -77,6 +84,32 @@ export function ApacFilters({
             </Field>
 
             <Field>
+              <FieldLabel htmlFor="apac-priority">Prioridade</FieldLabel>
+              <Select
+                value={value.priority}
+                onValueChange={(priority: ApacFiltersValue["priority"] | null) => patch({ priority: priority ?? ALL })}
+              >
+                <SelectTrigger id="apac-priority" className="w-full">
+                  <SelectValue>
+                    {(priority: ApacFiltersValue["priority"]) =>
+                      priority === ALL ? "Todas" : APAC_PRIORITY_LABEL[priority as ApacPriority]
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value={ALL}>Todas</SelectItem>
+                    {APAC_PRIORITY_LIST.map((priority) => (
+                      <SelectItem key={priority} value={priority}>
+                        {APAC_PRIORITY_LABEL[priority]}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field>
               <FieldLabel htmlFor="apac-municipality">Município</FieldLabel>
               <Select
                 value={value.municipality}
@@ -99,26 +132,7 @@ export function ApacFilters({
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="apac-unit">Unidade solicitante</FieldLabel>
-              <Select value={value.unit} onValueChange={(unit: string | null) => patch({ unit: unit ?? ALL })}>
-                <SelectTrigger id="apac-unit" className="w-full">
-                  <SelectValue>{(unit: string) => (unit === ALL ? "Todas" : unit)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={ALL}>Todas</SelectItem>
-                    {UNITS.map((unit) => (
-                      <SelectItem key={unit} value={unit}>
-                        {unit}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="apac-period">Período</FieldLabel>
+              <FieldLabel htmlFor="apac-period">Período de cadastro</FieldLabel>
               <DateRangePicker id="apac-period" value={value.period} onValueChange={(period) => patch({ period })} />
             </Field>
           </FieldGroup>

@@ -1,11 +1,12 @@
-import { useState, useTransition } from "react"
+import { useState } from "react"
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, XIcon } from "lucide-react"
 
-import { getStepErrors, INITIAL_APAC_FORM, type ApacFormValues } from "@/lib/apac-form"
-import { ApacFormDocumentsStep } from "@/components/apacs/apac-form-documents-step"
+import { getStepErrors, INITIAL_APAC_FORM, toCreateApacPayload, type ApacFormValues } from "@/lib/apac-form"
+import { useCreateApac } from "@/hooks/use-apacs"
 import { ApacFormPatientStep } from "@/components/apacs/apac-form-patient-step"
 import { ApacFormRequestStep } from "@/components/apacs/apac-form-request-step"
 import { ApacFormReviewStep } from "@/components/apacs/apac-form-review-step"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -16,8 +17,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 const STEPS = [
   { value: 1, label: "Paciente" },
   { value: 2, label: "Solicitação" },
-  { value: 3, label: "Documentos" },
-  { value: 4, label: "Revisão" },
+  { value: 3, label: "Revisão" },
 ]
 
 const LAST_STEP = STEPS.length
@@ -27,7 +27,7 @@ export function ApacFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
   const [step, setStep] = useState(1)
   const [values, setValues] = useState<ApacFormValues>(INITIAL_APAC_FORM)
   const [validating, setValidating] = useState(false)
-  const [isSubmitting, startSubmit] = useTransition()
+  const { mutate: createApac, isPending, error, reset: resetMutation } = useCreateApac()
 
   // Derivado no render: nada de `useEffect` para calcular erro de validação.
   const errors = validating ? getStepErrors(step, values) : NO_ERRORS
@@ -40,6 +40,7 @@ export function ApacFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
     setValues(INITIAL_APAC_FORM)
     setStep(1)
     setValidating(false)
+    resetMutation()
   }
 
   const goToStep = (target: number) => {
@@ -63,15 +64,14 @@ export function ApacFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
   }
 
   const submit = () => {
-    startSubmit(async () => {
-      // Simula a chamada `POST /apecs` enquanto a camada de API não existe.
-      await new Promise((resolve) => setTimeout(resolve, 800))
-
-      toast.add({
-        title: "APAC cadastrada",
-        description: `A APAC de ${values.name} entrou na fila da regulação como pendente.`,
-      })
-      reset()
+    createApac(toCreateApacPayload(values), {
+      onSuccess: (apac) => {
+        toast.add({
+          title: "APAC cadastrada",
+          description: `A APAC de ${apac.name} entrou na fila da regulação como pendente.`,
+        })
+        reset()
+      },
     })
   }
 
@@ -98,7 +98,7 @@ export function ApacFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
           }}
         >
           {STEPS.map((item) => (
-            <ToggleGroupItem key={item.value} value={String(item.value)} className="flex-1">
+            <ToggleGroupItem key={item.value} value={String(item.value)} className="flex-1" disabled={isPending}>
               <span className="flex size-4 items-center justify-center rounded-full bg-muted text-xs tabular-nums">
                 {item.value}
               </span>
@@ -109,20 +109,27 @@ export function ApacFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
 
         <Progress value={(step / LAST_STEP) * 100} aria-label="Progresso do cadastro" />
 
+        {error === null ? null : (
+          <Alert variant="destructive">
+            <AlertTitle>Não foi possível cadastrar a APAC</AlertTitle>
+            {/* Só a mensagem: o `details` do 500 pode trazer os dados do paciente. */}
+            <AlertDescription>{error.message}</AlertDescription>
+          </Alert>
+        )}
+
         {step === 1 ? <ApacFormPatientStep values={values} errors={errors} onChange={patch} /> : null}
         {step === 2 ? <ApacFormRequestStep values={values} errors={errors} onChange={patch} /> : null}
-        {step === 3 ? <ApacFormDocumentsStep values={values} errors={errors} onChange={patch} /> : null}
-        {step === 4 ? <ApacFormReviewStep values={values} /> : null}
+        {step === 3 ? <ApacFormReviewStep values={values} /> : null}
       </CardContent>
 
       <CardFooter className="justify-end gap-2">
-        <Button variant="ghost" onClick={reset} disabled={isSubmitting}>
+        <Button variant="ghost" onClick={reset} disabled={isPending}>
           <XIcon data-icon="inline-start" />
           Cancelar
         </Button>
 
         {step > 1 ? (
-          <Button variant="outline" onClick={() => goToStep(step - 1)} disabled={isSubmitting}>
+          <Button variant="outline" onClick={() => goToStep(step - 1)} disabled={isPending}>
             <ArrowLeftIcon data-icon="inline-start" />
             Voltar
           </Button>
@@ -130,12 +137,12 @@ export function ApacFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
 
         {step < LAST_STEP ? (
           <Button onClick={() => goToStep(step + 1)}>
-            Salvar e continuar
+            Continuar
             <ArrowRightIcon data-icon="inline-end" />
           </Button>
         ) : (
-          <Button onClick={submit} disabled={isSubmitting}>
-            {isSubmitting ? <Spinner data-icon="inline-start" /> : <CheckIcon data-icon="inline-start" />}
+          <Button onClick={submit} disabled={isPending}>
+            {isPending ? <Spinner data-icon="inline-start" /> : <CheckIcon data-icon="inline-start" />}
             Concluir cadastro
           </Button>
         )}

@@ -1,58 +1,31 @@
 import { useDeferredValue, useMemo, useRef, useState } from "react"
 import { PlusIcon } from "lucide-react"
 
-import { PENDING_APACS, type PendingApac } from "@/data/apacs-mock"
-import { ALL, EMPTY_FILTERS, type ApacFiltersValue } from "@/lib/apac-filters"
+import { EMPTY_FILTERS, matchesFilters, type ApacFiltersValue } from "@/lib/apac-filters"
+import { useApacs } from "@/hooks/use-apacs"
 import { AppHeader } from "@/components/layout/app-header"
 import { ApacFilters } from "@/components/apacs/apac-filters"
 import { ApacFlow } from "@/components/apacs/apac-flow"
 import { ApacFormCard } from "@/components/apacs/apac-form-card"
+import { ApacsTableCard } from "@/components/apacs/apacs-table-card"
 import { ApacStats } from "@/components/apacs/apac-stats"
-import { PendenciasCard } from "@/components/apacs/pendencias-card"
 import { Button } from "@/components/ui/button"
 
-function matches(apac: PendingApac, filters: ApacFiltersValue) {
-  const term = filters.search.trim().toLowerCase()
-
-  if (term !== "") {
-    const haystack = [apac.patientName, apac.apacNumber, apac.procedureName, apac.procedureCode, apac.pendencyTitle]
-    if (!haystack.some((field) => field.toLowerCase().includes(term))) {
-      return false
-    }
-  }
-
-  if (filters.status !== ALL && apac.status !== filters.status) {
-    return false
-  }
-
-  if (filters.municipality !== ALL && apac.municipality !== filters.municipality) {
-    return false
-  }
-
-  if (filters.unit !== ALL && apac.unit !== filters.unit) {
-    return false
-  }
-
-  if (filters.period?.from) {
-    const requestedAt = new Date(`${apac.requestedAt}T00:00:00`)
-    if (requestedAt < filters.period.from) {
-      return false
-    }
-    if (filters.period.to && requestedAt > filters.period.to) {
-      return false
-    }
-  }
-
-  return true
-}
+const NO_APACS: never[] = []
 
 export function ApacsPage() {
+  const { data, isPending, error } = useApacs()
   const [filters, setFilters] = useState<ApacFiltersValue>(EMPTY_FILTERS)
   const formRef = useRef<HTMLDivElement>(null)
 
-  // Filtrar não é urgente: mantém a digitação fluida em listas grandes.
+  const apacs = data ?? NO_APACS
+
+  // Filtrar não é urgente: mantém a digitação fluida quando a lista cresce.
   const deferredFilters = useDeferredValue(filters)
-  const visibleApacs = useMemo(() => PENDING_APACS.filter((apac) => matches(apac, deferredFilters)), [deferredFilters])
+  const visibleApacs = useMemo(
+    () => apacs.filter((apac) => matchesFilters(apac, deferredFilters)),
+    [apacs, deferredFilters]
+  )
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -76,13 +49,15 @@ export function ApacsPage() {
           </Button>
         </div>
 
-        <ApacStats />
+        {/* Contagens sobre a lista completa, não sobre a filtrada: o card resume a
+            base, enquanto a tabela responde aos filtros. */}
+        <ApacStats apacs={apacs} isPending={isPending} />
 
         <ApacFilters value={filters} onValueChange={setFilters} resultCount={visibleApacs.length} />
 
         <div className="grid gap-4 *:min-w-0 xl:grid-cols-2">
           <ApacFormCard ref={formRef} />
-          <PendenciasCard apacs={visibleApacs} />
+          <ApacsTableCard apacs={visibleApacs} isPending={isPending} error={error} />
         </div>
 
         <ApacFlow />

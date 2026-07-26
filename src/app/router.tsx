@@ -1,10 +1,15 @@
-import { createBrowserRouter, Navigate } from "react-router"
+import { createBrowserRouter } from "react-router"
 
+import { APAC_ROLES, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
+import { HomeRedirect } from "@/components/auth/home-redirect"
+import { RequireAuth } from "@/components/auth/require-auth"
+import { RequireRole } from "@/components/auth/require-role"
 import { RouteErrorBoundary } from "@/components/error-boundary"
 import { AppShell } from "@/components/layout/app-shell"
 import { ApacsPage } from "@/pages/apacs-page"
 import { LoginPage } from "@/pages/login-page"
-import { SignupPage } from "@/pages/signup-page"
+import { NewUserPage } from "@/pages/new-user-page"
+import { UsersPage } from "@/pages/users-page"
 
 export const router = createBrowserRouter([
   {
@@ -12,17 +17,32 @@ export const router = createBrowserRouter([
     // que não tenha um `errorElement` mais próximo para aqui.
     errorElement: <RouteErrorBoundary />,
     children: [
+      { path: "/login", element: <LoginPage /> },
       {
-        element: <AppShell />,
+        element: <RequireAuth />,
         children: [
-          // Boundary próprio: o erro renderiza dentro do `Outlet`, então sidebar e
-          // header continuam de pé e o usuário não perde a navegação.
-          { path: "/apacs", element: <ApacsPage />, errorElement: <RouteErrorBoundary /> },
+          {
+            element: <AppShell />,
+            children: [
+              // Cada área tem seu boundary: o erro renderiza dentro do `Outlet`,
+              // então sidebar e navegação continuam de pé.
+              {
+                element: <RequireRole allowed={APAC_ROLES} />,
+                children: [{ path: "/apacs", element: <ApacsPage />, errorElement: <RouteErrorBoundary /> }],
+              },
+              {
+                element: <RequireRole allowed={USER_MANAGEMENT_ROLES} />,
+                children: [
+                  { path: "/usuarios", element: <UsersPage />, errorElement: <RouteErrorBoundary /> },
+                  { path: "/usuarios/novo", element: <NewUserPage />, errorElement: <RouteErrorBoundary /> },
+                ],
+              },
+            ],
+          },
         ],
       },
-      { path: "/login", element: <LoginPage /> },
-      { path: "/cadastro", element: <SignupPage /> },
-      { path: "*", element: <Navigate to="/apacs" replace /> },
+      // Não existe home única: cada perfil enxerga uma área diferente.
+      { path: "*", element: <HomeRedirect /> },
     ],
   },
 ])

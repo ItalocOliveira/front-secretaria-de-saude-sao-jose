@@ -1,8 +1,11 @@
-import { useState, useTransition } from "react"
+import { useState } from "react"
 import { Link, useNavigate } from "react-router"
-import { HeartPulseIcon, UserPlusIcon } from "lucide-react"
+import { ArrowLeftIcon, UserPlusIcon } from "lucide-react"
 
 import { USER_ROLE_LABEL, USER_ROLE_LIST, type UserRole } from "@/lib/apac"
+import { useCreateUser } from "@/hooks/use-users"
+import { AppHeader } from "@/components/layout/app-header"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -13,85 +16,106 @@ import { toast } from "@/components/ui/toast"
 
 const INITIAL_FORM = { name: "", cpf: "", password: "", confirmation: "", role: "" }
 
-export function SignupPage() {
-  const navigate = useNavigate()
-  const [form, setForm] = useState(INITIAL_FORM)
-  const [isPending, startTransition] = useTransition()
+/** Só dígitos: a API guarda o CPF sem máscara e ele nunca deve ir para a URL. */
+function onlyDigits(value: string) {
+  return value.replaceAll(/\D/g, "")
+}
 
+export function NewUserPage() {
+  const navigate = useNavigate()
+  const { mutate: createUser, isPending, error } = useCreateUser()
+  const [form, setForm] = useState(INITIAL_FORM)
+
+  // Derivado no render, sem `useEffect`.
   const passwordMismatch = form.confirmation !== "" && form.confirmation !== form.password
+  const isValid = form.role !== "" && !passwordMismatch
 
   const patch = (partial: Partial<typeof INITIAL_FORM>) => setForm((current) => ({ ...current, ...partial }))
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (passwordMismatch) {
-      toast.add({ title: "Senhas diferentes", description: "Confirme a senha corretamente." })
+    if (!isValid) {
+      toast.add({ title: "Revise o formulário", description: "Confirme a senha e escolha um perfil de acesso." })
       return
     }
 
-    startTransition(async () => {
-      // Placeholder de `POST /users` — a camada de API ainda não existe.
-      await new Promise((resolve) => setTimeout(resolve, 600))
-      toast.add({ title: "Conta criada", description: `${form.name} já pode acessar o sistema.` })
-      navigate("/login")
-    })
+    createUser(
+      {
+        name: form.name,
+        cpf: onlyDigits(form.cpf),
+        password: form.password,
+        role: form.role as UserRole,
+      },
+      {
+        onSuccess: (user) => {
+          toast.add({ title: "Usuário criado", description: `${user.name} já pode acessar o sistema.` })
+          navigate("/usuarios")
+        },
+      }
+    )
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex items-center justify-center gap-2">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <HeartPulseIcon className="size-5" />
-          </div>
-          <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-heading font-medium">SAÚDE</span>
-            <span className="text-xs text-muted-foreground">Regulação</span>
-          </div>
+    <>
+      <AppHeader section="Novo usuário" />
+
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Novo usuário</h1>
+          <p className="text-sm text-muted-foreground">Cria uma conta via POST /users.</p>
         </div>
 
-        <Card>
+        <Card className="max-w-xl">
           {/* O `<form>` vira o container flex do Card para preservar o espaçamento entre header/content/footer. */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-(--card-spacing)">
             <CardHeader>
-              <CardTitle>Criar conta</CardTitle>
-              <CardDescription>Novas contas são criadas por Diretoria ou Secretaria.</CardDescription>
+              <CardTitle>Dados de acesso</CardTitle>
+              <CardDescription>O CPF é a credencial de login e precisa ser único.</CardDescription>
             </CardHeader>
 
             <CardContent>
               <FieldGroup>
+                {error === null ? null : (
+                  <Alert variant="destructive">
+                    <AlertTitle>Não foi possível criar a conta</AlertTitle>
+                    <AlertDescription>{error.message}</AlertDescription>
+                  </Alert>
+                )}
+
                 <Field>
-                  <FieldLabel htmlFor="cadastro-nome">Nome completo</FieldLabel>
+                  <FieldLabel htmlFor="usuario-nome">Nome completo</FieldLabel>
                   <Input
-                    id="cadastro-nome"
+                    id="usuario-nome"
                     autoComplete="name"
                     required
+                    disabled={isPending}
                     value={form.name}
                     onChange={(event) => patch({ name: event.target.value })}
                   />
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="cadastro-cpf">CPF</FieldLabel>
+                  <FieldLabel htmlFor="usuario-cpf">CPF</FieldLabel>
                   <Input
-                    id="cadastro-cpf"
+                    id="usuario-cpf"
                     inputMode="numeric"
-                    placeholder="000.000.000-00"
+                    placeholder="00000000000"
                     required
+                    disabled={isPending}
                     value={form.cpf}
                     onChange={(event) => patch({ cpf: event.target.value })}
                   />
-                  <FieldDescription>O CPF é único e identifica a conta no login.</FieldDescription>
+                  <FieldDescription>Somente números. O CPF identifica a conta no login.</FieldDescription>
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="cadastro-perfil">Perfil de acesso</FieldLabel>
+                  <FieldLabel htmlFor="usuario-perfil">Perfil de acesso</FieldLabel>
                   <Select
                     value={form.role || null}
                     onValueChange={(role: string | null) => patch({ role: role ?? "" })}
                   >
-                    <SelectTrigger id="cadastro-perfil" className="w-full">
+                    <SelectTrigger id="usuario-perfil" className="w-full" disabled={isPending}>
                       <SelectValue placeholder="Selecione o perfil">
                         {(role: string | null) => (role ? USER_ROLE_LABEL[role as UserRole] : "Selecione o perfil")}
                       </SelectValue>
@@ -106,27 +130,32 @@ export function SignupPage() {
                       </SelectGroup>
                     </SelectContent>
                   </Select>
+                  <FieldDescription>
+                    Define o que a conta pode acessar — a API valida em cada requisição.
+                  </FieldDescription>
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="cadastro-senha">Senha</FieldLabel>
+                  <FieldLabel htmlFor="usuario-senha">Senha</FieldLabel>
                   <Input
-                    id="cadastro-senha"
+                    id="usuario-senha"
                     type="password"
                     autoComplete="new-password"
                     required
+                    disabled={isPending}
                     value={form.password}
                     onChange={(event) => patch({ password: event.target.value })}
                   />
                 </Field>
 
                 <Field data-invalid={passwordMismatch}>
-                  <FieldLabel htmlFor="cadastro-confirmacao">Confirmar senha</FieldLabel>
+                  <FieldLabel htmlFor="usuario-confirmacao">Confirmar senha</FieldLabel>
                   <Input
-                    id="cadastro-confirmacao"
+                    id="usuario-confirmacao"
                     type="password"
                     autoComplete="new-password"
                     required
+                    disabled={isPending}
                     aria-invalid={passwordMismatch}
                     value={form.confirmation}
                     onChange={(event) => patch({ confirmation: event.target.value })}
@@ -136,18 +165,19 @@ export function SignupPage() {
               </FieldGroup>
             </CardContent>
 
-            <CardFooter className="flex-col items-stretch gap-3">
+            <CardFooter className="justify-end gap-2">
+              <Button variant="ghost" disabled={isPending} render={<Link to="/usuarios" />}>
+                <ArrowLeftIcon data-icon="inline-start" />
+                Voltar
+              </Button>
               <Button type="submit" disabled={isPending}>
                 {isPending ? <Spinner data-icon="inline-start" /> : <UserPlusIcon data-icon="inline-start" />}
                 Criar conta
               </Button>
-              <span className="text-center text-sm text-muted-foreground">
-                Já tem conta? <Link to="/login">Entrar</Link>
-              </span>
             </CardFooter>
           </form>
         </Card>
       </div>
-    </div>
+    </>
   )
 }

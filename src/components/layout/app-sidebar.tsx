@@ -10,10 +10,14 @@ import {
   SettingsIcon,
   StethoscopeIcon,
   TriangleAlertIcon,
+  UserCogIcon,
   UsersIcon,
 } from "lucide-react"
 
+import type { UserRole } from "@/lib/apac"
+import { APAC_ROLES, homeRouteFor, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
 import { UNITS } from "@/data/apacs-mock"
+import { useSession } from "@/hooks/use-session"
 import {
   Sidebar,
   SidebarContent,
@@ -37,12 +41,15 @@ type NavItem = {
   /** Ausente enquanto a tela não existe — o item vira um botão desabilitado. */
   url?: string
   badge?: number
+  /** Ausente = visível para qualquer perfil autenticado. */
+  roles?: readonly UserRole[]
 }
 
 const NAV_ITEMS: NavItem[] = [
   { title: "Dashboard", icon: LayoutDashboardIcon },
-  { title: "APACs", icon: FileTextIcon, url: "/apacs" },
-  { title: "Pendências", icon: TriangleAlertIcon, badge: 8 },
+  { title: "APACs", icon: FileTextIcon, url: "/apacs", roles: APAC_ROLES },
+  { title: "Usuários", icon: UserCogIcon, url: "/usuarios", roles: USER_MANAGEMENT_ROLES },
+  { title: "Pendências", icon: TriangleAlertIcon },
   { title: "Pacientes", icon: UsersIcon },
   { title: "Profissionais", icon: StethoscopeIcon },
   { title: "Unidades", icon: BuildingIcon },
@@ -58,13 +65,24 @@ const APP_VERSION = "2.1.0"
 
 function NavMenu({ items }: { items: NavItem[] }) {
   const { pathname } = useLocation()
+  const { claims } = useSession()
+
+  // Esconde o que o perfil não alcança. A API continua barrando com 403; isto só
+  // evita oferecer um caminho que termina em "acesso negado".
+  const visibleItems = items.filter(
+    (item) => item.roles === undefined || (claims !== null && item.roles.includes(claims.role))
+  )
 
   return (
     <SidebarMenu>
-      {items.map((item) =>
+      {visibleItems.map((item) =>
         item.url ? (
           <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton isActive={pathname === item.url} tooltip={item.title} render={<Link to={item.url} />}>
+            <SidebarMenuButton
+              isActive={pathname.startsWith(item.url)}
+              tooltip={item.title}
+              render={<Link to={item.url} />}
+            >
               <item.icon />
               <span>{item.title}</span>
             </SidebarMenuButton>
@@ -89,13 +107,17 @@ function NavMenu({ items }: { items: NavItem[] }) {
 
 export function AppSidebar() {
   const [unit, setUnit] = useState<string>(UNITS[0])
+  const { claims } = useSession()
+
+  // Nem todo perfil enxerga APACs, então o logo leva para a home de cada um.
+  const homeRoute = claims === null ? "/" : homeRouteFor(claims.role)
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" tooltip="Regulação em Saúde" render={<Link to="/apacs" />}>
+            <SidebarMenuButton size="lg" tooltip="Regulação em Saúde" render={<Link to={homeRoute} />}>
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                 <HeartPulseIcon />
               </div>

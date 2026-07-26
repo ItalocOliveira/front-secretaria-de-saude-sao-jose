@@ -1,50 +1,57 @@
-import { CheckCircle2Icon, ClockIcon, FileTextIcon, SearchCheckIcon, TrendingUpIcon, XCircleIcon } from "lucide-react"
+import { CheckCircle2Icon, ClockIcon, FileTextIcon, SearchCheckIcon, XCircleIcon } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
+import type { Apac } from "@/api/apacs"
+import { APAC_STATUS, type ApacStatus } from "@/lib/apac"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type Stat = {
   label: string
-  value: number
   hint: string
-  trend?: string
   icon: typeof FileTextIcon
+  /** Ausente = total geral. */
+  status?: ApacStatus
 }
 
-// Mockado: virá de um agregado da API (`GET /apecs` + contagem por status).
+/**
+ * A API não tem endpoint de agregação, então os números são contados sobre a
+ * lista já carregada. Se a listagem ganhar paginação no servidor, estes cards
+ * passam a mostrar só a página atual — aí será preciso um `GET /apecs/stats`.
+ */
 const STATS: Stat[] = [
-  { label: "APACs cadastradas hoje", value: 23, hint: "em relação a ontem", trend: "+12%", icon: FileTextIcon },
-  { label: "Pendentes", value: 18, hint: "Aguardando ação", icon: ClockIcon },
-  { label: "Em análise", value: 31, hint: "Com a regulação", icon: SearchCheckIcon },
-  { label: "Aprovadas", value: 142, hint: "Este mês", icon: CheckCircle2Icon },
-  { label: "Negadas", value: 7, hint: "Este mês", icon: XCircleIcon },
+  { label: "Total de APACs", hint: "Cadastradas na base", icon: FileTextIcon },
+  { label: "Pendentes", hint: "Aguardando ação", icon: ClockIcon, status: APAC_STATUS.PENDENTE },
+  { label: "Em análise", hint: "Com a regulação", icon: SearchCheckIcon, status: APAC_STATUS.AGUARDO },
+  { label: "Aprovadas", hint: "Liberadas", icon: CheckCircle2Icon, status: APAC_STATUS.APROVADO },
+  { label: "Negadas", hint: "Recusadas", icon: XCircleIcon, status: APAC_STATUS.NEGADO },
 ]
 
-export function ApacStats() {
+export function ApacStats({ apacs, isPending }: { apacs: Apac[]; isPending: boolean }) {
   return (
     <div className="grid gap-4 *:min-w-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-      {STATS.map((stat) => (
-        <Card key={stat.label} size="sm">
-          <CardHeader>
-            <CardDescription>{stat.label}</CardDescription>
-            <CardTitle className="text-2xl tabular-nums">{stat.value.toString().padStart(2, "0")}</CardTitle>
-            <CardAction>
-              <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <stat.icon className="size-4" />
-              </div>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-1.5">
-            {stat.trend ? (
-              <Badge variant="secondary">
-                <TrendingUpIcon />
-                {stat.trend}
-              </Badge>
-            ) : null}
-            <span className="text-xs text-muted-foreground">{stat.hint}</span>
-          </CardContent>
-        </Card>
-      ))}
+      {STATS.map((stat) => {
+        const value =
+          stat.status === undefined ? apacs.length : apacs.filter((apac) => apac.status === stat.status).length
+
+        return (
+          <Card key={stat.label} size="sm">
+            <CardHeader>
+              <CardDescription>{stat.label}</CardDescription>
+              <CardTitle className="text-2xl tabular-nums">
+                {isPending ? <Skeleton className="h-7 w-10" /> : value.toString().padStart(2, "0")}
+              </CardTitle>
+              <CardAction>
+                <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <stat.icon className="size-4" />
+                </div>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <span className="text-xs text-muted-foreground">{stat.hint}</span>
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }

@@ -25,3 +25,8 @@ mock/db.json
 *.njsproj
 *.sln
 *.sw?
+
+# Variáveis de ambiente (.env.local já é coberto por *.local)
+.env
+.env.*
+!.env.example

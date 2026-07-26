@@ -1,7 +1,7 @@
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
-import type { PendingApac } from "@/data/apacs-mock"
+import type { Apac } from "@/api/apacs"
 import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dialog"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item"
 
+const NOT_PROVIDED = "Não informado"
+
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <Item variant="muted" size="sm">
@@ -27,37 +29,40 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   )
 }
 
+function formatDate(value: string | null) {
+  if (value === null) {
+    return NOT_PROVIDED
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? NOT_PROVIDED : format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+}
+
 export function ApacDetailsDialog({
   apac,
   onOpenChange,
 }: {
-  apac: PendingApac | null
+  apac: Apac | null
   onOpenChange: (open: boolean) => void
 }) {
   return (
-    <Dialog open={!!apac} onOpenChange={onOpenChange}>
+    <Dialog open={apac !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>APAC {apac?.apacNumber}</DialogTitle>
-          <DialogDescription>Detalhes da autorização e da pendência registrada.</DialogDescription>
+          <DialogTitle>{apac?.name ?? "APAC"}</DialogTitle>
+          <DialogDescription>Dados retornados por GET /apecs.</DialogDescription>
         </DialogHeader>
 
-        {apac ? (
+        {apac === null ? null : (
           <ItemGroup className="gap-2">
-            <DetailRow label="Paciente">{apac.patientName}</DetailRow>
+            {/* CNS e CPF chegam criptografados da API e são dado pessoal de saúde:
+                não fazem parte do view model nem aparecem aqui. */}
             <DetailRow label="Procedimento">
-              {apac.procedureName}
-              <Badge variant="outline">{apac.procedureCode}</Badge>
               <Badge variant="secondary">{APAC_PROCEDURE_LABEL[apac.procedure]}</Badge>
             </DetailRow>
-            <DetailRow label="Pendência">
-              {apac.pendencyTitle} — {apac.pendencyDetail}
-            </DetailRow>
-            <DetailRow label="Unidade solicitante">{apac.unit}</DetailRow>
-            <DetailRow label="Município">{apac.municipality}</DetailRow>
-            <DetailRow label="Data da solicitação">
-              {format(new Date(apac.requestedAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            </DetailRow>
+            <DetailRow label="Município">{apac.municipality ?? NOT_PROVIDED}</DetailRow>
+            <DetailRow label="Data de nascimento">{formatDate(apac.birthDate)}</DetailRow>
+            <DetailRow label="Cadastrada em">{formatDate(apac.createdAt)}</DetailRow>
             <DetailRow label="Situação">
               <Badge variant={APAC_STATUS_BADGE[apac.status]}>{APAC_STATUS_LABEL[apac.status]}</Badge>
               <Badge variant={apac.priority === "URGENTE" ? "destructive" : "outline"}>
@@ -65,11 +70,12 @@ export function ApacDetailsDialog({
               </Badge>
             </DetailRow>
           </ItemGroup>
-        ) : null}
+        )}
 
         <DialogFooter>
           <DialogClose render={<Button variant="outline">Fechar</Button>} />
-          <Button disabled>Resolver pendência</Button>
+          {/* Transição de status depende de endpoint de edição, ainda não implementado. */}
+          <Button disabled>Alterar situação</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

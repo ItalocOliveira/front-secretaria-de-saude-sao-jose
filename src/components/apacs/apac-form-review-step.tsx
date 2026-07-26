@@ -1,7 +1,6 @@
 import { CircleAlertIcon } from "lucide-react"
 
-import { PROCEDURE_OPTIONS } from "@/data/apacs-mock"
-import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_LABEL } from "@/lib/apac"
+import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_LABEL, type ApacProcedure } from "@/lib/apac"
 import type { ApacFormValues } from "@/lib/apac-form"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -21,9 +20,6 @@ function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) 
 }
 
 export function ApacFormReviewStep({ values }: { values: ApacFormValues }) {
-  const procedure = PROCEDURE_OPTIONS.find((option) => option.code === values.procedureCode)
-  const attachedCount = Object.values(values.documents).filter(Boolean).length
-
   return (
     <div className="flex flex-col gap-4">
       <Alert>
@@ -41,25 +37,16 @@ export function ApacFormReviewStep({ values }: { values: ApacFormValues }) {
         <ReviewRow label="CPF" value={values.cpf || NOT_PROVIDED} />
         <ReviewRow label="Data de nascimento" value={values.birthDate || NOT_PROVIDED} />
         <ReviewRow label="Município" value={values.municipality || NOT_PROVIDED} />
-        <ReviewRow label="Telefone" value={values.phone || NOT_PROVIDED} />
         <ReviewRow
           label="Procedimento"
           value={
-            procedure ? (
-              <>
-                {procedure.name}
-                <Badge variant="outline">{procedure.code}</Badge>
-                <Badge variant="secondary">{APAC_PROCEDURE_LABEL[procedure.procedure]}</Badge>
-              </>
-            ) : (
+            values.procedure === "" ? (
               NOT_PROVIDED
+            ) : (
+              <Badge variant="secondary">{APAC_PROCEDURE_LABEL[values.procedure as ApacProcedure]}</Badge>
             )
           }
         />
-        <ReviewRow label="CID" value={values.cid || NOT_PROVIDED} />
-        <ReviewRow label="Médico solicitante" value={values.doctor || NOT_PROVIDED} />
-        <ReviewRow label="Unidade solicitante" value={values.unit || NOT_PROVIDED} />
-        <ReviewRow label="Data da solicitação" value={values.requestedAt || NOT_PROVIDED} />
         <ReviewRow
           label="Prioridade"
           value={
@@ -68,7 +55,6 @@ export function ApacFormReviewStep({ values }: { values: ApacFormValues }) {
             </Badge>
           }
         />
-        <ReviewRow label="Documentos" value={`${attachedCount} de ${Object.keys(values.documents).length} anexados`} />
       </ItemGroup>
     </div>
   )

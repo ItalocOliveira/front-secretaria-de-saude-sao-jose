@@ -1,28 +1,25 @@
 /**
  * Modelo do formulário de cadastro de APAC.
  *
- * Só `name`, `cns`, `procedure` e `priority` existem hoje no `ApacCreateDto`
- * (ver `.docs/api-backend.md`); os demais campos vêm do mockup e precisam ser
- * acordados com o backend antes da integração.
+ * Espelha exatamente o `ApacCreateDto` de `.docs/api-backend.md` — nada além
+ * disso. O mockup previa nº da APAC, código SIGTAP, CID, médico solicitante,
+ * unidade e anexos; nenhum desses campos existe no modelo `Apac` do backend,
+ * então foram removidos em vez de coletados e descartados em silêncio. Ver as
+ * lacunas em `.docs/integracao-api.md`.
  */
-import type { ApacPriority } from "@/lib/apac"
 
-export type ApacDocumentKey = "laudo" | "exames" | "solicitacao" | "outros"
+import type { CreateApacPayload } from "@/api/apacs"
+import { APAC_PRIORITY, type ApacPriority, type ApacProcedure } from "@/lib/apac"
 
 export type ApacFormValues = {
   name: string
   cns: string
   cpf: string
+  /** `yyyy-MM-dd`, como vem de `<input type="date">`. */
   birthDate: string
   municipality: string
-  phone: string
-  procedureCode: string
-  cid: string
-  doctor: string
-  unit: string
-  requestedAt: string
+  procedure: ApacProcedure | ""
   priority: ApacPriority
-  documents: Record<ApacDocumentKey, boolean>
 }
 
 export const INITIAL_APAC_FORM: ApacFormValues = {
@@ -31,43 +28,55 @@ export const INITIAL_APAC_FORM: ApacFormValues = {
   cpf: "",
   birthDate: "",
   municipality: "",
-  phone: "",
-  procedureCode: "",
-  cid: "",
-  doctor: "",
-  unit: "",
-  requestedAt: "",
-  priority: "NORMAL",
-  documents: { laudo: false, exames: false, solicitacao: false, outros: false },
+  procedure: "",
+  priority: APAC_PRIORITY.NORMAL,
 }
 
-export const REQUIRED_DOCUMENTS: ApacDocumentKey[] = ["laudo", "exames", "solicitacao"]
-
+/** Obrigatórios segundo a API. `priority` já nasce preenchida. */
 const REQUIRED_BY_STEP: Record<number, (keyof ApacFormValues)[]> = {
-  1: ["name", "cns", "cpf", "birthDate", "municipality"],
-  2: ["procedureCode", "cid", "doctor", "unit", "requestedAt"],
+  1: ["name", "cns"],
+  2: ["procedure"],
 }
 
-/**
- * Chaves inválidas na etapa. Documentos usam o prefixo `doc:` para não colidir
- * com os campos de texto.
- */
-export function getStepErrors(step: number, values: ApacFormValues): Set<string> {
+export function getStepErrors(step: number, values: ApacFormValues) {
   const errors = new Set<string>()
 
-  for (const key of REQUIRED_BY_STEP[step] ?? []) {
-    if (typeof values[key] === "string" && values[key].trim() === "") {
-      errors.add(key)
-    }
-  }
-
-  if (step === 3) {
-    for (const key of REQUIRED_DOCUMENTS) {
-      if (!values.documents[key]) {
-        errors.add(`doc:${key}`)
-      }
+  for (const field of REQUIRED_BY_STEP[step] ?? []) {
+    if (values[field].trim() === "") {
+      errors.add(field)
     }
   }
 
   return errors
+}
+
+/** Só dígitos: a API grava CNS/CPF sem máscara. */
+function onlyDigits(value: string) {
+  return value.replaceAll(/\D/g, "")
+}
+
+/**
+ * `<input type="date">` devolve `yyyy-MM-dd` sem fuso. Interpretar como UTC evita
+ * que o horário local jogue a data de nascimento para o dia anterior.
+ */
+function toIsoDate(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+}
+
+export function toCreateApacPayload(values: ApacFormValues): CreateApacPayload {
+  const cpf = onlyDigits(values.cpf)
+  const municipality = values.municipality.trim()
+
+  return {
+    name: values.name.trim(),
+    cns: onlyDigits(values.cns),
+    // `getStepErrors` garante o preenchimento antes de chegar aqui.
+    procedure: values.procedure as ApacProcedure,
+    priority: values.priority,
+    // Opcionais só viajam quando têm conteúdo.
+    ...(values.birthDate === "" ? {} : { birth_date: toIsoDate(values.birthDate) }),
+    ...(cpf === "" ? {} : { cpf }),
+    ...(municipality === "" ? {} : { municipality }),
+  }
 }

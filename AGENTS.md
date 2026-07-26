@@ -25,9 +25,11 @@ Autenticação é via **JWT** (`POST /auth/login`, token válido por 1 hora, env
 | Ícones           | `lucide-react`                                                           |
 | Gráficos         | `recharts` (via `@/components/ui/chart`)                                 |
 | Datas            | `date-fns`                                                               |
+| Roteamento       | `react-router` 8 (`createBrowserRouter`)                                 |
+| Data fetching    | `@tanstack/react-query` 5                                                |
 | Package manager  | **pnpm**                                                                 |
 
-**Ainda não definidos** (não assuma que existem; pergunte antes de introduzir): roteador, biblioteca de data fetching (SWR/TanStack Query), gerenciador de formulários, framework de testes, camada de API/client HTTP.
+**Ainda não definidos** (não assuma que existem; pergunte antes de introduzir): gerenciador de formulários, framework de testes, biblioteca de validação de schema (Zod/Valibot).
 
 ### Estrutura de diretórios
 

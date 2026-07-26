@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router"
-import { ChevronDownIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserIcon } from "lucide-react"
+import { ChevronDownIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
 
-import { CURRENT_USER } from "@/data/apacs-mock"
-import { getInitials, USER_ROLE_LABEL } from "@/lib/apac"
+import { USER_ROLE_LABEL } from "@/lib/apac"
+import { useSignOut } from "@/hooks/use-auth"
+import { useSession } from "@/hooks/use-session"
 import { useTheme } from "@/components/theme-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -26,7 +27,19 @@ const THEME_OPTIONS = [
 
 export function UserMenu() {
   const navigate = useNavigate()
+  const signOut = useSignOut()
   const { theme, setTheme } = useTheme()
+  const { claims } = useSession()
+
+  // A API não devolve o nome do usuário: nem `GET /auth/me` nem o payload do JWT
+  // trazem esse campo (ver lacunas em `.docs/integracao-api.md`). Até lá o perfil é
+  // a única identidade exibível — o CPF é dado sensível e não entra na tela.
+  const roleLabel = claims === null ? "Sessão" : USER_ROLE_LABEL[claims.role]
+
+  const handleSignOut = () => {
+    signOut()
+    navigate("/login", { replace: true })
+  }
 
   return (
     <DropdownMenu>
@@ -34,11 +47,11 @@ export function UserMenu() {
         render={
           <Button variant="ghost" size="lg" className="gap-2 px-1.5">
             <Avatar className="size-7">
-              <AvatarFallback>{getInitials(CURRENT_USER.name)}</AvatarFallback>
+              <AvatarFallback>{roleLabel.charAt(0)}</AvatarFallback>
             </Avatar>
             <span className="hidden flex-col items-start gap-0.5 leading-none sm:flex">
-              <span className="text-sm font-medium">{CURRENT_USER.name}</span>
-              <span className="text-xs text-muted-foreground">{USER_ROLE_LABEL[CURRENT_USER.role]}</span>
+              <span className="text-sm font-medium">{roleLabel}</span>
+              <span className="text-xs text-muted-foreground">Sessão ativa</span>
             </span>
             <ChevronDownIcon data-icon="inline-end" />
           </Button>
@@ -50,15 +63,10 @@ export function UserMenu() {
         <DropdownMenuGroup>
           <DropdownMenuLabel>
             <span className="flex flex-col gap-0.5">
-              <span>{CURRENT_USER.name}</span>
-              <span className="text-xs font-normal text-muted-foreground">{CURRENT_USER.unit}</span>
+              <span>{roleLabel}</span>
+              <span className="text-xs font-normal text-muted-foreground">O token expira em até 1 hora</span>
             </span>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <UserIcon />
-            Meu perfil
-          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as typeof theme)}>
@@ -72,7 +80,7 @@ export function UserMenu() {
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem variant="destructive" onClick={() => navigate("/login")}>
+          <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
             <LogOutIcon />
             Sair
           </DropdownMenuItem>
