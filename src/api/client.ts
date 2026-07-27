@@ -10,6 +10,20 @@ import { clearToken, getToken } from "@/lib/session"
 /** Base das chamadas — ver `.env.example`. Embutida no bundle em build time. */
 const API_URL = import.meta.env.VITE_API_URL ?? "/api"
 
+// Uma base relativa ("/api") só funciona em dev, onde o proxy do `vite.config.ts`
+// intercepta e repassa para a API. No build esse proxy não existe: a URL resolveria
+// contra a origem do próprio front, que serve apenas o SPA estático — 404, e a
+// requisição nunca chega na API. Isso é erro de configuração do deploy (faltou
+// `VITE_API_URL` nas env vars), então falhamos no import em vez de deixar o app
+// subir e quebrar no primeiro login.
+if (import.meta.env.PROD && !/^https?:\/\//.test(API_URL)) {
+  throw new Error(
+    `VITE_API_URL deve ser a URL absoluta da API em produção (recebido: "${API_URL}"). ` +
+      `O proxy do Vite não existe no build. Defina-a nas env vars do host e redeploye — ` +
+      `variáveis VITE_* são embutidas em build time, então um rebuild é obrigatório.`
+  )
+}
+
 /**
  * Generoso de propósito: serviço hobby da Railway hiberna e a primeira requisição
  * depois do cold start leva vários segundos.
