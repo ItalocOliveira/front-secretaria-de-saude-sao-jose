@@ -35,21 +35,42 @@ Autenticação é via **JWT** (`POST /auth/login`, token válido por 1 hora, env
 
 ```
 src/
-  main.tsx                    # entry: StrictMode > ThemeProvider > TooltipProvider > App + Toaster
-  App.tsx                     # raiz da aplicação (atualmente placeholder do scaffold)
+  main.tsx                    # entry: StrictMode > AppErrorBoundary > ThemeProvider > TooltipProvider > App + Toaster
+  App.tsx                     # QueryClientProvider > RouterProvider
   index.css                   # Tailwind v4 + tokens shadcn (@theme inline, :root, .dark)
+  vite-env.d.ts               # tipagem de import.meta.env (VITE_API_URL)
+  api/                        # camada de rede — nenhum componente chama fetch direto
+    client.ts                 # request(), ApiError, base URL, Bearer, timeout, normalização de erro
+    auth.ts / apacs.ts / users.ts
+  app/
+    router.tsx                # createBrowserRouter + guardas + errorElement
+    query-client.ts           # QueryClient (staleTime, política de retry)
   components/
+    error-boundary.tsx        # RouteErrorBoundary (errorElement) + AppErrorBoundary (classe)
     theme-provider.tsx        # tema light/dark/system, persistido em localStorage, atalho "d"
+    auth/                     # require-auth, require-role, home-redirect
+    layout/                   # app-shell, app-sidebar, app-header, user-menu
+    apacs/                    # componentes da tela de APACs
     ui/                       # componentes shadcn/ui — gerados pela CLI, ver regras abaixo
   hooks/
     use-mobile.ts             # useIsMobile() — breakpoint 768px
+    use-session.ts            # sessão reativa (useSyncExternalStore sobre lib/session.ts)
+    use-auth.ts / use-apacs.ts / use-users.ts
   lib/
     utils.ts                  # cn() = twMerge(clsx(...))
+    apac.ts                   # enums do domínio (const object + union type) e labels
+    session.ts                # token em sessionStorage, decode do JWT, store externo
+    permissions.ts            # matriz de roles espelhada do contrato
+  data/
+    apacs-mock.ts             # só o que a API não fornece (municípios, unidades)
+  pages/
   assets/
+mock/                         # API mockada (json-server + JWT + roles) — `pnpm api:mock`
 mockups/                      # protótipos HTML estáticos de referência visual (dashboard-apacs.html)
 public/
 .docs/
   api-backend.md              # contrato da API backend (serviço externo) — referência de integração
+  integracao-api.md           # como o front consome a API: env, decisões e lacunas do contrato
 .agents/skills/               # skills instaladas (shadcn, migrate-radix-to-base) — não editar à mão
 README.md                     # documentação humana deste frontend
 ```
@@ -60,12 +81,16 @@ Documentação complementar (contratos, decisões, referências) vai em `.docs/`
 
 ```bash
 pnpm install          # instala dependências (use pnpm; o lockfile é pnpm-lock.yaml)
+cp .env.example .env.local   # VITE_API_URL e API_PROXY_TARGET
+pnpm api:mock         # API mockada em http://localhost:3000 (JWT + roles reais)
 pnpm dev              # dev server em http://localhost:3001 (HMR)
 pnpm build            # tsc -b && vite build  → dist/
 pnpm preview          # serve o build de produção
 ```
 
-Node: use uma versão compatível com Vite 8 (Node 20.19+ / 22.12+). Não há `.env` versionado; a base URL da API (`http://localhost:3000` em dev) deve ser lida de `import.meta.env.VITE_*` quando a camada de API for criada — nunca hardcoded em componentes.
+Node: use uma versão compatível com Vite 8 (Node 20.19+ / 22.12+).
+
+O front chama `/api/*` e o Vite repassa para `API_PROXY_TARGET` (mock local ou Railway) — mesma origem, então CORS não atrapalha em dev. Detalhes, decisões e o checklist do backend estão em [.docs/integracao-api.md](.docs/integracao-api.md). Credenciais do mock: [mock/README.md](mock/README.md).
 
 ## Fluxo de desenvolvimento
 
@@ -213,20 +238,23 @@ Não há RSC nem SSR aqui — as categorias que importam são **bundle**, **data
 
 ## Integração com a API
 
-Contrato completo em [.docs/api-backend.md](.docs/api-backend.md). Pontos que o frontend precisa respeitar:
+Contrato em [.docs/api-backend.md](.docs/api-backend.md); como este frontend consome, em [.docs/integracao-api.md](.docs/integracao-api.md) (env, decisões, lacunas). Pontos que o código precisa respeitar:
 
-- **Base URL**: `http://localhost:3000` em dev → exponha via `VITE_API_URL`.
-- **Auth**: `POST /auth/login` com `{ cpf, password }` → `{ token }`. Token expira em **1h**; trate `401` (não autenticado) redirecionando ao login e `403` (role insuficiente) com mensagem de acesso negado. Não há refresh token implementado.
-- **Roles**: `DEV`, `DIRETOR`, `SECRETARIA`, `RECEPCIONISTA`, `REGULADOR`. A UI deve esconder/desabilitar ações conforme a matriz de permissões documentada em `.docs/api-backend.md` (ex.: `SECRETARIA` não acessa APACs; `RECEPCIONISTA`/`REGULADOR` não acessam usuários).
-- **Enums de APAC**: `procedure` = `EXAME` | `CIRURGIA`; `priority` = `URGENTE` | `NORMAL`; `status` = `PENDENTE` → `AGUARDO` → `APROVADO` | `CANCELADO` | `NEGADO`. `status` **não** é enviado na criação.
-- Modele esses enums como union types + `const` object (lembre: `erasableSyntaxOnly` proíbe `enum`).
-- **Endpoints ainda não implementados no backend** (edição, exclusão, busca por id, anexo de PDF): não construa telas que dependam deles sem confirmar com o usuário.
+- **Nunca chame `fetch` direto.** Toda requisição passa por `request()` em `src/api/client.ts`, que injeta o `Bearer`, aplica timeout e normaliza o erro em `ApiError`. Endpoints novos viram funções em `src/api/<recurso>.ts` e são consumidos por um hook em `src/hooks/use-<recurso>.ts`.
+- **Base URL**: `import.meta.env.VITE_API_URL` (`/api` em dev, via proxy do Vite). Nunca hardcoded. `VITE_*` é inlinada em **build time** — trocar no runtime não tem efeito.
+- **Auth**: token JWT em `sessionStorage` via `src/lib/session.ts` (store externo, consumido por `useSession()`). Expira em **1h**, sem refresh. O client limpa o token em `401`, e as guardas de rota reagem sozinhas.
+- **Roles**: use `src/lib/permissions.ts` (`canAccessApacs`, `canManageUsers`, `homeRouteFor`) em vez de repetir a matriz. Rotas são protegidas por `RequireAuth` + `RequireRole`; a sidebar esconde o que o perfil não alcança. Como `SECRETARIA` não vê APACs e `RECEPCIONISTA`/`REGULADOR` não veem usuários, **não existe home única**.
+- **Enums de APAC**: `procedure` = `EXAME` | `CIRURGIA`; `priority` = `URGENTE` | `NORMAL`; `status` = `PENDENTE` → `AGUARDO` → `APROVADO` | `CANCELADO` | `NEGADO`. `status` **não** é enviado na criação. Já modelados em `src/lib/apac.ts` como `const object` + union type (`erasableSyntaxOnly` proíbe `enum`).
+- **Endpoints ainda não implementados no backend** (edição, exclusão, busca por id, anexo de PDF): não construa telas que dependam deles sem confirmar com o usuário. O mock responde a algumas dessas rotas — isso **não** significa que a API real responda.
+- **Campos fora do contrato** (nº da APAC, SIGTAP, CID, médico, unidade): não os adicione a um formulário que faz `POST`. Coletar dado que a API descarta em silêncio é pior que não coletar.
 
 ### Dados sensíveis
 
 - CPF e CNS são dados pessoais de saúde. **Nunca** logue-os em `console`, não persista em `localStorage`, e não os inclua em query strings ou URLs.
-- O token JWT é a única credencial no cliente; ao armazená-lo, documente a escolha (memória vs `localStorage`) e trate logout limpando o storage.
-- Nunca commite `.env` com valores reais.
+- `GET /apecs` devolve `cns`/`cpf` **criptografados**; eles ficam de fora do view model `Apac` de propósito, para não serem renderizados por engano. Não os traga de volta.
+- **Nunca exiba nem logue `ApiError.details`** — o `500` de `POST /apecs` pode devolver os dados do paciente. Nas telas, use só `error.message`, que já é normalizado.
+- O token JWT vive em `sessionStorage` (decisão registrada em [.docs/integracao-api.md](.docs/integracao-api.md)); logout limpa o storage e o cache do React Query. As claims expostas pelo `useSession()` omitem o `cpf` presente no payload do JWT.
+- Nunca commite `.env` com valores reais. `.env.example` é versionado; `.env*` está no `.gitignore`.
 
 ## Diretrizes de Pull Request
 
@@ -238,10 +266,13 @@ Contrato completo em [.docs/api-backend.md](.docs/api-backend.md). Pontos que o 
 
 ## Notas e armadilhas comuns
 
-- **Porta 3001**, não 3000 — 3000 é da API backend.
+- **Porta 3001**, não 3000 — 3000 é da API (real ou `pnpm api:mock`).
+- **`DropdownMenuLabel`/`SelectLabel` são `GroupLabel` do Base UI**: fora de um `Group`/`RadioGroup` eles **lançam em runtime**, não degradam. Todo label precisa viver dentro do grupo que nomeia.
+- **`SelectValue` renderiza o valor cru**, não o texto do item. Quando `value` difere do label (enums, sentinelas), passe uma função como `children`.
+- **`SidebarInset` não tem `min-w-0`**: sem isso, uma tabela larga empurra a página inteira para o scroll horizontal. O mesmo vale para filhos de grid/flex (`*:min-w-0`).
 - **Tailwind v4 sem config file**: toda customização de tema vive em `src/index.css` (`@theme inline`, `:root`, `.dark`). Não crie `tailwind.config.js`.
 - **Base UI ≠ Radix**: props diferem (`render` vs `asChild`). Existe a skill `migrate-radix-to-base` em `.agents/skills/` se precisar converter código de exemplo.
 - **Tema**: `ThemeProvider` alterna com a tecla `d` (ignorada em campos editáveis) e sincroniza entre abas via evento `storage`. Ao adicionar inputs custom, garanta que o alvo seja detectado como editável.
 - `mockups/dashboard-apacs.html` é referência visual estática do dashboard — use como guia de layout, não como código a ser portado literalmente.
 - `pnpm-workspace.yaml` existe com `packages: []` — **não é um monorepo**; serve apenas para o campo `allowBuilds`.
-- `src/App.tsx` ainda é o placeholder do scaffold shadcn; substituir é esperado, não é regressão.
+- O **mock (`mock/`) é mais permissivo que a API real**: responde a rotas apenas previstas (`GET/PATCH/DELETE` por id) e aceita query params do json-server. Funcionar contra o mock não prova que funciona contra o backend — confira o contrato.
