@@ -71,12 +71,16 @@ export function decodeToken(token: string): SessionClaims | null {
       return null
     }
 
-    const { id, role, exp } = json as Record<string, unknown>
-    if (typeof id !== "string" || !isUserRole(role) || typeof exp !== "number") {
+    // A API emite o id do usuário em `sub` (subject, padrão JWT); `id` fica como
+    // tolerância caso o backend passe a nomear a claim assim.
+    const { sub, id, role, exp } = json as Record<string, unknown>
+    const userId = typeof sub === "string" ? sub : id
+
+    if (typeof userId !== "string" || !isUserRole(role) || typeof exp !== "number") {
       return null
     }
 
-    return { id, role, exp }
+    return { id: userId, role, exp }
   } catch {
     // Token malformado equivale a não ter sessão.
     return null
