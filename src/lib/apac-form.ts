@@ -9,7 +9,7 @@
  */
 
 import type { CreateApacPayload } from "@/api/apacs"
-import { APAC_PRIORITY, type ApacPriority, type ApacProcedure } from "@/lib/apac"
+import { APAC_PRIORITY, type ApacAcs, type ApacPriority, type ApacProcedure } from "@/lib/apac"
 
 export type ApacFormValues = {
   name: string
@@ -20,6 +20,8 @@ export type ApacFormValues = {
   municipality: string
   procedure: ApacProcedure | ""
   priority: ApacPriority
+  /** ACS (Agente Comunitário de Saúde) responsável — obrigatório pela API. */
+  acs: ApacAcs | ""
   /**
    * Nunca viaja no `POST /apacs` — a API devolve um `uploadUrl` separado e o
    * PDF é enviado depois, direto pro R2. Fica só em memória até o submit.
@@ -35,6 +37,7 @@ export const INITIAL_APAC_FORM: ApacFormValues = {
   municipality: "",
   procedure: "",
   priority: APAC_PRIORITY.NORMAL,
+  acs: "",
   pdfFile: null,
 }
 
@@ -54,7 +57,7 @@ type ApacFormTextField = Exclude<keyof ApacFormValues, "pdfFile">
 /** Obrigatórios segundo a API. `priority` já nasce preenchida. */
 const REQUIRED_BY_STEP: Record<number, ApacFormTextField[]> = {
   1: ["name", "cns"],
-  2: ["procedure"],
+  2: ["procedure", "acs"],
 }
 
 export function getStepErrors(step: number, values: ApacFormValues) {
@@ -93,6 +96,7 @@ export function toCreateApacPayload(values: ApacFormValues): CreateApacPayload {
     // `getStepErrors` garante o preenchimento antes de chegar aqui.
     procedure: values.procedure as ApacProcedure,
     priority: values.priority,
+    acs: values.acs as ApacAcs,
     // Opcionais só viajam quando têm conteúdo.
     ...(values.birthDate === "" ? {} : { birth_date: toIsoDate(values.birthDate) }),
     ...(cpf === "" ? {} : { cpf }),

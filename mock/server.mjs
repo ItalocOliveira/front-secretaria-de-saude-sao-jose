@@ -38,6 +38,22 @@ const UPLOAD_TTL_MS = 15 * 60 * 1000 // validade da presigned URL, como na API r
 const ROLES = ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
 const PROCEDURES = ["EXAME", "CIRURGIA"]
 const PRIORITIES = ["URGENTE", "NORMAL"]
+const ACS_LIST = [
+  "MARLON",
+  "MARIA_JOSE_SILVA_RIBEIRO",
+  "MARIA_JOSE_DE_ARAUJO",
+  "MARIA_DE_LOURDES",
+  "MANOEL_BATISTA",
+  "LEYDIANE_ARAUJO",
+  "KAIO_VICTOR",
+  "JOAO_MANOEL",
+  "ELANE_CRISTINA",
+  "EDILEUZA_ALVES",
+  "ANA_EMILIA",
+  "DEYSE",
+  "JOELMA_FERNANDES",
+  "FLAVIO",
+]
 
 /** Roles com acesso a cada coleção, conforme a matriz de permissões da doc. */
 const ACCESS = {
@@ -312,6 +328,7 @@ async function createApac(req, res) {
   if (!body.cns) details.cns = "Campo obrigatório."
   if (!PROCEDURES.includes(body.procedure)) details.procedure = `Valores aceitos: ${PROCEDURES.join(", ")}.`
   if (!PRIORITIES.includes(body.priority)) details.priority = `Valores aceitos: ${PRIORITIES.join(", ")}.`
+  if (!ACS_LIST.includes(body.acs)) details.acs = `Valores aceitos: ${ACS_LIST.join(", ")}.`
   if (body.birth_date != null && Number.isNaN(Date.parse(body.birth_date))) {
     details.birth_date = "Data inválida — use ISO 8601."
   }
@@ -328,6 +345,7 @@ async function createApac(req, res) {
     municipality: body.municipality ? String(body.municipality) : null,
     procedure: body.procedure,
     priority: body.priority,
+    acs: body.acs,
     created_at: now,
     updated_at: now,
   }

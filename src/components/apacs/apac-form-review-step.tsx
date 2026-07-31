@@ -1,6 +1,13 @@
 import { CircleAlertIcon, FileTextIcon, XIcon } from "lucide-react"
 
-import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_LABEL, type ApacProcedure } from "@/lib/apac"
+import {
+  APAC_ACS_LABEL,
+  APAC_PRIORITY_LABEL,
+  APAC_PROCEDURE_LABEL,
+  APAC_STATUS_LABEL,
+  type ApacAcs,
+  type ApacProcedure,
+} from "@/lib/apac"
 import { APAC_PDF_MIME, formatFileSize, type ApacFormValues } from "@/lib/apac-form"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -74,6 +81,10 @@ export function ApacFormReviewStep({
               {APAC_PRIORITY_LABEL[values.priority]}
             </Badge>
           }
+        />
+        <ReviewRow
+          label="ACS responsável"
+          value={values.acs === "" ? NOT_PROVIDED : APAC_ACS_LABEL[values.acs as ApacAcs]}
         />
       </ItemGroup>
 

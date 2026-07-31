@@ -1,4 +1,4 @@
-import type { ApacPriority, ApacProcedure, ApacStatus } from "@/lib/apac"
+import type { ApacAcs, ApacPriority, ApacProcedure, ApacStatus } from "@/lib/apac"
 import { request } from "@/api/client"
 
 /**
@@ -63,6 +63,8 @@ export type CreateApacPayload = {
   cns: string
   procedure: ApacProcedure
   priority: ApacPriority
+  /** ACS (Agente Comunitário de Saúde) responsável — obrigatório pela API. */
+  acs: ApacAcs
   birth_date?: string
   cpf?: string
   municipality?: string
