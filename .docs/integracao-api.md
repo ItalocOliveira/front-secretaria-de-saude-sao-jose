@@ -98,7 +98,9 @@ Detalhes em `src/lib/session.ts`:
 
 Se o `PUT` falhar (link expirado, rede caiu), a APAC **já existe** — o form (`ApacFormCard`) não repete o `POST`, só oferece reenviar o mesmo arquivo pra mesma `uploadUrl`. Não há endpoint pra regerar a URL isoladamente; se ela já expirou, o reenvio falha de novo e hoje não há recuperação pela UI.
 
-`GET /apacs` também devolve um `pdf_url` (presigned de download, válido por 1h, gerado a cada chamada) em cada item — mas ele não está tipado em `ApacDto`/`Apac` ainda, porque nenhuma tela consome download. Ao integrar isso, não confiar em autocomplete: confirmar o campo bate com o que a API realmente manda.
+**CORS do bucket**: o `PUT` sai do navegador direto pro R2, então o bucket precisa de uma CORS Policy própria (separada da API) liberando a origem do front, método `PUT` (e `GET`, pro download) e o header `content-type` — sem isso o preflight falha com `blocked by CORS policy` e o front cai no mesmo tratamento de erro de rede (não dá pra distinguir os dois no `catch`). Configuração é no painel do bucket (R2 → bucket → Settings → CORS Policy), não no código.
+
+`GET /apacs` também devolve um `pdf_url` (presigned de download, válido por 1h, gerado a cada chamada, mesmo que nenhum PDF tenha sido enviado ainda) em cada item — tipado como opcional em `ApacDto`/`Apac`. `ApacsTableCard` e `ApacDetailsDialog` mostram um botão "Ver PDF" que abre `pdfUrl` em nova aba (`target="_blank"`) sempre que o campo vier preenchido; o navegador renderiza o PDF nativamente, então o front não precisa de viewer, download ou impressão próprios.
 
 ## O que está integrado
 

@@ -22,6 +22,13 @@ export type ApacDto = {
   municipality?: string | null
   created_at?: string
   updated_at?: string
+  /**
+   * Presigned URL de **download**, válida por 1h, gerada a cada `GET /apacs`.
+   * Não vem tipada no `ApacDomain` do backend (injetada via spread) — presente
+   * mesmo quando nenhum PDF foi enviado ainda, então não use como indicador de
+   * "tem PDF".
+   */
+  pdf_url?: string | null
 }
 
 /**
@@ -40,6 +47,8 @@ export type Apac = {
   municipality: string | null
   birthDate: string | null
   createdAt: string | null
+  /** Presigned URL de download do PDF, válida por 1h. `null` se a API não mandar. */
+  pdfUrl: string | null
 }
 
 export function toApac(dto: ApacDto, index: number): Apac {
@@ -54,6 +63,7 @@ export function toApac(dto: ApacDto, index: number): Apac {
     municipality: dto.municipality ?? null,
     birthDate: dto.birth_date ?? null,
     createdAt: dto.created_at ?? null,
+    pdfUrl: dto.pdf_url ?? null,
   }
 }
 

@@ -10,7 +10,7 @@
  * IMPORTANTE: só para desenvolvimento. O "hash" e a "criptografia" aqui são
  * fachadas reversíveis e o segredo do JWT está no código.
  */
-import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs"
+import { copyFileSync, createReadStream, existsSync, mkdirSync, rmSync } from "node:fs"
 import { writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto"
@@ -33,7 +33,8 @@ const UPLOADS_DIR = join(HERE, "uploads")
 
 const JWT_SECRET = "mock-secret-nao-usar-em-producao"
 const TOKEN_TTL_SECONDS = 60 * 60 // 1 hora, como na API real
-const UPLOAD_TTL_MS = 15 * 60 * 1000 // validade da presigned URL, como na API real
+const UPLOAD_TTL_MS = 15 * 60 * 1000 // validade da presigned URL de upload, como na API real
+const DOWNLOAD_TTL_MS = 60 * 60 * 1000 // validade da presigned URL de download, como na API real
 
 const ROLES = ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
 const PROCEDURES = ["EXAME", "CIRURGIA"]
@@ -356,14 +357,24 @@ async function createApac(req, res) {
   // Espelha a API real: o backend não recebe o PDF, só devolve uma presigned
   // URL pro cliente fazer o PUT direto no bucket (aqui, num endpoint local que
   // imita o R2, `exp` incluso).
-  const uploadUrl = `http://${HOST}:${PORT}/mock-uploads/${apac.id}.pdf?exp=${Date.now() + UPLOAD_TTL_MS}`
+  const uploadUrl = mockPdfUrl(apac.id, UPLOAD_TTL_MS)
 
   return send(res, 201, { apac, uploadUrl })
 }
 
 // ---------------------------------------------------------------------------
-// PUT /mock-uploads/:id.pdf — imita o PUT presigned direto no R2
+// /mock-uploads/:id.pdf — imita as presigned URLs (PUT de upload, GET de
+// download) que a API real gera a partir do Cloudflare R2.
 // ---------------------------------------------------------------------------
+
+function mockPdfUrl(id, ttlMs) {
+  return `http://${HOST}:${PORT}/mock-uploads/${id}.pdf?exp=${Date.now() + ttlMs}`
+}
+
+/** Injeta `pdf_url` em cada item de uma listagem/objeto de APAC, como a API real faz. */
+function withPdfUrl(apac) {
+  return apac?.id ? { ...apac, pdf_url: mockPdfUrl(apac.id, DOWNLOAD_TTL_MS) } : apac
+}
 
 async function readRawBody(req) {
   const chunks = []
@@ -381,6 +392,21 @@ async function uploadMockPdf(req, res, filename, searchParams) {
   await writeFile(join(UPLOADS_DIR, filename), body)
 
   return send(res, 200, { ok: true })
+}
+
+function downloadMockPdf(req, res, filename, searchParams) {
+  const exp = Number(searchParams.get("exp"))
+  if (!Number.isFinite(exp) || Date.now() > exp) {
+    return send(res, 403, { message: "Link de download expirado." })
+  }
+
+  const filePath = join(UPLOADS_DIR, filename)
+  if (!existsSync(filePath)) {
+    return send(res, 404, { message: "Nenhum PDF enviado para esta APAC ainda." })
+  }
+
+  res.writeHead(200, { ...CORS_HEADERS, "content-type": "application/pdf" })
+  createReadStream(filePath).pipe(res)
 }
 
 // ---------------------------------------------------------------------------
@@ -412,7 +438,12 @@ function routeIndex() {
       {
         method: "PUT",
         path: "/mock-uploads/:id.pdf?exp=...",
-        roles: "nenhuma (imita a presigned URL do R2 devolvida por POST /apacs)",
+        roles: "nenhuma (imita a presigned URL de upload do R2 devolvida por POST /apacs)",
+      },
+      {
+        method: "GET",
+        path: "/mock-uploads/:id.pdf?exp=...",
+        roles: "nenhuma (imita a presigned URL de download do R2 devolvida em pdf_url por GET /apacs)",
       },
     ],
   }
@@ -434,8 +465,10 @@ const server = createServer(async (req, res) => {
   const [collection, ...rest] = segments
 
   // Imita o R2: URL própria, sem role nem `Authorization` — só o `exp` na query.
-  if (collection === "mock-uploads" && method === "PUT" && rest.length === 1) {
-    return uploadMockPdf(req, res, rest[0], new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams)
+  if (collection === "mock-uploads" && rest.length === 1) {
+    const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
+    if (method === "PUT") return uploadMockPdf(req, res, rest[0], searchParams)
+    if (method === "GET") return downloadMockPdf(req, res, rest[0], searchParams)
   }
 
   if (collection === "auth") return handleAuth(req, res, rest)
@@ -454,6 +487,23 @@ const server = createServer(async (req, res) => {
   if (method === "POST" && rest.length === 0) {
     if (collection === "users") return createUser(req, res)
     if (collection === "apacs") return createApac(req, res)
+  }
+
+  // `pdf_url` é gerado sob demanda a cada GET, como na API real — o json-server só
+  // serve o que está persistido em db.json, então essas duas rotas (sem query
+  // params) respondem aqui, direto do banco em memória, com o campo injetado.
+  // Com filtro/ordenação/paginação (`?status=...`, `?_sort=...`), cai no
+  // json-server abaixo e não vem `pdf_url` — só para desenvolvimento.
+  if (method === "GET" && collection === "apacs") {
+    const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
+    if (rest.length === 0 && searchParams.size === 0) {
+      return send(res, 200, db.data.apacs.map(withPdfUrl))
+    }
+    if (rest.length === 1 && searchParams.size === 0) {
+      const found = db.data.apacs.find((item) => item.id === rest[0])
+      if (!found) return send(res, 404, { message: "APAC não encontrada." })
+      return send(res, 200, withPdfUrl(found))
+    }
   }
 
   // Listagem, busca por id e mutações vão para o json-server. O corpo da
