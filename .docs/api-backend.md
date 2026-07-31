@@ -52,7 +52,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 | -------------- | :---------: | --------------------------------------------------------------- |
 | `name`         |     Sim     | `string` — nome do paciente                                     |
 | `cns`          |     Sim     | `string` — Cartão Nacional de Saúde                             |
-| `procedure`    |     Sim     | `EXAME` \| `CIRURGIA`                                           |
+| `procedure`    |     Sim     | `string` — texto livre, não é mais um enum fixo                 |
 | `priority`     |     Sim     | `URGENTE` \| `NORMAL`                                           |
 | `acs`          |     Sim     | ver enum `Acs` abaixo — Agente Comunitário de Saúde responsável |
 | `birth_date`   |     Não     | `Date` (ISO 8601)                                               |
@@ -83,7 +83,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 - Toda APAC deve possuir `name`, `cns`, `procedure` e `priority`
 - `cns` e `cpf` (quando informado) são persistidos com hash e criptografia, mas trafegam em **texto puro** nas respostas da API
 - `status` inicia como `PENDENTE`; a transição (`AGUARDO`/`APROVADO`/`CANCELADO`/`NEGADO`) é feita via `PATCH /apacs/:id`
-- `procedure` aceita apenas `EXAME` ou `CIRURGIA`
+- `procedure` é texto livre (deixou de ser um enum fixo — `EXAME`/`CIRURGIA` eram só os valores originais)
 - `priority` aceita apenas `URGENTE` ou `NORMAL`
 
 ### Segurança e acesso
@@ -356,7 +356,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 | -------------- | ------------------- | ----------- | -------------------------------------------------------- |
 | `name`         | `string`            | Sim         | Nome do paciente                                         |
 | `cns`          | `string`            | Sim         | Cartão Nacional de Saúde                                 |
-| `procedure`    | `string`            | Sim         | Tipo de procedimento: `EXAME` ou `CIRURGIA`              |
+| `procedure`    | `string`            | Sim         | Tipo de procedimento — texto livre                       |
 | `priority`     | `string`            | Sim         | Prioridade: `URGENTE` ou `NORMAL`                        |
 | `acs`          | `string`            | Sim         | Agente Comunitário de Saúde responsável — ver enum `Acs` |
 | `birth_date`   | `string` (ISO 8601) | Não         | Data de nascimento                                       |
@@ -369,7 +369,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 
 | Enum                        | Valores                                                  |
 | --------------------------- | -------------------------------------------------------- |
-| `procedure`                 | `EXAME`, `CIRURGIA`                                      |
+| `procedure`                 | texto livre — não é mais um enum                         |
 | `priority`                  | `URGENTE`, `NORMAL`                                      |
 | `acs`                       | ver enum `Acs` no início da seção de APACs               |
 | `status` (somente resposta) | `PENDENTE`, `AGUARDO`, `APROVADO`, `CANCELADO`, `NEGADO` |
@@ -469,7 +469,7 @@ Edita campos de uma APAC já cadastrada.
 | -------------- | -------- | ---------------------------------------------------------------- |
 | `name`         | `string` | Nome do paciente                                                 |
 | `acs`          | `string` | Agente Comunitário de Saúde responsável — ver enum `Acs`         |
-| `procedure`    | `string` | `EXAME` ou `CIRURGIA`                                            |
+| `procedure`    | `string` | Tipo de procedimento — texto livre                               |
 | `municipality` | `string` | Município                                                        |
 | `status`       | `string` | `PENDENTE` \| `AGUARDO` \| `APROVADO` \| `CANCELADO` \| `NEGADO` |
 

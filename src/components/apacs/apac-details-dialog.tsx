@@ -3,13 +3,7 @@ import { ptBR } from "date-fns/locale"
 import { FileTextIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
-import {
-  APAC_ACS_LABEL,
-  APAC_PRIORITY_LABEL,
-  APAC_PROCEDURE_LABEL,
-  APAC_STATUS_BADGE,
-  APAC_STATUS_LABEL,
-} from "@/lib/apac"
+import { APAC_ACS_LABEL, APAC_PRIORITY_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -70,7 +64,7 @@ export function ApacDetailsDialog({
             <DetailRow label="CPF">{apac.cpf ?? NOT_PROVIDED}</DetailRow>
             <DetailRow label="Agente de Saúde">{APAC_ACS_LABEL[apac.acs]}</DetailRow>
             <DetailRow label="Procedimento">
-              <Badge variant="secondary">{APAC_PROCEDURE_LABEL[apac.procedure]}</Badge>
+              <Badge variant="secondary">{apac.procedure}</Badge>
             </DetailRow>
             <DetailRow label="Município">{apac.municipality ?? NOT_PROVIDED}</DetailRow>
             <DetailRow label="Data de nascimento">{formatDate(apac.birthDate)}</DetailRow>

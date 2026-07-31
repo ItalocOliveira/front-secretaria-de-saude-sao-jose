@@ -127,7 +127,7 @@ O que a UI precisaria e a API não oferece. Nada disso foi simulado com dado fal
 | Lacuna                                                          | Impacto                                                                                                                    |
 | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `GET /auth/me` não devolve `name`                               | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                                  |
-| Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade | Campos removidos do formulário — `procedure` só aceita `EXAME`/`CIRURGIA`.                                                 |
+| Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade | Campos removidos do formulário — `procedure` é texto livre, mas continua sem esses campos dedicados.                       |
 | Sem endpoint pra regerar `uploadUrl` isoladamente               | Se o `PUT` pro R2 falhar após os 15 min de validade, não há como recuperar o envio pela UI — só reenviar antes de expirar. |
 | Sem endpoint de agregação                                       | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apacs/stats`.            |
 | Sem query params documentados                                   | Filtro e ordenação são client-side (`src/lib/apac-filters.ts` é o ponto de troca).                                         |

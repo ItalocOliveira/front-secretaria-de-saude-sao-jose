@@ -2,7 +2,7 @@ import { useState } from "react"
 import { EyeIcon, FileTextIcon, InboxIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
-import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
+import { APAC_PRIORITY_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
 import { ApacDeleteAlert } from "@/components/apacs/apac-delete-alert"
 import { ApacDetailsDialog } from "@/components/apacs/apac-details-dialog"
 import { ApacEditDialog } from "@/components/apacs/apac-edit-dialog"
@@ -111,7 +111,7 @@ export function ApacsTableCard({
                 {visible.map((apac) => (
                   <TableRow key={apac.id}>
                     <TableCell className="pl-4 font-medium">{apac.name}</TableCell>
-                    <TableCell>{APAC_PROCEDURE_LABEL[apac.procedure]}</TableCell>
+                    <TableCell>{apac.procedure}</TableCell>
                     <TableCell className="text-muted-foreground">{apac.municipality ?? "—"}</TableCell>
                     <TableCell>
                       <div className="flex flex-col items-start gap-1">

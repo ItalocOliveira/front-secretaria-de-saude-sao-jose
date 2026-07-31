@@ -15,12 +15,8 @@ export const APAC_STATUS = {
 
 export type ApacStatus = (typeof APAC_STATUS)[keyof typeof APAC_STATUS]
 
-export const APAC_PROCEDURE = {
-  EXAME: "EXAME",
-  CIRURGIA: "CIRURGIA",
-} as const
-
-export type ApacProcedure = (typeof APAC_PROCEDURE)[keyof typeof APAC_PROCEDURE]
+/** Texto livre — a API não valida mais contra um enum fixo (`EXAME`/`CIRURGIA` deixaram de ser os únicos valores). */
+export type ApacProcedure = string
 
 export const APAC_PRIORITY = {
   URGENTE: "URGENTE",
@@ -75,11 +71,6 @@ export const APAC_STATUS_BADGE: Record<ApacStatus, "default" | "secondary" | "de
   NEGADO: "destructive",
 }
 
-export const APAC_PROCEDURE_LABEL: Record<ApacProcedure, string> = {
-  EXAME: "Exame",
-  CIRURGIA: "Cirurgia",
-}
-
 export const APAC_PRIORITY_LABEL: Record<ApacPriority, string> = {
   URGENTE: "Urgente",
   NORMAL: "Normal",
@@ -112,7 +103,6 @@ export const USER_ROLE_LABEL: Record<UserRole, string> = {
 }
 
 export const APAC_STATUS_LIST = Object.values(APAC_STATUS)
-export const APAC_PROCEDURE_LIST = Object.values(APAC_PROCEDURE)
 export const APAC_PRIORITY_LIST = Object.values(APAC_PRIORITY)
 export const APAC_ACS_LIST = Object.values(APAC_ACS)
 export const USER_ROLE_LIST = Object.values(USER_ROLE)
