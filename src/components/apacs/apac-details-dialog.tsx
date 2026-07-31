@@ -1,6 +1,6 @@
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { FileTextIcon } from "lucide-react"
+import { FileTextIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
 import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
@@ -42,9 +42,13 @@ function formatDate(value: string | null) {
 export function ApacDetailsDialog({
   apac,
   onOpenChange,
+  onEdit,
+  onDelete,
 }: {
   apac: Apac | null
   onOpenChange: (open: boolean) => void
+  onEdit: (apac: Apac) => void
+  onDelete: (apac: Apac) => void
 }) {
   return (
     <Dialog open={apac !== null} onOpenChange={onOpenChange}>
@@ -76,13 +80,25 @@ export function ApacDetailsDialog({
 
         <DialogFooter>
           <DialogClose render={<Button variant="outline">Fechar</Button>} />
+          {apac === null ? null : (
+            <Button variant="destructive" onClick={() => onDelete(apac)}>
+              <Trash2Icon data-icon="inline-start" />
+              Excluir
+            </Button>
+          )}
+          {apac === null ? null : (
+            <Button variant="outline" onClick={() => onEdit(apac)}>
+              <PencilIcon data-icon="inline-start" />
+              Editar
+            </Button>
+          )}
           {apac?.pdfUrl === null || apac?.pdfUrl === undefined ? null : (
             <Button render={<a href={apac.pdfUrl} target="_blank" rel="noopener noreferrer" />}>
               <FileTextIcon data-icon="inline-start" />
               Ver PDF
             </Button>
           )}
-          {/* Transição de status depende de endpoint de edição, ainda não implementado. */}
+          {/* Transição de status ainda não é aceita pelo PATCH (só name/cns/procedure/municipality). */}
           <Button disabled>Alterar situação</Button>
         </DialogFooter>
       </DialogContent>

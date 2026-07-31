@@ -1,9 +1,11 @@
 import { useState } from "react"
-import { EyeIcon, FileTextIcon, InboxIcon } from "lucide-react"
+import { EyeIcon, FileTextIcon, InboxIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
 import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
+import { ApacDeleteAlert } from "@/components/apacs/apac-delete-alert"
 import { ApacDetailsDialog } from "@/components/apacs/apac-details-dialog"
+import { ApacEditDialog } from "@/components/apacs/apac-edit-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -37,6 +39,8 @@ export function ApacsTableCard({
 }) {
   const [showAll, setShowAll] = useState(false)
   const [selected, setSelected] = useState<Apac | null>(null)
+  const [editing, setEditing] = useState<Apac | null>(null)
+  const [deleting, setDeleting] = useState<Apac | null>(null)
 
   const visible = showAll ? apacs : apacs.slice(0, PREVIEW_SIZE)
   const hasMore = apacs.length > PREVIEW_SIZE
@@ -120,8 +124,6 @@ export function ApacsTableCard({
                     <TableCell className="text-muted-foreground tabular-nums">{formatDate(apac.createdAt)}</TableCell>
                     <TableCell className="pr-4">
                       <div className="flex justify-end">
-                        {/* Editar/excluir/enviar dependem de endpoints ainda não
-                            implementados no backend — nem chegam a ser oferecidos. */}
                         {apac.pdfUrl === null ? null : (
                           <Tooltip>
                             <TooltipTrigger
@@ -154,6 +156,36 @@ export function ApacsTableCard({
                           />
                           <TooltipContent>Ver detalhes</TooltipContent>
                         </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Editar APAC de ${apac.name}`}
+                                onClick={() => setEditing(apac)}
+                              >
+                                <PencilIcon />
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Excluir APAC de ${apac.name}`}
+                                onClick={() => setDeleting(apac)}
+                              >
+                                <Trash2Icon />
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>Excluir</TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -164,7 +196,20 @@ export function ApacsTableCard({
         ) : null}
       </CardContent>
 
-      <ApacDetailsDialog apac={selected} onOpenChange={(open) => (open ? null : setSelected(null))} />
+      <ApacDetailsDialog
+        apac={selected}
+        onOpenChange={(open) => (open ? null : setSelected(null))}
+        onEdit={(apac) => {
+          setSelected(null)
+          setEditing(apac)
+        }}
+        onDelete={(apac) => {
+          setSelected(null)
+          setDeleting(apac)
+        }}
+      />
+      <ApacEditDialog apac={editing} onOpenChange={(open) => (open ? null : setEditing(null))} />
+      <ApacDeleteAlert apac={deleting} onOpenChange={(open) => (open ? null : setDeleting(null))} />
     </Card>
   )
 }

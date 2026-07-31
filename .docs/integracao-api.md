@@ -35,7 +35,7 @@ Em produção não há proxy. Aí o backend **precisa** liberar CORS para a orig
 
 - [ ] **Domínio público gerado** no serviço. Sem "Generate Domain" ele só existe na rede privada da Railway, inalcançável pelo navegador.
 - [ ] **CORS** configurado: o header `Authorization` força preflight, então a API precisa responder `OPTIONS` e enviar `Access-Control-Allow-Origin` (origem do frontend) e `Access-Control-Allow-Headers: Authorization, Content-Type`.
-- [ ] **Confirmar `id` em `GET /apacs`.** Está no schema Prisma mas não no exemplo de resposta da doc. Sem ele não há como abrir detalhe, editar ou excluir — e a UI hoje cai num fallback por índice, que não é estável entre refetches. (`createdAt`/`updatedAt` já vieram resolvidos numa atualização recente da API.)
+- [x] ~~Confirmar `id` em `GET /apacs`~~ — `id` é garantido em `ApacDomain` (`GET`/`POST`/`PATCH`); a UI não depende mais de fallback por índice.
 
 Cold start: serviço hobby hiberna e a primeira requisição pode levar segundos. O client usa timeout de 20s e o React Query só faz retry em erro de rede/5xx.
 
@@ -45,7 +45,7 @@ Cold start: serviço hobby hiberna e a primeira requisição pode levar segundos
 src/api/
   client.ts       # request(), ApiError, base URL, Bearer, timeout, normalização de erro
   auth.ts         # POST /auth/login, GET /auth/me
-  apacs.ts        # GET/POST /apacs + DTO → view model + upload do PDF direto pro R2
+  apacs.ts        # GET/POST/PATCH/DELETE /apacs + DTO → view model + upload do PDF direto pro R2
   users.ts        # GET/POST /users
 src/lib/
   session.ts      # token em sessionStorage, decode do JWT, store externo
@@ -53,7 +53,7 @@ src/lib/
 src/hooks/
   use-session.ts  # sessão reativa via useSyncExternalStore
   use-auth.ts     # login, logout, /auth/me
-  use-apacs.ts    # useApacs, useCreateApac
+  use-apacs.ts    # useApacs, useCreateApac, useUpdateApac, useDeleteApac
   use-users.ts    # useUsers, useCreateUser
 src/components/auth/
   require-auth.tsx, require-role.tsx, home-redirect.tsx
@@ -88,9 +88,13 @@ Detalhes em `src/lib/session.ts`:
 
 ### Dados sensíveis
 
-- `cns` e `cpf` chegam **criptografados** da API e ficam **fora** do view model `Apac` — não é possível renderizá-los por engano.
+- `cns` e `cpf` agora chegam em **texto puro** da API (deixaram de ser criptografados), mas continuam **fora** do view model `Apac` — o `PATCH` de edição não os altera (só `name`, `acs`, `procedure`, `municipality`), então nenhuma tela precisa deles.
 - A busca da listagem filtra por nome e município apenas, pela mesma razão.
-- `ApiError.details` (o corpo cru do erro) nunca é exibido nem logado: o `500` de `POST /apacs` pode devolver os dados do paciente que falharam na validação. As telas mostram só `error.message`, que é normalizado.
+- `ApiError.details` (o corpo cru do erro) nunca é exibido nem logado: o `500` de `POST/PATCH /apacs` pode devolver os dados do paciente que falharam na validação. As telas mostram só `error.message`, que é normalizado.
+
+### Edição e exclusão de APAC
+
+`PATCH /apacs/:id` aceita `name`, `acs`, `procedure` e `municipality` — todos opcionais, e o front (`ApacEditDialog` em `src/components/apacs/apac-edit-dialog.tsx`) só envia os campos que o usuário de fato alterou (`cns`, `priority`, `birth_date`, `cpf` e `status` não são editáveis por esse endpoint). `DELETE /apacs/:id` (`ApacDeleteAlert`) não tem confirmação de existência prévia: a API não devolve `404`, um `id` inexistente cai em `500`. As duas ações ficam disponíveis na tabela (`ApacsTableCard`) e no diálogo de detalhes (`ApacDetailsDialog`), disponíveis para as mesmas roles que já acessam `/apacs` (`APAC_ROLES` em `src/lib/permissions.ts`).
 
 ### Anexo de PDF: upload direto pro R2
 
@@ -104,13 +108,15 @@ Se o `PUT` falhar (link expirado, rede caiu), a APAC **já existe** — o form (
 
 ## O que está integrado
 
-| Tela                                 | Endpoint           |
-| ------------------------------------ | ------------------ |
-| `/login`                             | `POST /auth/login` |
-| `/apacs` — listagem, cards e filtros | `GET /apacs`       |
-| `/apacs` — formulário de cadastro    | `POST /apacs`      |
-| `/usuarios`                          | `GET /users`       |
-| `/usuarios/novo`                     | `POST /users`      |
+| Tela                                 | Endpoint            |
+| ------------------------------------ | ------------------- |
+| `/login`                             | `POST /auth/login`  |
+| `/apacs` — listagem, cards e filtros | `GET /apacs`        |
+| `/apacs` — formulário de cadastro    | `POST /apacs`       |
+| `/apacs` — edição                    | `PATCH /apacs/:id`  |
+| `/apacs` — exclusão                  | `DELETE /apacs/:id` |
+| `/usuarios`                          | `GET /users`        |
+| `/usuarios/novo`                     | `POST /users`       |
 
 Rotas são guardadas por autenticação (`RequireAuth`) e por perfil (`RequireRole`), e a sidebar esconde o que o perfil não alcança. Como `SECRETARIA` não vê APACs e `RECEPCIONISTA`/`REGULADOR` não veem usuários, **não existe home única**: `homeRouteFor()` decide o destino pós-login.
 
@@ -121,11 +127,9 @@ O que a UI precisaria e a API não oferece. Nada disso foi simulado com dado fal
 | Lacuna                                                          | Impacto                                                                                                                    |
 | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `GET /auth/me` não devolve `name`                               | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                                  |
-| `id` ausente na resposta documentada de `GET /apacs`            | Sem `id` estável não há detalhe, edição nem exclusão.                                                                      |
-| `cns`/`cpf` criptografados na resposta                          | Impossível buscar por paciente ou exibir o CNS na tabela.                                                                  |
 | Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade | Campos removidos do formulário — `procedure` só aceita `EXAME`/`CIRURGIA`.                                                 |
 | Sem endpoint pra regerar `uploadUrl` isoladamente               | Se o `PUT` pro R2 falhar após os 15 min de validade, não há como recuperar o envio pela UI — só reenviar antes de expirar. |
-| Sem endpoint de edição                                          | Transição de status (aprovar/negar) não existe; o botão no diálogo fica desabilitado.                                      |
+| `PATCH /apacs/:id` não aceita `status`                          | Transição de status (aprovar/negar) não existe; o botão "Alterar situação" no diálogo fica desabilitado.                   |
 | Sem endpoint de agregação                                       | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apacs/stats`.            |
 | Sem query params documentados                                   | Filtro e ordenação são client-side (`src/lib/apac-filters.ts` é o ponto de troca).                                         |
 

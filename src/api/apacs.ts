@@ -2,23 +2,21 @@ import type { ApacAcs, ApacPriority, ApacProcedure, ApacStatus } from "@/lib/apa
 import { request } from "@/api/client"
 
 /**
- * Objeto devolvido por `GET /apacs` e `POST /apacs`.
- *
- * `id` ainda **não aparece** no exemplo de resposta da doc — segue opcional
- * aqui. Confirmar com o backend: sem `id` não há como abrir detalhe nem editar
- * uma APAC. `createdAt`/`updatedAt` já vêm preenchidos desde a última
- * atualização da API.
+ * Objeto devolvido por `GET /apacs`, `POST /apacs` e `PATCH /apacs/:id`
+ * (`ApacDomain` no backend). `id` é garantido pela API.
  */
 export type ApacDto = {
-  id?: string
+  id: string
   name: string
-  /** Criptografado pela API. Não é legível e não deve ser exibido. */
+  /** Texto puro (não é mais criptografado pela API) — ainda é dado pessoal de saúde. */
   cns: string
-  /** Criptografado pela API, quando informado. */
+  /** Texto puro, quando informado — mesmo cuidado do `cns`. */
   cpf?: string | null
   procedure: ApacProcedure
   priority: ApacPriority
   status: ApacStatus
+  /** ACS (Agente Comunitário de Saúde) responsável. Editável via `PATCH`. */
+  acs: ApacAcs
   birth_date?: string | null
   municipality?: string | null
   createdAt: string
@@ -35,9 +33,9 @@ export type ApacDto = {
 /**
  * Modelo que a UI consome.
  *
- * `cns` e `cpf` ficam de fora de propósito: chegam criptografados (inúteis na
- * tela) e são dado pessoal de saúde. Deixá-los fora do view model garante que
- * nenhum componente os renderize por descuido.
+ * `cns` e `cpf` ficam de fora de propósito: são dado pessoal de saúde e nenhuma
+ * tela (nem o formulário de edição, que não os altera) precisa deles. Deixá-los
+ * fora do view model garante que nenhum componente os renderize por descuido.
  */
 export type Apac = {
   id: string
@@ -45,6 +43,8 @@ export type Apac = {
   procedure: ApacProcedure
   priority: ApacPriority
   status: ApacStatus
+  /** ACS responsável — editável via `PATCH`. */
+  acs: ApacAcs
   municipality: string | null
   birthDate: string | null
   createdAt: string
@@ -53,15 +53,14 @@ export type Apac = {
   pdfUrl: string | null
 }
 
-export function toApac(dto: ApacDto, index: number): Apac {
+export function toApac(dto: ApacDto): Apac {
   return {
-    // Fallback pelo índice só para servir de `key` enquanto o `id` não vier na
-    // resposta. Não use para navegação — não é estável entre refetches.
-    id: dto.id ?? `sem-id-${index}`,
+    id: dto.id,
     name: dto.name,
     procedure: dto.procedure,
     priority: dto.priority,
     status: dto.status,
+    acs: dto.acs,
     municipality: dto.municipality ?? null,
     birthDate: dto.birth_date ?? null,
     createdAt: dto.createdAt,
@@ -96,7 +95,28 @@ export async function listApacs(signal?: AbortSignal) {
 
 export async function createApac(payload: CreateApacPayload): Promise<CreateApacResult> {
   const data = await request<{ apac: ApacDto; uploadUrl: string }>("/apacs", { method: "POST", body: payload })
-  return { apac: toApac(data.apac, 0), uploadUrl: data.uploadUrl }
+  return { apac: toApac(data.apac), uploadUrl: data.uploadUrl }
+}
+
+/**
+ * Campos aceitos em `PATCH /apacs/:id` — todos opcionais, envie só o que muda.
+ * `cns`, `priority`, `birth_date`, `cpf` e `status` não são editáveis por aqui.
+ */
+export type UpdateApacPayload = {
+  name?: string
+  acs?: ApacAcs
+  procedure?: ApacProcedure
+  municipality?: string
+}
+
+export async function updateApac(id: string, payload: UpdateApacPayload): Promise<Apac> {
+  const data = await request<ApacDto>(`/apacs/${id}`, { method: "PATCH", body: payload })
+  return toApac(data)
+}
+
+/** Sem 404 no contrato: se o `id` não existir, a API responde `500`. */
+export async function deleteApac(id: string): Promise<void> {
+  await request<undefined>(`/apacs/${id}`, { method: "DELETE" })
 }
 
 /**
