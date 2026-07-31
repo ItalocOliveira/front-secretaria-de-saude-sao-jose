@@ -10,7 +10,8 @@
  * IMPORTANTE: só para desenvolvimento. O "hash" e a "criptografia" aqui são
  * fachadas reversíveis e o segredo do JWT está no código.
  */
-import { copyFileSync, existsSync, rmSync } from "node:fs"
+import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs"
+import { writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto"
 import { dirname, join } from "node:path"
@@ -28,9 +29,11 @@ import { createApp } from "json-server/lib/app.js"
 const HERE = dirname(fileURLToPath(import.meta.url))
 const SEED_FILE = join(HERE, "db.seed.json")
 const DB_FILE = join(HERE, "db.json")
+const UPLOADS_DIR = join(HERE, "uploads")
 
 const JWT_SECRET = "mock-secret-nao-usar-em-producao"
 const TOKEN_TTL_SECONDS = 60 * 60 // 1 hora, como na API real
+const UPLOAD_TTL_MS = 15 * 60 * 1000 // validade da presigned URL, como na API real
 
 const ROLES = ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
 const PROCEDURES = ["EXAME", "CIRURGIA"]
@@ -64,6 +67,9 @@ const HOST = flags.host
 // db.json é descartável (gitignored) e recriado a partir do seed versionado.
 if (flags.reset && existsSync(DB_FILE)) rmSync(DB_FILE)
 if (!existsSync(DB_FILE)) copyFileSync(SEED_FILE, DB_FILE)
+
+if (flags.reset && existsSync(UPLOADS_DIR)) rmSync(UPLOADS_DIR, { recursive: true })
+mkdirSync(UPLOADS_DIR, { recursive: true })
 
 const db = new Low(new JSONFile(DB_FILE), {})
 await db.read()
@@ -329,7 +335,34 @@ async function createApac(req, res) {
   db.data.apacs.push(apac)
   await db.write()
 
-  return send(res, 201, apac)
+  // Espelha a API real: o backend não recebe o PDF, só devolve uma presigned
+  // URL pro cliente fazer o PUT direto no bucket (aqui, num endpoint local que
+  // imita o R2, `exp` incluso).
+  const uploadUrl = `http://${HOST}:${PORT}/mock-uploads/${apac.id}.pdf?exp=${Date.now() + UPLOAD_TTL_MS}`
+
+  return send(res, 201, { apac, uploadUrl })
+}
+
+// ---------------------------------------------------------------------------
+// PUT /mock-uploads/:id.pdf — imita o PUT presigned direto no R2
+// ---------------------------------------------------------------------------
+
+async function readRawBody(req) {
+  const chunks = []
+  for await (const chunk of req) chunks.push(chunk)
+  return Buffer.concat(chunks)
+}
+
+async function uploadMockPdf(req, res, filename, searchParams) {
+  const exp = Number(searchParams.get("exp"))
+  if (!Number.isFinite(exp) || Date.now() > exp) {
+    return send(res, 403, { message: "Link de upload expirado." })
+  }
+
+  const body = await readRawBody(req)
+  await writeFile(join(UPLOADS_DIR, filename), body)
+
+  return send(res, 200, { ok: true })
 }
 
 // ---------------------------------------------------------------------------
@@ -358,6 +391,11 @@ function routeIndex() {
       { method: "GET", path: "/apacs", roles: ACCESS.apacs.join(", ") },
       { method: "GET", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
       { method: "PATCH | PUT | DELETE", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
+      {
+        method: "PUT",
+        path: "/mock-uploads/:id.pdf?exp=...",
+        roles: "nenhuma (imita a presigned URL do R2 devolvida por POST /apacs)",
+      },
     ],
   }
 }
@@ -376,6 +414,11 @@ const server = createServer(async (req, res) => {
   if (segments.length === 0) return send(res, 200, routeIndex())
 
   const [collection, ...rest] = segments
+
+  // Imita o R2: URL própria, sem role nem `Authorization` — só o `exp` na query.
+  if (collection === "mock-uploads" && method === "PUT" && rest.length === 1) {
+    return uploadMockPdf(req, res, rest[0], new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams)
+  }
 
   if (collection === "auth") return handleAuth(req, res, rest)
 

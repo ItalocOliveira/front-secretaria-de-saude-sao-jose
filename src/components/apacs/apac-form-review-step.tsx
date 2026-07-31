@@ -1,10 +1,22 @@
-import { CircleAlertIcon } from "lucide-react"
+import { CircleAlertIcon, FileTextIcon, XIcon } from "lucide-react"
 
 import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_LABEL, type ApacProcedure } from "@/lib/apac"
-import type { ApacFormValues } from "@/lib/apac-form"
+import { APAC_PDF_MIME, formatFileSize, type ApacFormValues } from "@/lib/apac-form"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment"
 import { Badge } from "@/components/ui/badge"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item"
+import { toast } from "@/components/ui/toast"
 
 const NOT_PROVIDED = "Não informado"
 
@@ -19,7 +31,15 @@ function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) 
   )
 }
 
-export function ApacFormReviewStep({ values }: { values: ApacFormValues }) {
+export function ApacFormReviewStep({
+  values,
+  disabled = false,
+  onChange,
+}: {
+  values: ApacFormValues
+  disabled?: boolean
+  onChange: (partial: Partial<ApacFormValues>) => void
+}) {
   return (
     <div className="flex flex-col gap-4">
       <Alert>
@@ -56,6 +76,49 @@ export function ApacFormReviewStep({ values }: { values: ApacFormValues }) {
           }
         />
       </ItemGroup>
+
+      <Field>
+        <FieldLabel htmlFor="apac-documento-pdf">Documento (PDF)</FieldLabel>
+        {values.pdfFile === null ? (
+          <Input
+            id="apac-documento-pdf"
+            type="file"
+            accept={APAC_PDF_MIME}
+            disabled={disabled}
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null
+              if (file !== null && file.type !== APAC_PDF_MIME) {
+                toast.add({ title: "Arquivo inválido", description: "Selecione um arquivo PDF." })
+                event.target.value = ""
+                return
+              }
+              onChange({ pdfFile: file })
+            }}
+          />
+        ) : (
+          <Attachment>
+            <AttachmentMedia>
+              <FileTextIcon />
+            </AttachmentMedia>
+            <AttachmentContent>
+              <AttachmentTitle>{values.pdfFile.name}</AttachmentTitle>
+              <AttachmentDescription>{formatFileSize(values.pdfFile.size)}</AttachmentDescription>
+            </AttachmentContent>
+            <AttachmentActions>
+              <AttachmentAction
+                aria-label="Remover arquivo"
+                disabled={disabled}
+                onClick={() => onChange({ pdfFile: null })}
+              >
+                <XIcon />
+              </AttachmentAction>
+            </AttachmentActions>
+          </Attachment>
+        )}
+        <FieldDescription>
+          Opcional. Enviado direto para o armazenamento depois que a APAC for cadastrada — não passa pelo backend.
+        </FieldDescription>
+      </Field>
     </div>
   )
 }

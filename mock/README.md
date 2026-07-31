@@ -64,6 +64,10 @@ GET /apacs?_page=1&_per_page=10
 
 Com `_page`, a resposta vem envelopada em `{ first, prev, next, last, pages, items, data }`.
 
+### Upload de PDF
+
+`POST /apacs` devolve `{ apac, uploadUrl }`. `uploadUrl` aponta pra um endpoint local (`PUT /mock-uploads/:id.pdf?exp=...`) que imita a presigned URL do Cloudflare R2 da API real: sem `Authorization`, validade de 15 min (`exp` embutido na própria URL, não em token). Depois do `exp`, o `PUT` devolve `403`, igual a um link do R2 vencido. Os arquivos "enviados" ficam em `mock/uploads/` (gitignored).
+
 ## Limites
 
 Só para desenvolvimento local:

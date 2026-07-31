@@ -15,6 +15,9 @@ dist-ssr
 # Banco da API mockada — gerado a partir de mock/db.seed.json
 mock/db.json
 
+# PDFs "enviados" ao endpoint que simula o upload direto pro R2
+mock/uploads/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
