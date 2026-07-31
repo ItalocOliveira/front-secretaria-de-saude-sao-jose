@@ -3,7 +3,13 @@ import { ptBR } from "date-fns/locale"
 import { FileTextIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
-import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
+import {
+  APAC_ACS_LABEL,
+  APAC_PRIORITY_LABEL,
+  APAC_PROCEDURE_LABEL,
+  APAC_STATUS_BADGE,
+  APAC_STATUS_LABEL,
+} from "@/lib/apac"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -60,8 +66,9 @@ export function ApacDetailsDialog({
 
         {apac === null ? null : (
           <ItemGroup className="gap-2">
-            {/* CNS e CPF chegam criptografados da API e são dado pessoal de saúde:
-                não fazem parte do view model nem aparecem aqui. */}
+            <DetailRow label="CNS">{apac.cns}</DetailRow>
+            <DetailRow label="CPF">{apac.cpf ?? NOT_PROVIDED}</DetailRow>
+            <DetailRow label="Agente de Saúde">{APAC_ACS_LABEL[apac.acs]}</DetailRow>
             <DetailRow label="Procedimento">
               <Badge variant="secondary">{APAC_PROCEDURE_LABEL[apac.procedure]}</Badge>
             </DetailRow>
@@ -98,8 +105,6 @@ export function ApacDetailsDialog({
               Ver PDF
             </Button>
           )}
-          {/* Transição de status ainda não é aceita pelo PATCH (só name/cns/procedure/municipality). */}
-          <Button disabled>Alterar situação</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -33,13 +33,15 @@ export type ApacDto = {
 /**
  * Modelo que a UI consome.
  *
- * `cns` e `cpf` ficam de fora de propósito: são dado pessoal de saúde e nenhuma
- * tela (nem o formulário de edição, que não os altera) precisa deles. Deixá-los
- * fora do view model garante que nenhum componente os renderize por descuido.
+ * `cns` e `cpf` são dado pessoal de saúde: só entram aqui para o diálogo de
+ * detalhes exibi-los sob demanda — não devem ir para log, `localStorage`,
+ * query string, nem entrar na busca da listagem.
  */
 export type Apac = {
   id: string
   name: string
+  cns: string
+  cpf: string | null
   procedure: ApacProcedure
   priority: ApacPriority
   status: ApacStatus
@@ -57,6 +59,8 @@ export function toApac(dto: ApacDto): Apac {
   return {
     id: dto.id,
     name: dto.name,
+    cns: dto.cns,
+    cpf: dto.cpf ?? null,
     procedure: dto.procedure,
     priority: dto.priority,
     status: dto.status,
@@ -100,13 +104,14 @@ export async function createApac(payload: CreateApacPayload): Promise<CreateApac
 
 /**
  * Campos aceitos em `PATCH /apacs/:id` — todos opcionais, envie só o que muda.
- * `cns`, `priority`, `birth_date`, `cpf` e `status` não são editáveis por aqui.
+ * `cns`, `priority`, `birth_date` e `cpf` não são editáveis por aqui.
  */
 export type UpdateApacPayload = {
   name?: string
   acs?: ApacAcs
   procedure?: ApacProcedure
   municipality?: string
+  status?: ApacStatus
 }
 
 export async function updateApac(id: string, payload: UpdateApacPayload): Promise<Apac> {

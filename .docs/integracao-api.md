@@ -88,13 +88,13 @@ Detalhes em `src/lib/session.ts`:
 
 ### Dados sensíveis
 
-- `cns` e `cpf` agora chegam em **texto puro** da API (deixaram de ser criptografados), mas continuam **fora** do view model `Apac` — o `PATCH` de edição não os altera (só `name`, `acs`, `procedure`, `municipality`), então nenhuma tela precisa deles.
-- A busca da listagem filtra por nome e município apenas, pela mesma razão.
+- `cns` e `cpf` agora chegam em **texto puro** da API (deixaram de ser criptografados). Continuam dado pessoal de saúde: entram no view model `Apac` só para o `ApacDetailsDialog` exibi-los sob demanda — não vão para log, `localStorage`, query string, nem para o formulário de edição (`PATCH` não os altera).
+- A busca da listagem filtra por nome e município apenas — CNS/CPF não entram na busca, mesmo aparecendo no detalhe.
 - `ApiError.details` (o corpo cru do erro) nunca é exibido nem logado: o `500` de `POST/PATCH /apacs` pode devolver os dados do paciente que falharam na validação. As telas mostram só `error.message`, que é normalizado.
 
 ### Edição e exclusão de APAC
 
-`PATCH /apacs/:id` aceita `name`, `acs`, `procedure` e `municipality` — todos opcionais, e o front (`ApacEditDialog` em `src/components/apacs/apac-edit-dialog.tsx`) só envia os campos que o usuário de fato alterou (`cns`, `priority`, `birth_date`, `cpf` e `status` não são editáveis por esse endpoint). `DELETE /apacs/:id` (`ApacDeleteAlert`) não tem confirmação de existência prévia: a API não devolve `404`, um `id` inexistente cai em `500`. As duas ações ficam disponíveis na tabela (`ApacsTableCard`) e no diálogo de detalhes (`ApacDetailsDialog`), disponíveis para as mesmas roles que já acessam `/apacs` (`APAC_ROLES` em `src/lib/permissions.ts`).
+`PATCH /apacs/:id` aceita `name`, `acs`, `procedure`, `municipality` e `status` — todos opcionais, e o front (`ApacEditDialog` em `src/components/apacs/apac-edit-dialog.tsx`) só envia os campos que o usuário de fato alterou (`cns`, `priority`, `birth_date` e `cpf` não são editáveis por esse endpoint). É esse mesmo formulário que resolve a transição de status (aprovar/negar/etc.) — não existe um endpoint dedicado só pra isso. `DELETE /apacs/:id` (`ApacDeleteAlert`) não tem confirmação de existência prévia: a API não devolve `404`, um `id` inexistente cai em `500`. As duas ações ficam disponíveis na tabela (`ApacsTableCard`) e no diálogo de detalhes (`ApacDetailsDialog`), disponíveis para as mesmas roles que já acessam `/apacs` (`APAC_ROLES` em `src/lib/permissions.ts`).
 
 ### Anexo de PDF: upload direto pro R2
 
@@ -129,7 +129,6 @@ O que a UI precisaria e a API não oferece. Nada disso foi simulado com dado fal
 | `GET /auth/me` não devolve `name`                               | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                                  |
 | Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade | Campos removidos do formulário — `procedure` só aceita `EXAME`/`CIRURGIA`.                                                 |
 | Sem endpoint pra regerar `uploadUrl` isoladamente               | Se o `PUT` pro R2 falhar após os 15 min de validade, não há como recuperar o envio pela UI — só reenviar antes de expirar. |
-| `PATCH /apacs/:id` não aceita `status`                          | Transição de status (aprovar/negar) não existe; o botão "Alterar situação" no diálogo fica desabilitado.                   |
 | Sem endpoint de agregação                                       | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apacs/stats`.            |
 | Sem query params documentados                                   | Filtro e ordenação são client-side (`src/lib/apac-filters.ts` é o ponto de troca).                                         |
 

@@ -8,8 +8,11 @@ import {
   APAC_ACS_LIST,
   APAC_PROCEDURE_LABEL,
   APAC_PROCEDURE_LIST,
+  APAC_STATUS_LABEL,
+  APAC_STATUS_LIST,
   type ApacAcs,
   type ApacProcedure,
+  type ApacStatus,
 } from "@/lib/apac"
 import { useUpdateApac } from "@/hooks/use-apacs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -29,10 +32,22 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 
-type FormValues = { name: string; acs: ApacAcs; procedure: ApacProcedure; municipality: string }
+type FormValues = {
+  name: string
+  acs: ApacAcs
+  procedure: ApacProcedure
+  municipality: string
+  status: ApacStatus
+}
 
 function toFormValues(apac: Apac): FormValues {
-  return { name: apac.name, acs: apac.acs, procedure: apac.procedure, municipality: apac.municipality ?? "" }
+  return {
+    name: apac.name,
+    acs: apac.acs,
+    procedure: apac.procedure,
+    municipality: apac.municipality ?? "",
+    status: apac.status,
+  }
 }
 
 function diffPayload(apac: Apac, values: FormValues): UpdateApacPayload {
@@ -42,6 +57,7 @@ function diffPayload(apac: Apac, values: FormValues): UpdateApacPayload {
   if (values.acs !== apac.acs) payload.acs = values.acs
   if (values.procedure !== apac.procedure) payload.procedure = values.procedure
   if (values.municipality !== (apac.municipality ?? "")) payload.municipality = values.municipality
+  if (values.status !== apac.status) payload.status = values.status
 
   return payload
 }
@@ -86,7 +102,9 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar APAC</DialogTitle>
-          <DialogDescription>Só nome, ACS, procedimento e município podem ser alterados por aqui.</DialogDescription>
+          <DialogDescription>
+            Só nome, ACS, procedimento, município e situação podem ser alterados por aqui.
+          </DialogDescription>
         </DialogHeader>
 
         {current === null ? null : (
@@ -174,6 +192,33 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
                     {MUNICIPALITIES.map((municipality) => (
                       <SelectItem key={municipality} value={municipality}>
                         {municipality}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="editar-status">Situação</FieldLabel>
+              <Select
+                value={current.status}
+                onValueChange={(status: string | null) =>
+                  setValues({ ...current, status: (status ?? current.status) as ApacStatus })
+                }
+              >
+                <SelectTrigger id="editar-status" className="w-full">
+                  <SelectValue placeholder="Selecione a situação">
+                    {(status: string | null) =>
+                      status ? APAC_STATUS_LABEL[status as ApacStatus] : "Selecione a situação"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {APAC_STATUS_LIST.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {APAC_STATUS_LABEL[status]}
                       </SelectItem>
                     ))}
                   </SelectGroup>
