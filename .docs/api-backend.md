@@ -385,7 +385,9 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
     "status": "PENDENTE",
     "birth_date": "1990-05-15T00:00:00.000Z",
     "cpf": "valor-criptografado",
-    "municipality": "São José dos Ramos"
+    "municipality": "São José dos Ramos",
+    "createdAt": "2026-07-31T12:00:00.000Z",
+    "updatedAt": "2026-07-31T12:00:00.000Z"
   },
   "uploadUrl": "https://<bucket>.r2.cloudflarestorage.com/apacs/<id>.pdf?X-Amz-..."
 }
@@ -428,6 +430,8 @@ Lista todas as APACs cadastradas.
     "birth_date": "1990-05-15T00:00:00.000Z",
     "cpf": "valor-criptografado",
     "municipality": "São José dos Ramos",
+    "createdAt": "2026-07-31T12:00:00.000Z",
+    "updatedAt": "2026-07-31T12:00:00.000Z",
     "pdf_url": "https://<bucket>.r2.cloudflarestorage.com/apacs/<id>.pdf?X-Amz-..."
   }
 ]
