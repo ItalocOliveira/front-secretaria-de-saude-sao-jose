@@ -6,8 +6,6 @@ import { MUNICIPALITIES } from "@/data/apacs-mock"
 import {
   APAC_ACS_LABEL,
   APAC_ACS_LIST,
-  APAC_PROCEDURE_LABEL,
-  APAC_PROCEDURE_LIST,
   APAC_STATUS_LABEL,
   APAC_STATUS_LIST,
   type ApacAcs,
@@ -151,29 +149,11 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
 
             <Field>
               <FieldLabel htmlFor="editar-procedimento">Tipo de procedimento</FieldLabel>
-              <Select
+              <Input
+                id="editar-procedimento"
                 value={current.procedure}
-                onValueChange={(procedure: string | null) =>
-                  setValues({ ...current, procedure: (procedure ?? current.procedure) as ApacProcedure })
-                }
-              >
-                <SelectTrigger id="editar-procedimento" className="w-full">
-                  <SelectValue placeholder="Selecione o tipo">
-                    {(procedure: string | null) =>
-                      procedure ? APAC_PROCEDURE_LABEL[procedure as ApacProcedure] : "Selecione o tipo"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {APAC_PROCEDURE_LIST.map((procedure) => (
-                      <SelectItem key={procedure} value={procedure}>
-                        {APAC_PROCEDURE_LABEL[procedure]}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                onChange={(event) => setValues({ ...current, procedure: event.target.value })}
+              />
             </Field>
 
             <Field>
