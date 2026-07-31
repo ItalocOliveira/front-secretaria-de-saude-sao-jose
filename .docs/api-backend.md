@@ -6,11 +6,11 @@ Esta é a documentação de requisitos para a API da Secretária de Saúde. A AP
 
 A API expõe três módulos principais:
 
-| Módulo | Prefixo | Responsabilidade |
-|--------|---------|------------------|
-| Autenticação | `/auth` | Login, sessão via JWT e consulta do usuário autenticado |
-| Usuários | `/users` | Cadastro e listagem de contas do sistema |
-| APACs | `/apacs` | Cadastro e listagem de autorizações de procedimentos |
+| Módulo       | Prefixo  | Responsabilidade                                        |
+| ------------ | -------- | ------------------------------------------------------- |
+| Autenticação | `/auth`  | Login, sessão via JWT e consulta do usuário autenticado |
+| Usuários     | `/users` | Cadastro e listagem de contas do sistema                |
+| APACs        | `/apacs` | Cadastro e listagem de autorizações de procedimentos    |
 
 Somente usuários autenticados podem operar recursos protegidos. Cada operação exige uma role específica, validada pelo middleware de autorização.
 
@@ -44,19 +44,19 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 - [ ] Consultar APAC por `id`
 - [ ] Atualizar/modificar APACs cadastradas (incluindo transição de `status`)
 - [ ] Excluir APACs
-- [ ] Anexar PDFs às APACs
+- [x] Anexar PDFs às APACs (indireto: `POST /apacs` devolve uma presigned URL do Cloudflare R2, o navegador envia o PDF direto pro bucket)
 
 **Campos aceitos na criação** (`ApacCreateDto`):
 
-| Campo | Obrigatório | Tipo / enum |
-|-------|:-----------:|-------------|
-| `name` | Sim | `string` — nome do paciente |
-| `cns` | Sim | `string` — Cartão Nacional de Saúde |
-| `procedure` | Sim | `EXAME` \| `CIRURGIA` |
-| `priority` | Sim | `URGENTE` \| `NORMAL` |
-| `birth_date` | Não | `Date` (ISO 8601) |
-| `cpf` | Não | `string` |
-| `municipality` | Não | `string` |
+| Campo          | Obrigatório | Tipo / enum                         |
+| -------------- | :---------: | ----------------------------------- |
+| `name`         |     Sim     | `string` — nome do paciente         |
+| `cns`          |     Sim     | `string` — Cartão Nacional de Saúde |
+| `procedure`    |     Sim     | `EXAME` \| `CIRURGIA`               |
+| `priority`     |     Sim     | `URGENTE` \| `NORMAL`               |
+| `birth_date`   |     Não     | `Date` (ISO 8601)                   |
+| `cpf`          |     Não     | `string`                            |
+| `municipality` |     Não     | `string`                            |
 
 **Status da APAC** (`Status`, definido no schema — padrão `PENDENTE` na criação):
 
@@ -93,23 +93,23 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 
 ### Usuários (`/users`)
 
-| Role | Criar | Listar | Editar | Excluir |
-|------|:-----:|:------:|:------:|:-------:|
-| `DEV` | ✅ | ✅ | — | — |
-| `DIRETOR` | ✅ | ✅ | — | — |
-| `SECRETARIA` | ✅ | ✅ | — | — |
-| `RECEPCIONISTA` | ❌ | ❌ | — | — |
-| `REGULADOR` | ❌ | ❌ | — | — |
+| Role            | Criar | Listar | Editar | Excluir |
+| --------------- | :---: | :----: | :----: | :-----: |
+| `DEV`           |  ✅   |   ✅   |   —    |    —    |
+| `DIRETOR`       |  ✅   |   ✅   |   —    |    —    |
+| `SECRETARIA`    |  ✅   |   ✅   |   —    |    —    |
+| `RECEPCIONISTA` |  ❌   |   ❌   |   —    |    —    |
+| `REGULADOR`     |  ❌   |   ❌   |   —    |    —    |
 
 ### APACs (`/apacs`)
 
-| Role | Criar | Listar | Editar | Excluir |
-|------|:-----:|:------:|:------:|:-------:|
-| `DEV` | ✅ | ✅ | — | — |
-| `DIRETOR` | ✅ | ✅ | — | — |
-| `SECRETARIA` | ❌ | ❌ | — | — |
-| `RECEPCIONISTA` | ✅ | ✅ | — | — |
-| `REGULADOR` | ✅ | ✅ | — | — |
+| Role            | Criar | Listar | Editar | Excluir |
+| --------------- | :---: | :----: | :----: | :-----: |
+| `DEV`           |  ✅   |   ✅   |   —    |    —    |
+| `DIRETOR`       |  ✅   |   ✅   |   —    |    —    |
+| `SECRETARIA`    |  ❌   |   ❌   |   —    |    —    |
+| `RECEPCIONISTA` |  ✅   |   ✅   |   —    |    —    |
+| `REGULADOR`     |  ✅   |   ✅   |   —    |    —    |
 
 > ✅ = implementado · ❌ = sem permissão · — = requisito previsto, ainda não implementado
 
@@ -133,27 +133,27 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 
 ## Roles disponíveis
 
-| Role | Descrição |
-|------|-----------|
-| `DEV` | Desenvolvedor — acesso amplo |
-| `DIRETOR` | Diretor Geral |
-| `SECRETARIA` | Secretária de Saúde |
-| `RECEPCIONISTA` | Recepcionista |
-| `REGULADOR` | Regulador |
+| Role            | Descrição                    |
+| --------------- | ---------------------------- |
+| `DEV`           | Desenvolvedor — acesso amplo |
+| `DIRETOR`       | Diretor Geral                |
+| `SECRETARIA`    | Secretária de Saúde          |
+| `RECEPCIONISTA` | Recepcionista                |
+| `REGULADOR`     | Regulador                    |
 
 ---
 
 ## Resumo de permissões
 
-| Endpoint | Método | Autenticação | Roles permitidas |
-|----------|--------|--------------|------------------|
-| `/auth/login` | POST | Não | Público |
-| `/auth/me` | GET | Sim | Qualquer role autenticada |
-| `/auth/admin` | GET | Sim | `DEV`, `DIRETOR` |
-| `/users` | POST | Sim | `DEV`, `DIRETOR`, `SECRETARIA` |
-| `/users` | GET | Sim | `DEV`, `DIRETOR`, `SECRETARIA` |
-| `/apacs` | POST | Sim | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
-| `/apacs` | GET | Sim | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| Endpoint      | Método | Autenticação | Roles permitidas                               |
+| ------------- | ------ | ------------ | ---------------------------------------------- |
+| `/auth/login` | POST   | Não          | Público                                        |
+| `/auth/me`    | GET    | Sim          | Qualquer role autenticada                      |
+| `/auth/admin` | GET    | Sim          | `DEV`, `DIRETOR`                               |
+| `/users`      | POST   | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`                 |
+| `/users`      | GET    | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`                 |
+| `/apacs`      | POST   | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| `/apacs`      | GET    | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 
 > **Nota:** `SECRETARIA`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente.
 
@@ -176,10 +176,10 @@ Autentica um usuário e retorna um token JWT.
 }
 ```
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `cpf` | `string` | Sim | CPF do usuário |
-| `password` | `string` | Sim | Senha do usuário |
+| Campo      | Tipo     | Obrigatório | Descrição        |
+| ---------- | -------- | ----------- | ---------------- |
+| `cpf`      | `string` | Sim         | CPF do usuário   |
+| `password` | `string` | Sim         | Senha do usuário |
 
 **Resposta de sucesso (200):**
 
@@ -275,12 +275,12 @@ Cadastra um novo usuário no sistema.
 }
 ```
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `name` | `string` | Sim | Nome completo do usuário |
-| `cpf` | `string` | Sim | CPF (deve ser único no banco) |
-| `password` | `string` | Sim | Senha em texto plano (será hasheada) |
-| `role` | `string` | Sim | Uma das roles: `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| Campo      | Tipo     | Obrigatório | Descrição                                                                   |
+| ---------- | -------- | ----------- | --------------------------------------------------------------------------- |
+| `name`     | `string` | Sim         | Nome completo do usuário                                                    |
+| `cpf`      | `string` | Sim         | CPF (deve ser único no banco)                                               |
+| `password` | `string` | Sim         | Senha em texto plano (será hasheada)                                        |
+| `role`     | `string` | Sim         | Uma das roles: `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 
 **Resposta de sucesso (200):**
 
@@ -344,40 +344,45 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 }
 ```
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `name` | `string` | Sim | Nome do paciente |
-| `cns` | `string` | Sim | Cartão Nacional de Saúde |
-| `procedure` | `string` | Sim | Tipo de procedimento: `EXAME` ou `CIRURGIA` |
-| `priority` | `string` | Sim | Prioridade: `URGENTE` ou `NORMAL` |
-| `birth_date` | `string` (ISO 8601) | Não | Data de nascimento |
-| `cpf` | `string` | Não | CPF do paciente |
-| `municipality` | `string` | Não | Município |
+| Campo          | Tipo                | Obrigatório | Descrição                                   |
+| -------------- | ------------------- | ----------- | ------------------------------------------- |
+| `name`         | `string`            | Sim         | Nome do paciente                            |
+| `cns`          | `string`            | Sim         | Cartão Nacional de Saúde                    |
+| `procedure`    | `string`            | Sim         | Tipo de procedimento: `EXAME` ou `CIRURGIA` |
+| `priority`     | `string`            | Sim         | Prioridade: `URGENTE` ou `NORMAL`           |
+| `birth_date`   | `string` (ISO 8601) | Não         | Data de nascimento                          |
+| `cpf`          | `string`            | Não         | CPF do paciente                             |
+| `municipality` | `string`            | Não         | Município                                   |
 
 > O campo `status` **não é aceito na criação** — novas APACs recebem automaticamente o status `PENDENTE`.
 
 **Valores de enum:**
 
-| Enum | Valores |
-|------|---------|
-| `procedure` | `EXAME`, `CIRURGIA` |
-| `priority` | `URGENTE`, `NORMAL` |
+| Enum                        | Valores                                                  |
+| --------------------------- | -------------------------------------------------------- |
+| `procedure`                 | `EXAME`, `CIRURGIA`                                      |
+| `priority`                  | `URGENTE`, `NORMAL`                                      |
 | `status` (somente resposta) | `PENDENTE`, `AGUARDO`, `APROVADO`, `CANCELADO`, `NEGADO` |
 
 **Resposta de sucesso (201):**
 
 ```json
 {
-  "name": "João da Silva",
-  "cns": "valor-criptografado",
-  "procedure": "EXAME",
-  "priority": "URGENTE",
-  "status": "PENDENTE",
-  "birth_date": "1990-05-15T00:00:00.000Z",
-  "cpf": "valor-criptografado",
-  "municipality": "São José dos Ramos"
+  "apac": {
+    "name": "João da Silva",
+    "cns": "valor-criptografado",
+    "procedure": "EXAME",
+    "priority": "URGENTE",
+    "status": "PENDENTE",
+    "birth_date": "1990-05-15T00:00:00.000Z",
+    "cpf": "valor-criptografado",
+    "municipality": "São José dos Ramos"
+  },
+  "uploadUrl": "https://<bucket>.r2.cloudflarestorage.com/apacs/<id>.pdf?X-Amz-..."
 }
 ```
+
+> `uploadUrl` é uma **presigned URL** do Cloudflare R2, válida por **15 minutos**. O backend não recebe o PDF: o cliente faz um `PUT` direto para `uploadUrl` com o binário do arquivo, **sem** header `Authorization`. O objeto fica salvo no bucket como `apacs/<id>.pdf`. Não existe endpoint para regerar essa URL isoladamente — se ela expirar antes do `PUT`, o fluxo de anexo precisa ser refeito (a APAC já criada não deve ser recriada).
 
 **Resposta de erro (500):**
 
@@ -412,20 +417,23 @@ Lista todas as APACs cadastradas.
     "status": "PENDENTE",
     "birth_date": "1990-05-15T00:00:00.000Z",
     "cpf": "valor-criptografado",
-    "municipality": "São José dos Ramos"
+    "municipality": "São José dos Ramos",
+    "pdf_url": "https://<bucket>.r2.cloudflarestorage.com/apacs/<id>.pdf?X-Amz-..."
   }
 ]
 ```
+
+> `pdf_url` é uma presigned URL de **download**, válida por **1 hora**, gerada a cada chamada. Não está tipada no `ApacDomain` do backend (injetada via spread) — confirmar que o campo realmente vem antes de depender dele no front.
 
 ---
 
 ## Códigos de erro comuns
 
-| Código | Situação |
-|--------|----------|
-| `401` | Token ausente, mal formatado, inválido ou expirado |
-| `403` | Usuário autenticado, porém sem a role necessária para o endpoint |
-| `500` | Erro interno no servidor |
+| Código | Situação                                                         |
+| ------ | ---------------------------------------------------------------- |
+| `401`  | Token ausente, mal formatado, inválido ou expirado               |
+| `403`  | Usuário autenticado, porém sem a role necessária para o endpoint |
+| `500`  | Erro interno no servidor                                         |
 
 **Exemplos de resposta 401:**
 
@@ -451,11 +459,11 @@ Lista todas as APACs cadastradas.
 
 ## Matriz de acesso por role
 
-| Role | Login | Ver perfil (`/auth/me`) | Admin (`/auth/admin`) | Criar usuário | Listar usuários | Criar APAC | Listar APACs |
-|------|:-----:|:-----------------------:|:---------------------:|:-------------:|:---------------:|:----------:|:------------:|
-| Público (sem token) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| `DEV` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `DIRETOR` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `SECRETARIA` | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| `RECEPCIONISTA` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| `REGULADOR` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Role                | Login | Ver perfil (`/auth/me`) | Admin (`/auth/admin`) | Criar usuário | Listar usuários | Criar APAC | Listar APACs |
+| ------------------- | :---: | :---------------------: | :-------------------: | :-----------: | :-------------: | :--------: | :----------: |
+| Público (sem token) |  ✅   |           ❌            |          ❌           |      ❌       |       ❌        |     ❌     |      ❌      |
+| `DEV`               |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |
+| `DIRETOR`           |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |
+| `SECRETARIA`        |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |
+| `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |
+| `REGULADOR`         |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |

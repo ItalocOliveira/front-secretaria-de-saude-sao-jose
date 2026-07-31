@@ -68,11 +68,43 @@ export type CreateApacPayload = {
   municipality?: string
 }
 
+export type CreateApacResult = {
+  apac: Apac
+  /** Presigned PUT do Cloudflare R2, válida por 15 min. Usar com `uploadApacPdf`. */
+  uploadUrl: string
+}
+
 export async function listApacs(signal?: AbortSignal) {
   const data = await request<ApacDto[]>("/apacs", { signal })
   return data.map(toApac)
 }
 
-export function createApac(payload: CreateApacPayload) {
-  return request<ApacDto>("/apacs", { method: "POST", body: payload })
+export async function createApac(payload: CreateApacPayload): Promise<CreateApacResult> {
+  const data = await request<{ apac: ApacDto; uploadUrl: string }>("/apacs", { method: "POST", body: payload })
+  return { apac: toApac(data.apac, 0), uploadUrl: data.uploadUrl }
+}
+
+/**
+ * PUT direto pro bucket com a presigned URL devolvida por `createApac`. O backend
+ * nunca vê o arquivo, então isso **não** passa por `request()`: sem `Bearer`, sem
+ * `Content-Type: application/json`. Se a URL expirou (>15 min), o `PUT` volta 403.
+ */
+export async function uploadApacPdf(uploadUrl: string, file: File, signal?: AbortSignal) {
+  let response: Response
+  try {
+    response = await fetch(uploadUrl, { method: "PUT", body: file, signal })
+  } catch (error) {
+    if (signal?.aborted === true) {
+      throw error
+    }
+    throw new Error("Não foi possível enviar o PDF. Verifique sua conexão e tente novamente.", { cause: error })
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      response.status === 403
+        ? "O link de envio expirou (validade de 15 minutos). A APAC já foi cadastrada; tente reenviar o PDF."
+        : "Não foi possível enviar o PDF."
+    )
+  }
 }

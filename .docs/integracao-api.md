@@ -45,7 +45,7 @@ Cold start: serviço hobby hiberna e a primeira requisição pode levar segundos
 src/api/
   client.ts       # request(), ApiError, base URL, Bearer, timeout, normalização de erro
   auth.ts         # POST /auth/login, GET /auth/me
-  apacs.ts        # GET/POST /apacs + DTO → view model
+  apacs.ts        # GET/POST /apacs + DTO → view model + upload do PDF direto pro R2
   users.ts        # GET/POST /users
 src/lib/
   session.ts      # token em sessionStorage, decode do JWT, store externo
@@ -92,6 +92,14 @@ Detalhes em `src/lib/session.ts`:
 - A busca da listagem filtra por nome e município apenas, pela mesma razão.
 - `ApiError.details` (o corpo cru do erro) nunca é exibido nem logado: o `500` de `POST /apacs` pode devolver os dados do paciente que falharam na validação. As telas mostram só `error.message`, que é normalizado.
 
+### Anexo de PDF: upload direto pro R2
+
+`POST /apacs` devolve `{ apac, uploadUrl }`. O backend nunca recebe o PDF — o front faz um `PUT` direto para `uploadUrl` (presigned do Cloudflare R2, válida por **15 min**) com o binário do arquivo, sem `Authorization` e sem passar por `request()` (`uploadApacPdf` em `src/api/apacs.ts` usa `fetch` cru de propósito). O objeto é salvo no bucket como `apacs/<id>.pdf`.
+
+Se o `PUT` falhar (link expirado, rede caiu), a APAC **já existe** — o form (`ApacFormCard`) não repete o `POST`, só oferece reenviar o mesmo arquivo pra mesma `uploadUrl`. Não há endpoint pra regerar a URL isoladamente; se ela já expirou, o reenvio falha de novo e hoje não há recuperação pela UI.
+
+`GET /apacs` também devolve um `pdf_url` (presigned de download, válido por 1h, gerado a cada chamada) em cada item — mas ele não está tipado em `ApacDto`/`Apac` ainda, porque nenhuma tela consome download. Ao integrar isso, não confiar em autocomplete: confirmar o campo bate com o que a API realmente manda.
+
 ## O que está integrado
 
 | Tela                                 | Endpoint           |
@@ -108,15 +116,15 @@ Rotas são guardadas por autenticação (`RequireAuth`) e por perfil (`RequireRo
 
 O que a UI precisaria e a API não oferece. Nada disso foi simulado com dado falso — os campos foram **removidos** da tela em vez de coletados e descartados em silêncio.
 
-| Lacuna                                                             | Impacto                                                                                                         |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `GET /auth/me` não devolve `name`                                  | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                       |
-| `id`/`created_at` ausentes na resposta documentada de `GET /apacs` | Sem `id` estável não há detalhe, edição nem exclusão.                                                           |
-| `cns`/`cpf` criptografados na resposta                             | Impossível buscar por paciente ou exibir o CNS na tabela.                                                       |
-| Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade    | Campos removidos do formulário — `procedure` só aceita `EXAME`/`CIRURGIA`.                                      |
-| Sem endpoint de anexo de PDF                                       | A etapa "Documentos" do formulário foi removida.                                                                |
-| Sem endpoint de edição                                             | Transição de status (aprovar/negar) não existe; o botão no diálogo fica desabilitado.                           |
-| Sem endpoint de agregação                                          | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apacs/stats`. |
-| Sem query params documentados                                      | Filtro e ordenação são client-side (`src/lib/apac-filters.ts` é o ponto de troca).                              |
+| Lacuna                                                             | Impacto                                                                                                                    |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `GET /auth/me` não devolve `name`                                  | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                                  |
+| `id`/`created_at` ausentes na resposta documentada de `GET /apacs` | Sem `id` estável não há detalhe, edição nem exclusão.                                                                      |
+| `cns`/`cpf` criptografados na resposta                             | Impossível buscar por paciente ou exibir o CNS na tabela.                                                                  |
+| Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade    | Campos removidos do formulário — `procedure` só aceita `EXAME`/`CIRURGIA`.                                                 |
+| Sem endpoint pra regerar `uploadUrl` isoladamente                  | Se o `PUT` pro R2 falhar após os 15 min de validade, não há como recuperar o envio pela UI — só reenviar antes de expirar. |
+| Sem endpoint de edição                                             | Transição de status (aprovar/negar) não existe; o botão no diálogo fica desabilitado.                                      |
+| Sem endpoint de agregação                                          | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apacs/stats`.            |
+| Sem query params documentados                                      | Filtro e ordenação são client-side (`src/lib/apac-filters.ts` é o ponto de troca).                                         |
 
 Ainda mockados, por não existirem no contrato: a lista de municípios e o seletor de unidade no rodapé da sidebar (ver `src/data/apacs-mock.ts`).

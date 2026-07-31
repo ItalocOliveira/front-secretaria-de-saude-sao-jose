@@ -20,6 +20,11 @@ export type ApacFormValues = {
   municipality: string
   procedure: ApacProcedure | ""
   priority: ApacPriority
+  /**
+   * Nunca viaja no `POST /apacs` — a API devolve um `uploadUrl` separado e o
+   * PDF é enviado depois, direto pro R2. Fica só em memória até o submit.
+   */
+  pdfFile: File | null
 }
 
 export const INITIAL_APAC_FORM: ApacFormValues = {
@@ -30,10 +35,24 @@ export const INITIAL_APAC_FORM: ApacFormValues = {
   municipality: "",
   procedure: "",
   priority: APAC_PRIORITY.NORMAL,
+  pdfFile: null,
 }
 
+/** MIME aceito pelo bucket — a API salva o objeto como `apacs/<id>.pdf`. */
+export const APAC_PDF_MIME = "application/pdf"
+
+export function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  const kb = bytes / 1024
+  if (kb < 1024) return `${kb.toFixed(0)} KB`
+  return `${(kb / 1024).toFixed(1)} MB`
+}
+
+/** Campos de texto do formulário — exclui `pdfFile`, que não tem `.trim()`. */
+type ApacFormTextField = Exclude<keyof ApacFormValues, "pdfFile">
+
 /** Obrigatórios segundo a API. `priority` já nasce preenchida. */
-const REQUIRED_BY_STEP: Record<number, (keyof ApacFormValues)[]> = {
+const REQUIRED_BY_STEP: Record<number, ApacFormTextField[]> = {
   1: ["name", "cns"],
   2: ["procedure"],
 }
