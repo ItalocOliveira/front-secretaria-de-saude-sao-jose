@@ -37,7 +37,7 @@ Campos do modelo `User` (schema Prisma): `id`, `name`, `cpf_hash`, `cpf_encrypte
 
 ### Gestão de APACs
 
-Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`, `cns_encrypted`, `cpf_hash`, `cpf_encrypted`, `status`, `municipality`, `procedure`, `priority`, `created_at`, `updated_at`.
+Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`, `cns_encrypted`, `cpf_hash`, `cpf_encrypted`, `status`, `municipality`, `procedure`, `priority`, `acs`, `created_at`, `updated_at`.
 
 - [x] Cadastrar APAC com dados textuais do paciente e do procedimento (`POST /apacs`)
 - [x] Visualizar todas as APACs cadastradas (`GET /apacs`)
@@ -48,15 +48,20 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 
 **Campos aceitos na criação** (`ApacCreateDto`):
 
-| Campo          | Obrigatório | Tipo / enum                         |
-| -------------- | :---------: | ----------------------------------- |
-| `name`         |     Sim     | `string` — nome do paciente         |
-| `cns`          |     Sim     | `string` — Cartão Nacional de Saúde |
-| `procedure`    |     Sim     | `EXAME` \| `CIRURGIA`               |
-| `priority`     |     Sim     | `URGENTE` \| `NORMAL`               |
-| `birth_date`   |     Não     | `Date` (ISO 8601)                   |
-| `cpf`          |     Não     | `string`                            |
-| `municipality` |     Não     | `string`                            |
+| Campo          | Obrigatório | Tipo / enum                                                     |
+| -------------- | :---------: | --------------------------------------------------------------- |
+| `name`         |     Sim     | `string` — nome do paciente                                     |
+| `cns`          |     Sim     | `string` — Cartão Nacional de Saúde                             |
+| `procedure`    |     Sim     | `EXAME` \| `CIRURGIA`                                           |
+| `priority`     |     Sim     | `URGENTE` \| `NORMAL`                                           |
+| `acs`          |     Sim     | ver enum `Acs` abaixo — Agente Comunitário de Saúde responsável |
+| `birth_date`   |     Não     | `Date` (ISO 8601)                                               |
+| `cpf`          |     Não     | `string`                                                        |
+| `municipality` |     Não     | `string`                                                        |
+
+**Enum `Acs`:**
+
+`MARLON`, `MARIA_JOSE_SILVA_RIBEIRO`, `MARIA_JOSE_DE_ARAUJO`, `MARIA_DE_LOURDES`, `MANOEL_BATISTA`, `LEYDIANE_ARAUJO`, `KAIO_VICTOR`, `JOAO_MANOEL`, `ELANE_CRISTINA`, `EDILEUZA_ALVES`, `ANA_EMILIA`, `DEYSE`, `JOELMA_FERNANDES`, `FLAVIO`
 
 **Status da APAC** (`Status`, definido no schema — padrão `PENDENTE` na criação):
 
@@ -338,21 +343,23 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
   "cns": "123456789012345",
   "procedure": "EXAME",
   "priority": "URGENTE",
+  "acs": "MARLON",
   "birth_date": "1990-05-15T00:00:00.000Z",
   "cpf": "98765432100",
   "municipality": "São José dos Ramos"
 }
 ```
 
-| Campo          | Tipo                | Obrigatório | Descrição                                   |
-| -------------- | ------------------- | ----------- | ------------------------------------------- |
-| `name`         | `string`            | Sim         | Nome do paciente                            |
-| `cns`          | `string`            | Sim         | Cartão Nacional de Saúde                    |
-| `procedure`    | `string`            | Sim         | Tipo de procedimento: `EXAME` ou `CIRURGIA` |
-| `priority`     | `string`            | Sim         | Prioridade: `URGENTE` ou `NORMAL`           |
-| `birth_date`   | `string` (ISO 8601) | Não         | Data de nascimento                          |
-| `cpf`          | `string`            | Não         | CPF do paciente                             |
-| `municipality` | `string`            | Não         | Município                                   |
+| Campo          | Tipo                | Obrigatório | Descrição                                                |
+| -------------- | ------------------- | ----------- | -------------------------------------------------------- |
+| `name`         | `string`            | Sim         | Nome do paciente                                         |
+| `cns`          | `string`            | Sim         | Cartão Nacional de Saúde                                 |
+| `procedure`    | `string`            | Sim         | Tipo de procedimento: `EXAME` ou `CIRURGIA`              |
+| `priority`     | `string`            | Sim         | Prioridade: `URGENTE` ou `NORMAL`                        |
+| `acs`          | `string`            | Sim         | Agente Comunitário de Saúde responsável — ver enum `Acs` |
+| `birth_date`   | `string` (ISO 8601) | Não         | Data de nascimento                                       |
+| `cpf`          | `string`            | Não         | CPF do paciente                                          |
+| `municipality` | `string`            | Não         | Município                                                |
 
 > O campo `status` **não é aceito na criação** — novas APACs recebem automaticamente o status `PENDENTE`.
 
@@ -362,6 +369,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 | --------------------------- | -------------------------------------------------------- |
 | `procedure`                 | `EXAME`, `CIRURGIA`                                      |
 | `priority`                  | `URGENTE`, `NORMAL`                                      |
+| `acs`                       | ver enum `Acs` no início da seção de APACs               |
 | `status` (somente resposta) | `PENDENTE`, `AGUARDO`, `APROVADO`, `CANCELADO`, `NEGADO` |
 
 **Resposta de sucesso (201):**
@@ -373,6 +381,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
     "cns": "valor-criptografado",
     "procedure": "EXAME",
     "priority": "URGENTE",
+    "acs": "MARLON",
     "status": "PENDENTE",
     "birth_date": "1990-05-15T00:00:00.000Z",
     "cpf": "valor-criptografado",
@@ -414,6 +423,7 @@ Lista todas as APACs cadastradas.
     "cns": "valor-criptografado",
     "procedure": "EXAME",
     "priority": "URGENTE",
+    "acs": "MARLON",
     "status": "PENDENTE",
     "birth_date": "1990-05-15T00:00:00.000Z",
     "cpf": "valor-criptografado",

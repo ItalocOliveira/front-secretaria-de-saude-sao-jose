@@ -29,6 +29,25 @@ export const APAC_PRIORITY = {
 
 export type ApacPriority = (typeof APAC_PRIORITY)[keyof typeof APAC_PRIORITY]
 
+export const APAC_ACS = {
+  MARLON: "MARLON",
+  MARIA_JOSE_SILVA_RIBEIRO: "MARIA_JOSE_SILVA_RIBEIRO",
+  MARIA_JOSE_DE_ARAUJO: "MARIA_JOSE_DE_ARAUJO",
+  MARIA_DE_LOURDES: "MARIA_DE_LOURDES",
+  MANOEL_BATISTA: "MANOEL_BATISTA",
+  LEYDIANE_ARAUJO: "LEYDIANE_ARAUJO",
+  KAIO_VICTOR: "KAIO_VICTOR",
+  JOAO_MANOEL: "JOAO_MANOEL",
+  ELANE_CRISTINA: "ELANE_CRISTINA",
+  EDILEUZA_ALVES: "EDILEUZA_ALVES",
+  ANA_EMILIA: "ANA_EMILIA",
+  DEYSE: "DEYSE",
+  JOELMA_FERNANDES: "JOELMA_FERNANDES",
+  FLAVIO: "FLAVIO",
+} as const
+
+export type ApacAcs = (typeof APAC_ACS)[keyof typeof APAC_ACS]
+
 export const USER_ROLE = {
   DEV: "DEV",
   DIRETOR: "DIRETOR",
@@ -66,6 +85,24 @@ export const APAC_PRIORITY_LABEL: Record<ApacPriority, string> = {
   NORMAL: "Normal",
 }
 
+/** Nome de exibição de cada ACS — o enum usa nome em `SCREAMING_SNAKE_CASE`. */
+export const APAC_ACS_LABEL: Record<ApacAcs, string> = {
+  MARLON: "Marlon",
+  MARIA_JOSE_SILVA_RIBEIRO: "Maria José Silva Ribeiro",
+  MARIA_JOSE_DE_ARAUJO: "Maria José de Araújo",
+  MARIA_DE_LOURDES: "Maria de Lourdes",
+  MANOEL_BATISTA: "Manoel Batista",
+  LEYDIANE_ARAUJO: "Leydiane Araújo",
+  KAIO_VICTOR: "Kaio Victor",
+  JOAO_MANOEL: "João Manoel",
+  ELANE_CRISTINA: "Elane Cristina",
+  EDILEUZA_ALVES: "Edileuza Alves",
+  ANA_EMILIA: "Ana Emília",
+  DEYSE: "Deyse",
+  JOELMA_FERNANDES: "Joelma Fernandes",
+  FLAVIO: "Flávio",
+}
+
 export const USER_ROLE_LABEL: Record<UserRole, string> = {
   DEV: "Desenvolvedor",
   DIRETOR: "Diretor Geral",
@@ -77,6 +114,7 @@ export const USER_ROLE_LABEL: Record<UserRole, string> = {
 export const APAC_STATUS_LIST = Object.values(APAC_STATUS)
 export const APAC_PROCEDURE_LIST = Object.values(APAC_PROCEDURE)
 export const APAC_PRIORITY_LIST = Object.values(APAC_PRIORITY)
+export const APAC_ACS_LIST = Object.values(APAC_ACS)
 export const USER_ROLE_LIST = Object.values(USER_ROLE)
 
 /** Iniciais para `AvatarFallback` — no máximo duas letras. */

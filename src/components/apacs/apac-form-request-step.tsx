@@ -1,8 +1,11 @@
 import {
+  APAC_ACS_LABEL,
+  APAC_ACS_LIST,
   APAC_PRIORITY_LABEL,
   APAC_PRIORITY_LIST,
   APAC_PROCEDURE_LABEL,
   APAC_PROCEDURE_LIST,
+  type ApacAcs,
   type ApacPriority,
   type ApacProcedure,
 } from "@/lib/apac"
@@ -47,6 +50,30 @@ export function ApacFormRequestStep({
         </Select>
         {/* O contrato só aceita EXAME|CIRURGIA — não há código SIGTAP nem CID no modelo. */}
         <FieldDescription>A API aceita apenas exame ou cirurgia.</FieldDescription>
+      </Field>
+
+      <Field data-invalid={errors.has("acs")}>
+        <FieldLabel htmlFor="solicitacao-acs">ACS responsável *</FieldLabel>
+        <Select
+          value={values.acs || null}
+          onValueChange={(acs: string | null) => onChange({ acs: (acs ?? "") as ApacAcs })}
+        >
+          <SelectTrigger id="solicitacao-acs" className="w-full" aria-invalid={errors.has("acs")}>
+            <SelectValue placeholder="Selecione o ACS">
+              {(acs: string | null) => (acs ? APAC_ACS_LABEL[acs as ApacAcs] : "Selecione o ACS")}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {APAC_ACS_LIST.map((acs) => (
+                <SelectItem key={acs} value={acs}>
+                  {APAC_ACS_LABEL[acs]}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <FieldDescription>Agente Comunitário de Saúde responsável pelo paciente.</FieldDescription>
       </Field>
 
       <FieldSet>
