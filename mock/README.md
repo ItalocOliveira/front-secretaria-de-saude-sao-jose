@@ -35,7 +35,7 @@ TOKEN=$(curl -s -X POST http://localhost:3000/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"cpf":"11111111111","password":"dev123"}' | jq -r .token)
 
-curl http://localhost:3000/apecs -H "Authorization: Bearer $TOKEN"
+curl http://localhost:3000/apacs -H "Authorization: Bearer $TOKEN"
 ```
 
 O token é um JWT HS256 real: a assinatura é verificada, o `exp` é de 1 hora e o payload (`{ id, cpf, role, iat, exp }`) pode ser decodificado no front. Token ausente, mal formatado, adulterado ou expirado devolve os mesmos `401` da doc; role insuficiente devolve `403`.
@@ -46,20 +46,20 @@ Iguais aos da doc — mesmos códigos de status, mesmas mensagens de erro, mesma
 
 Além do que a doc marca como implementado, o mock também responde a rotas ainda **previstas** no backend, para você poder construir a tela antes da API existir:
 
-- `GET /users/:id`, `GET /apecs/:id`
-- `PATCH`, `PUT`, `DELETE` em `/users/:id` e `/apecs/:id`
+- `GET /users/:id`, `GET /apacs/:id`
+- `PATCH`, `PUT`, `DELETE` em `/users/:id` e `/apacs/:id`
 
-Elas usam as mesmas roles da coleção. Atenção: `PATCH /apecs/:id` aceita qualquer `status` — a transição `PENDENTE → AGUARDO → APROVADO | CANCELADO | NEGADO` **não** é validada aqui.
+Elas usam as mesmas roles da coleção. Atenção: `PATCH /apacs/:id` aceita qualquer `status` — a transição `PENDENTE → AGUARDO → APROVADO | CANCELADO | NEGADO` **não** é validada aqui.
 
 ### Query params
 
 As listagens são servidas pelo json-server, então aceitam filtro, ordenação e paginação:
 
 ```
-GET /apecs?status=PENDENTE
-GET /apecs?procedure=EXAME&priority=URGENTE
-GET /apecs?_sort=-created_at
-GET /apecs?_page=1&_per_page=10
+GET /apacs?status=PENDENTE
+GET /apacs?procedure=EXAME&priority=URGENTE
+GET /apacs?_sort=-created_at
+GET /apacs?_page=1&_per_page=10
 ```
 
 Com `_page`, a resposta vem envelopada em `{ first, prev, next, last, pages, items, data }`.

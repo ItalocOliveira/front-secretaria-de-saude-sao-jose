@@ -35,7 +35,7 @@ export class ApiError extends Error {
   readonly status: number
   /**
    * Corpo cru da resposta de erro. **Nunca renderize nem logue**: o `details` do
-   * `POST /apecs` pode conter os dados do paciente que falharam na validação.
+   * `POST /apacs` pode conter os dados do paciente que falharam na validação.
    */
   readonly details: unknown
 
@@ -56,7 +56,7 @@ const STATUS_MESSAGE: Record<number, string> = {
   409: "Este registro já existe.",
 }
 
-/** A API mistura `{ message }` (auth/users) e `{ error, details }` (apecs). */
+/** A API mistura `{ message }` (auth/users) e `{ error, details }` (apacs). */
 function extractMessage(payload: unknown) {
   if (typeof payload !== "object" || payload === null) {
     return null

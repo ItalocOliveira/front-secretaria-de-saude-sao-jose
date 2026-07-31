@@ -2,7 +2,7 @@
  * O que a API ainda não fornece.
  *
  * Depois da integração, sobraram só duas listas — as demais viraram dados reais
- * de `GET /apecs` e `GET /users`:
+ * de `GET /apacs` e `GET /users`:
  *
  * - `MUNICIPALITIES` — `municipality` é texto livre no modelo `Apac` e não há
  *   endpoint que liste os municípios atendidos. A lista existe para o `Select`

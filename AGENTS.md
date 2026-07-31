@@ -7,7 +7,7 @@ Guia para agentes de código que trabalham neste repositório. Escrito em pt-BR 
 Frontend (SPA) da **Secretaria de Saúde de São José dos Ramos**. A aplicação consome a API descrita em [.docs/api-backend.md](.docs/api-backend.md) e gerencia dois domínios:
 
 - **Usuários** — cadastro/listagem de contas do sistema (`/users`).
-- **APACs** — Autorização de Procedimento Ambulatorial de Alta Complexidade (`/apecs`).
+- **APACs** — Autorização de Procedimento Ambulatorial de Alta Complexidade (`/apacs`).
 
 Autenticação é via **JWT** (`POST /auth/login`, token válido por 1 hora, enviado no header `Authorization: Bearer <token>`) com controle de acesso por **roles**.
 
@@ -251,8 +251,8 @@ Contrato em [.docs/api-backend.md](.docs/api-backend.md); como este frontend con
 ### Dados sensíveis
 
 - CPF e CNS são dados pessoais de saúde. **Nunca** logue-os em `console`, não persista em `localStorage`, e não os inclua em query strings ou URLs.
-- `GET /apecs` devolve `cns`/`cpf` **criptografados**; eles ficam de fora do view model `Apac` de propósito, para não serem renderizados por engano. Não os traga de volta.
-- **Nunca exiba nem logue `ApiError.details`** — o `500` de `POST /apecs` pode devolver os dados do paciente. Nas telas, use só `error.message`, que já é normalizado.
+- `GET /apacs` devolve `cns`/`cpf` **criptografados**; eles ficam de fora do view model `Apac` de propósito, para não serem renderizados por engano. Não os traga de volta.
+- **Nunca exiba nem logue `ApiError.details`** — o `500` de `POST /apacs` pode devolver os dados do paciente. Nas telas, use só `error.message`, que já é normalizado.
 - O token JWT vive em `sessionStorage` (decisão registrada em [.docs/integracao-api.md](.docs/integracao-api.md)); logout limpa o storage e o cache do React Query. As claims expostas pelo `useSession()` omitem o `cpf` presente no payload do JWT.
 - Nunca commite `.env` com valores reais. `.env.example` é versionado; `.env*` está no `.gitignore`.
 

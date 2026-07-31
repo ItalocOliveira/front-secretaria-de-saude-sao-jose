@@ -7,7 +7,7 @@
 
 import type { UserRole } from "@/lib/apac"
 
-/** Roles com acesso a `/apecs` (listar e criar). */
+/** Roles com acesso a `/apacs` (listar e criar). */
 export const APAC_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
 
 /** Roles com acesso a `/users` (listar e criar). */

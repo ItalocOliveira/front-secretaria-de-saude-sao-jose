@@ -35,7 +35,7 @@ Em produção não há proxy. Aí o backend **precisa** liberar CORS para a orig
 
 - [ ] **Domínio público gerado** no serviço. Sem "Generate Domain" ele só existe na rede privada da Railway, inalcançável pelo navegador.
 - [ ] **CORS** configurado: o header `Authorization` força preflight, então a API precisa responder `OPTIONS` e enviar `Access-Control-Allow-Origin` (origem do frontend) e `Access-Control-Allow-Headers: Authorization, Content-Type`.
-- [ ] **Confirmar `id` e `created_at` em `GET /apecs`.** Estão no schema Prisma mas não no exemplo de resposta da doc. Sem `id` não há como abrir detalhe, editar ou excluir — e a UI hoje cai num fallback por índice, que não é estável entre refetches.
+- [ ] **Confirmar `id` e `created_at` em `GET /apacs`.** Estão no schema Prisma mas não no exemplo de resposta da doc. Sem `id` não há como abrir detalhe, editar ou excluir — e a UI hoje cai num fallback por índice, que não é estável entre refetches.
 
 Cold start: serviço hobby hiberna e a primeira requisição pode levar segundos. O client usa timeout de 20s e o React Query só faz retry em erro de rede/5xx.
 
@@ -45,7 +45,7 @@ Cold start: serviço hobby hiberna e a primeira requisição pode levar segundos
 src/api/
   client.ts       # request(), ApiError, base URL, Bearer, timeout, normalização de erro
   auth.ts         # POST /auth/login, GET /auth/me
-  apacs.ts        # GET/POST /apecs + DTO → view model
+  apacs.ts        # GET/POST /apacs + DTO → view model
   users.ts        # GET/POST /users
 src/lib/
   session.ts      # token em sessionStorage, decode do JWT, store externo
@@ -90,15 +90,15 @@ Detalhes em `src/lib/session.ts`:
 
 - `cns` e `cpf` chegam **criptografados** da API e ficam **fora** do view model `Apac` — não é possível renderizá-los por engano.
 - A busca da listagem filtra por nome e município apenas, pela mesma razão.
-- `ApiError.details` (o corpo cru do erro) nunca é exibido nem logado: o `500` de `POST /apecs` pode devolver os dados do paciente que falharam na validação. As telas mostram só `error.message`, que é normalizado.
+- `ApiError.details` (o corpo cru do erro) nunca é exibido nem logado: o `500` de `POST /apacs` pode devolver os dados do paciente que falharam na validação. As telas mostram só `error.message`, que é normalizado.
 
 ## O que está integrado
 
 | Tela                                 | Endpoint           |
 | ------------------------------------ | ------------------ |
 | `/login`                             | `POST /auth/login` |
-| `/apacs` — listagem, cards e filtros | `GET /apecs`       |
-| `/apacs` — formulário de cadastro    | `POST /apecs`      |
+| `/apacs` — listagem, cards e filtros | `GET /apacs`       |
+| `/apacs` — formulário de cadastro    | `POST /apacs`      |
 | `/usuarios`                          | `GET /users`       |
 | `/usuarios/novo`                     | `POST /users`      |
 
@@ -111,12 +111,12 @@ O que a UI precisaria e a API não oferece. Nada disso foi simulado com dado fal
 | Lacuna                                                             | Impacto                                                                                                         |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | `GET /auth/me` não devolve `name`                                  | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                       |
-| `id`/`created_at` ausentes na resposta documentada de `GET /apecs` | Sem `id` estável não há detalhe, edição nem exclusão.                                                           |
+| `id`/`created_at` ausentes na resposta documentada de `GET /apacs` | Sem `id` estável não há detalhe, edição nem exclusão.                                                           |
 | `cns`/`cpf` criptografados na resposta                             | Impossível buscar por paciente ou exibir o CNS na tabela.                                                       |
 | Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade    | Campos removidos do formulário — `procedure` só aceita `EXAME`/`CIRURGIA`.                                      |
 | Sem endpoint de anexo de PDF                                       | A etapa "Documentos" do formulário foi removida.                                                                |
 | Sem endpoint de edição                                             | Transição de status (aprovar/negar) não existe; o botão no diálogo fica desabilitado.                           |
-| Sem endpoint de agregação                                          | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apecs/stats`. |
+| Sem endpoint de agregação                                          | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apacs/stats`. |
 | Sem query params documentados                                      | Filtro e ordenação são client-side (`src/lib/apac-filters.ts` é o ponto de troca).                              |
 
 Ainda mockados, por não existirem no contrato: a lista de municípios e o seletor de unidade no rodapé da sidebar (ver `src/data/apacs-mock.ts`).

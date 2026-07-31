@@ -10,7 +10,7 @@ A API expõe três módulos principais:
 |--------|---------|------------------|
 | Autenticação | `/auth` | Login, sessão via JWT e consulta do usuário autenticado |
 | Usuários | `/users` | Cadastro e listagem de contas do sistema |
-| APACs | `/apecs` | Cadastro e listagem de autorizações de procedimentos |
+| APACs | `/apacs` | Cadastro e listagem de autorizações de procedimentos |
 
 Somente usuários autenticados podem operar recursos protegidos. Cada operação exige uma role específica, validada pelo middleware de autorização.
 
@@ -39,8 +39,8 @@ Campos do modelo `User` (schema Prisma): `id`, `name`, `cpf_hash`, `cpf_encrypte
 
 Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`, `cns_encrypted`, `cpf_hash`, `cpf_encrypted`, `status`, `municipality`, `procedure`, `priority`, `created_at`, `updated_at`.
 
-- [x] Cadastrar APAC com dados textuais do paciente e do procedimento (`POST /apecs`)
-- [x] Visualizar todas as APACs cadastradas (`GET /apecs`)
+- [x] Cadastrar APAC com dados textuais do paciente e do procedimento (`POST /apacs`)
+- [x] Visualizar todas as APACs cadastradas (`GET /apacs`)
 - [ ] Consultar APAC por `id`
 - [ ] Atualizar/modificar APACs cadastradas (incluindo transição de `status`)
 - [ ] Excluir APACs
@@ -101,7 +101,7 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 | `RECEPCIONISTA` | ❌ | ❌ | — | — |
 | `REGULADOR` | ❌ | ❌ | — | — |
 
-### APACs (`/apecs`)
+### APACs (`/apacs`)
 
 | Role | Criar | Listar | Editar | Excluir |
 |------|:-----:|:------:|:------:|:-------:|
@@ -152,8 +152,8 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 | `/auth/admin` | GET | Sim | `DEV`, `DIRETOR` |
 | `/users` | POST | Sim | `DEV`, `DIRETOR`, `SECRETARIA` |
 | `/users` | GET | Sim | `DEV`, `DIRETOR`, `SECRETARIA` |
-| `/apecs` | POST | Sim | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
-| `/apecs` | GET | Sim | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| `/apacs` | POST | Sim | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| `/apacs` | GET | Sim | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 
 > **Nota:** `SECRETARIA`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente.
 
@@ -320,9 +320,9 @@ Lista todos os usuários cadastrados.
 
 ---
 
-## APACs — `/apecs`
+## APACs — `/apacs`
 
-### `POST /apecs`
+### `POST /apacs`
 
 Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Complexidade).
 
@@ -383,14 +383,14 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 
 ```json
 {
-  "error": "Erro ao criar Apec",
+  "error": "Erro ao criar Apac",
   "details": {}
 }
 ```
 
 ---
 
-### `GET /apecs`
+### `GET /apacs`
 
 Lista todas as APACs cadastradas.
 
