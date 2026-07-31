@@ -1,5 +1,6 @@
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { FileTextIcon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
 import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
@@ -74,6 +75,12 @@ export function ApacDetailsDialog({
 
         <DialogFooter>
           <DialogClose render={<Button variant="outline">Fechar</Button>} />
+          {apac?.pdfUrl === null || apac?.pdfUrl === undefined ? null : (
+            <Button render={<a href={apac.pdfUrl} target="_blank" rel="noopener noreferrer" />}>
+              <FileTextIcon data-icon="inline-start" />
+              Ver PDF
+            </Button>
+          )}
           {/* Transição de status depende de endpoint de edição, ainda não implementado. */}
           <Button disabled>Alterar situação</Button>
         </DialogFooter>

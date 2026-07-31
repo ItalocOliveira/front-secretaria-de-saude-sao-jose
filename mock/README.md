@@ -64,9 +64,13 @@ GET /apacs?_page=1&_per_page=10
 
 Com `_page`, a resposta vem envelopada em `{ first, prev, next, last, pages, items, data }`.
 
-### Upload de PDF
+> `pdf_url` (ver seção abaixo) só aparece em `GET /apacs` e `GET /apacs/:id` **sem** query params — com filtro/ordenação/paginação a resposta vem do json-server puro, sem o campo injetado. Suficiente pra testar a tela, mas não é 100% fiel à API real nesse ponto.
 
-`POST /apacs` devolve `{ apac, uploadUrl }`. `uploadUrl` aponta pra um endpoint local (`PUT /mock-uploads/:id.pdf?exp=...`) que imita a presigned URL do Cloudflare R2 da API real: sem `Authorization`, validade de 15 min (`exp` embutido na própria URL, não em token). Depois do `exp`, o `PUT` devolve `403`, igual a um link do R2 vencido. Os arquivos "enviados" ficam em `mock/uploads/` (gitignored).
+### Upload e download de PDF
+
+`POST /apacs` devolve `{ apac, uploadUrl }`. `uploadUrl` aponta pra um endpoint local (`PUT /mock-uploads/:id.pdf?exp=...`) que imita a presigned URL de upload do Cloudflare R2 da API real: sem `Authorization`, validade de 15 min (`exp` embutido na própria URL, não em token). Depois do `exp`, o `PUT` devolve `403`, igual a um link do R2 vencido. Os arquivos "enviados" ficam em `mock/uploads/` (gitignored).
+
+`GET /apacs` devolve um `pdf_url` em cada item — `GET /mock-uploads/:id.pdf?exp=...`, mesma lógica de validade (1h) e mesmo `403` se expirado. Se o PDF ainda não foi enviado (nenhum arquivo em `mock/uploads/` com esse id), devolve `404`, igual a um objeto inexistente no R2.
 
 ## Limites
 

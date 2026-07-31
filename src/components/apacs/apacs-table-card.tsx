@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { EyeIcon, InboxIcon } from "lucide-react"
+import { EyeIcon, FileTextIcon, InboxIcon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
 import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
@@ -122,6 +122,23 @@ export function ApacsTableCard({
                       <div className="flex justify-end">
                         {/* Editar/excluir/enviar dependem de endpoints ainda não
                             implementados no backend — nem chegam a ser oferecidos. */}
+                        {apac.pdfUrl === null ? null : (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label={`Ver PDF da APAC de ${apac.name}`}
+                                  render={<a href={apac.pdfUrl} target="_blank" rel="noopener noreferrer" />}
+                                >
+                                  <FileTextIcon />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent>Ver PDF</TooltipContent>
+                          </Tooltip>
+                        )}
                         <Tooltip>
                           <TooltipTrigger
                             render={
