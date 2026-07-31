@@ -42,8 +42,8 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 - [x] Cadastrar APAC com dados textuais do paciente e do procedimento (`POST /apacs`)
 - [x] Visualizar todas as APACs cadastradas (`GET /apacs`)
 - [ ] Consultar APAC por `id`
-- [ ] Atualizar/modificar APACs cadastradas (incluindo transição de `status`)
-- [ ] Excluir APACs
+- [x] Atualizar `name`/`acs`/`procedure`/`municipality` (`PATCH /apacs/:id`) — transição de `status` ainda não é aceita
+- [x] Excluir APACs (`DELETE /apacs/:id`)
 - [x] Anexar PDFs às APACs (indireto: `POST /apacs` devolve uma presigned URL do Cloudflare R2, o navegador envia o PDF direto pro bucket)
 
 **Campos aceitos na criação** (`ApacCreateDto`):
@@ -81,8 +81,8 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 ### APACs
 
 - Toda APAC deve possuir `name`, `cns`, `procedure` e `priority`
-- `cns` e `cpf` (quando informado) são persistidos com hash e criptografia
-- `status` inicia como `PENDENTE` e só pode ser alterado após implementação de endpoint de edição
+- `cns` e `cpf` (quando informado) são persistidos com hash e criptografia, mas trafegam em **texto puro** nas respostas da API
+- `status` inicia como `PENDENTE`; a edição (`PATCH`) ainda não aceita alterar `status`, então a transição continua sem endpoint
 - `procedure` aceita apenas `EXAME` ou `CIRURGIA`
 - `priority` aceita apenas `URGENTE` ou `NORMAL`
 
@@ -110,11 +110,11 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 
 | Role            | Criar | Listar | Editar | Excluir |
 | --------------- | :---: | :----: | :----: | :-----: |
-| `DEV`           |  ✅   |   ✅   |   —    |    —    |
-| `DIRETOR`       |  ✅   |   ✅   |   —    |    —    |
-| `SECRETARIA`    |  ❌   |   ❌   |   —    |    —    |
-| `RECEPCIONISTA` |  ✅   |   ✅   |   —    |    —    |
-| `REGULADOR`     |  ✅   |   ✅   |   —    |    —    |
+| `DEV`           |  ✅   |   ✅   |   ✅   |   ✅    |
+| `DIRETOR`       |  ✅   |   ✅   |   ✅   |   ✅    |
+| `SECRETARIA`    |  ❌   |   ❌   |   ❌   |   ❌    |
+| `RECEPCIONISTA` |  ✅   |   ✅   |   ✅   |   ✅    |
+| `REGULADOR`     |  ✅   |   ✅   |   ✅   |   ✅    |
 
 > ✅ = implementado · ❌ = sem permissão · — = requisito previsto, ainda não implementado
 
@@ -159,6 +159,8 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 | `/users`      | GET    | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`                 |
 | `/apacs`      | POST   | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 | `/apacs`      | GET    | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| `/apacs/:id`  | PATCH  | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| `/apacs/:id`  | DELETE | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 
 > **Nota:** `SECRETARIA`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente.
 
@@ -439,6 +441,68 @@ Lista todas as APACs cadastradas.
 
 > `pdf_url` é uma presigned URL de **download**, válida por **1 hora**, gerada a cada chamada. Não está tipada no `ApacDomain` do backend (injetada via spread) — confirmar que o campo realmente vem antes de depender dele no front.
 
+> `cns` e `cpf` agora vêm em **texto puro** (deixaram de ser criptografados na resposta).
+
+---
+
+### `PATCH /apacs/:id`
+
+Edita campos de uma APAC já cadastrada.
+
+**Autenticação:** requerida
+
+**Roles permitidas:** `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`
+
+**Request body** (todos os campos são opcionais — envie só o que for alterar):
+
+```json
+{
+  "name": "João da Silva",
+  "acs": "MARLON",
+  "procedure": "CIRURGIA",
+  "municipality": "São José dos Ramos"
+}
+```
+
+| Campo          | Tipo     | Descrição                                                |
+| -------------- | -------- | -------------------------------------------------------- |
+| `name`         | `string` | Nome do paciente                                         |
+| `acs`          | `string` | Agente Comunitário de Saúde responsável — ver enum `Acs` |
+| `procedure`    | `string` | `EXAME` ou `CIRURGIA`                                    |
+| `municipality` | `string` | Município                                                |
+
+> Não editável por este endpoint: `cns`, `priority`, `birth_date`, `cpf`, `status`.
+
+**Resposta de sucesso (200):** `ApacDomain` completo já atualizado (mesmo shape de `GET /apacs`, ver acima).
+
+**Resposta de erro (500):**
+
+```json
+{ "error": "Erro ao editar Apac", "details": {} }
+```
+
+---
+
+### `DELETE /apacs/:id`
+
+Exclui uma APAC.
+
+**Autenticação:** requerida
+
+**Roles permitidas:** `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`
+
+**Request body:** nenhum
+
+**Resposta de sucesso:** `204`, sem corpo.
+
+**Resposta de erro (500):**
+
+```json
+{ "error": "Erro ao excluir Apac", "details": {} }
+```
+
+> Não há `404`: se o `id` não existir, a API responde `500`.
+
 ---
 
 ## Códigos de erro comuns
@@ -473,11 +537,11 @@ Lista todas as APACs cadastradas.
 
 ## Matriz de acesso por role
 
-| Role                | Login | Ver perfil (`/auth/me`) | Admin (`/auth/admin`) | Criar usuário | Listar usuários | Criar APAC | Listar APACs |
-| ------------------- | :---: | :---------------------: | :-------------------: | :-----------: | :-------------: | :--------: | :----------: |
-| Público (sem token) |  ✅   |           ❌            |          ❌           |      ❌       |       ❌        |     ❌     |      ❌      |
-| `DEV`               |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |
-| `DIRETOR`           |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |
-| `SECRETARIA`        |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |
-| `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |
-| `REGULADOR`         |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |
+| Role                | Login | Ver perfil (`/auth/me`) | Admin (`/auth/admin`) | Criar usuário | Listar usuários | Criar APAC | Listar APACs | Editar APAC | Excluir APAC |
+| ------------------- | :---: | :---------------------: | :-------------------: | :-----------: | :-------------: | :--------: | :----------: | :---------: | :----------: |
+| Público (sem token) |  ✅   |           ❌            |          ❌           |      ❌       |       ❌        |     ❌     |      ❌      |     ❌      |      ❌      |
+| `DEV`               |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
+| `DIRETOR`           |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
+| `SECRETARIA`        |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |
+| `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
+| `REGULADOR`         |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
