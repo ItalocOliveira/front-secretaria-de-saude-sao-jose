@@ -48,7 +48,7 @@ export function ApacsTableCard({
           APACs cadastradas
           {isPending ? null : <Badge variant="secondary">{apacs.length}</Badge>}
         </CardTitle>
-        <CardDescription>Autorizações retornadas por GET /apecs.</CardDescription>
+        <CardDescription>Autorizações retornadas por GET /apacs.</CardDescription>
         {hasMore ? (
           <CardAction>
             <Button variant="ghost" size="sm" onClick={() => setShowAll((current) => !current)}>

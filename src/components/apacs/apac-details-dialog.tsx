@@ -50,7 +50,7 @@ export function ApacDetailsDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{apac?.name ?? "APAC"}</DialogTitle>
-          <DialogDescription>Dados retornados por GET /apecs.</DialogDescription>
+          <DialogDescription>Dados retornados por GET /apacs.</DialogDescription>
         </DialogHeader>
 
         {apac === null ? null : (

@@ -39,7 +39,7 @@ const PRIORITIES = ["URGENTE", "NORMAL"]
 /** Roles com acesso a cada coleção, conforme a matriz de permissões da doc. */
 const ACCESS = {
   users: ["DEV", "DIRETOR", "SECRETARIA"],
-  apecs: ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"],
+  apacs: ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"],
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +70,7 @@ await db.read()
 
 db.data ??= {}
 db.data.users ??= []
-db.data.apecs ??= []
+db.data.apacs ??= []
 db.data._credentials ??= []
 
 const jsonServer = createApp(db, { logger: false })
@@ -292,11 +292,11 @@ async function createUser(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// POST /apecs
+// POST /apacs
 // ---------------------------------------------------------------------------
 
 async function createApac(req, res) {
-  const fail = (details) => send(res, 500, { error: "Erro ao criar Apec", details })
+  const fail = (details) => send(res, 500, { error: "Erro ao criar Apac", details })
 
   const body = await readJsonBody(req)
   if (!body) return fail({ message: "Corpo da requisição deve ser um objeto JSON." })
@@ -326,7 +326,7 @@ async function createApac(req, res) {
     updated_at: now,
   }
 
-  db.data.apecs.push(apac)
+  db.data.apacs.push(apac)
   await db.write()
 
   return send(res, 201, apac)
@@ -354,10 +354,10 @@ function routeIndex() {
       { method: "POST", path: "/users", roles: ACCESS.users.join(", ") },
       { method: "GET", path: "/users", roles: ACCESS.users.join(", ") },
       { method: "GET", path: "/users/:id", roles: `${ACCESS.users.join(", ")} (extra do mock)` },
-      { method: "POST", path: "/apecs", roles: ACCESS.apecs.join(", ") },
-      { method: "GET", path: "/apecs", roles: ACCESS.apecs.join(", ") },
-      { method: "GET", path: "/apecs/:id", roles: `${ACCESS.apecs.join(", ")} (extra do mock)` },
-      { method: "PATCH | PUT | DELETE", path: "/apecs/:id", roles: `${ACCESS.apecs.join(", ")} (extra do mock)` },
+      { method: "POST", path: "/apacs", roles: ACCESS.apacs.join(", ") },
+      { method: "GET", path: "/apacs", roles: ACCESS.apacs.join(", ") },
+      { method: "GET", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
+      { method: "PATCH | PUT | DELETE", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
     ],
   }
 }
@@ -392,7 +392,7 @@ const server = createServer(async (req, res) => {
 
   if (method === "POST" && rest.length === 0) {
     if (collection === "users") return createUser(req, res)
-    if (collection === "apecs") return createApac(req, res)
+    if (collection === "apacs") return createApac(req, res)
   }
 
   // Listagem, busca por id e mutações vão para o json-server. O corpo da

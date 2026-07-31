@@ -16,7 +16,7 @@ type Stat = {
 /**
  * A API não tem endpoint de agregação, então os números são contados sobre a
  * lista já carregada. Se a listagem ganhar paginação no servidor, estes cards
- * passam a mostrar só a página atual — aí será preciso um `GET /apecs/stats`.
+ * passam a mostrar só a página atual — aí será preciso um `GET /apacs/stats`.
  */
 const STATS: Stat[] = [
   { label: "Total de APACs", hint: "Cadastradas na base", icon: FileTextIcon },

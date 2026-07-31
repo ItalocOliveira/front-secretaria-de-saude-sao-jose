@@ -2,7 +2,7 @@ import type { ApacPriority, ApacProcedure, ApacStatus } from "@/lib/apac"
 import { request } from "@/api/client"
 
 /**
- * Objeto devolvido por `GET /apecs` e `POST /apecs`.
+ * Objeto devolvido por `GET /apacs` e `POST /apacs`.
  *
  * `id` e `created_at` estão no schema Prisma mas **não aparecem** no exemplo de
  * resposta da doc — por isso são opcionais aqui. Confirmar com o backend: sem
@@ -57,7 +57,7 @@ export function toApac(dto: ApacDto, index: number): Apac {
   }
 }
 
-/** Campos aceitos em `POST /apecs`. `status` não entra: a API cria como `PENDENTE`. */
+/** Campos aceitos em `POST /apacs`. `status` não entra: a API cria como `PENDENTE`. */
 export type CreateApacPayload = {
   name: string
   cns: string
@@ -69,10 +69,10 @@ export type CreateApacPayload = {
 }
 
 export async function listApacs(signal?: AbortSignal) {
-  const data = await request<ApacDto[]>("/apecs", { signal })
+  const data = await request<ApacDto[]>("/apacs", { signal })
   return data.map(toApac)
 }
 
 export function createApac(payload: CreateApacPayload) {
-  return request<ApacDto>("/apecs", { method: "POST", body: payload })
+  return request<ApacDto>("/apacs", { method: "POST", body: payload })
 }

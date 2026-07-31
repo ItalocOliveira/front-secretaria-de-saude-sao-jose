@@ -7,7 +7,7 @@ import type { ApacPriority, ApacStatus } from "@/lib/apac"
 export const ALL = "__all__"
 
 /**
- * `GET /apecs` não documenta query params, então tudo aqui é filtro client-side
+ * `GET /apacs` não documenta query params, então tudo aqui é filtro client-side
  * sobre a lista completa. Se a API ganhar filtro/paginação, este módulo é o ponto
  * de troca. O filtro de unidade saiu: unidade não existe no modelo `Apac`.
  */
