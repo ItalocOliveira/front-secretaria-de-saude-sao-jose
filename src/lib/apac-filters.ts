@@ -59,12 +59,6 @@ export function matchesFilters(apac: Apac, filters: ApacFiltersValue) {
   }
 
   if (filters.period?.from !== undefined) {
-    // Sem `created_at` não dá para posicionar a APAC no tempo: o filtro de período
-    // simplesmente não se aplica a ela.
-    if (apac.createdAt === null) {
-      return false
-    }
-
     const createdAt = new Date(apac.createdAt)
     if (createdAt < filters.period.from) {
       return false

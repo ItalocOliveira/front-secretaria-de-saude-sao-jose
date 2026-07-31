@@ -4,9 +4,10 @@ import { request } from "@/api/client"
 /**
  * Objeto devolvido por `GET /apacs` e `POST /apacs`.
  *
- * `id` e `created_at` estão no schema Prisma mas **não aparecem** no exemplo de
- * resposta da doc — por isso são opcionais aqui. Confirmar com o backend: sem
- * `id` não há como abrir detalhe nem editar uma APAC.
+ * `id` ainda **não aparece** no exemplo de resposta da doc — segue opcional
+ * aqui. Confirmar com o backend: sem `id` não há como abrir detalhe nem editar
+ * uma APAC. `createdAt`/`updatedAt` já vêm preenchidos desde a última
+ * atualização da API.
  */
 export type ApacDto = {
   id?: string
@@ -20,8 +21,8 @@ export type ApacDto = {
   status: ApacStatus
   birth_date?: string | null
   municipality?: string | null
-  created_at?: string
-  updated_at?: string
+  createdAt: string
+  updatedAt: string
   /**
    * Presigned URL de **download**, válida por 1h, gerada a cada `GET /apacs`.
    * Não vem tipada no `ApacDomain` do backend (injetada via spread) — presente
@@ -46,7 +47,8 @@ export type Apac = {
   status: ApacStatus
   municipality: string | null
   birthDate: string | null
-  createdAt: string | null
+  createdAt: string
+  updatedAt: string
   /** Presigned URL de download do PDF, válida por 1h. `null` se a API não mandar. */
   pdfUrl: string | null
 }
@@ -62,7 +64,8 @@ export function toApac(dto: ApacDto, index: number): Apac {
     status: dto.status,
     municipality: dto.municipality ?? null,
     birthDate: dto.birth_date ?? null,
-    createdAt: dto.created_at ?? null,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
     pdfUrl: dto.pdf_url ?? null,
   }
 }

@@ -64,6 +64,7 @@ export function ApacDetailsDialog({
             <DetailRow label="Município">{apac.municipality ?? NOT_PROVIDED}</DetailRow>
             <DetailRow label="Data de nascimento">{formatDate(apac.birthDate)}</DetailRow>
             <DetailRow label="Cadastrada em">{formatDate(apac.createdAt)}</DetailRow>
+            <DetailRow label="Atualizada em">{formatDate(apac.updatedAt)}</DetailRow>
             <DetailRow label="Situação">
               <Badge variant={APAC_STATUS_BADGE[apac.status]}>{APAC_STATUS_LABEL[apac.status]}</Badge>
               <Badge variant={apac.priority === "URGENTE" ? "destructive" : "outline"}>
