@@ -129,4 +129,4 @@ O que a UI precisaria e a API não oferece. Nada disso foi simulado com dado fal
 | Sem endpoint de agregação                                       | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apacs/stats`.            |
 | Sem query params documentados                                   | Filtro e ordenação são client-side (`src/lib/apac-filters.ts` é o ponto de troca).                                         |
 
-Ainda mockados, por não existirem no contrato: a lista de municípios e o seletor de unidade no rodapé da sidebar (ver `src/data/apacs-mock.ts`).
+Ainda mockada, por não existir no contrato: a lista de municípios (ver `src/data/apacs-mock.ts`).

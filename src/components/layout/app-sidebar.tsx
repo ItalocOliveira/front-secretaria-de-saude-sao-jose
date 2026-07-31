@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { Link, useLocation } from "react-router"
 import {
   BuildingIcon,
@@ -16,7 +15,6 @@ import {
 
 import type { UserRole } from "@/lib/apac"
 import { APAC_ROLES, homeRouteFor, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
-import { UNITS } from "@/data/apacs-mock"
 import { useSession } from "@/hooks/use-session"
 import {
   Sidebar,
@@ -32,7 +30,6 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 type NavItem = {
@@ -106,7 +103,6 @@ function NavMenu({ items }: { items: NavItem[] }) {
 }
 
 export function AppSidebar() {
-  const [unit, setUnit] = useState<string>(UNITS[0])
   const { claims } = useSession()
 
   // Nem todo perfil enxerga APACs, então o logo leva para a home de cada um.
@@ -149,24 +145,7 @@ export function AppSidebar() {
       <SidebarSeparator />
 
       <SidebarFooter className="group-data-[collapsible=icon]:hidden">
-        <div className="flex flex-col gap-2">
-          <span className="text-xs text-muted-foreground">Unidade</span>
-          <Select value={unit} onValueChange={(next: string | null) => setUnit(next ?? UNITS[0])}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {UNITS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">Versão {APP_VERSION}</span>
-        </div>
+        <span className="text-xs text-muted-foreground">Versão {APP_VERSION}</span>
       </SidebarFooter>
     </Sidebar>
   )
