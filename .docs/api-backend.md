@@ -42,7 +42,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 - [x] Cadastrar APAC com dados textuais do paciente e do procedimento (`POST /apacs`)
 - [x] Visualizar todas as APACs cadastradas (`GET /apacs`)
 - [ ] Consultar APAC por `id`
-- [x] Atualizar `name`/`acs`/`procedure`/`municipality` (`PATCH /apacs/:id`) — transição de `status` ainda não é aceita
+- [x] Atualizar `name`/`acs`/`procedure`/`municipality`/`status` (`PATCH /apacs/:id`), incluindo transição de status
 - [x] Excluir APACs (`DELETE /apacs/:id`)
 - [x] Anexar PDFs às APACs (indireto: `POST /apacs` devolve uma presigned URL do Cloudflare R2, o navegador envia o PDF direto pro bucket)
 
@@ -82,7 +82,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 
 - Toda APAC deve possuir `name`, `cns`, `procedure` e `priority`
 - `cns` e `cpf` (quando informado) são persistidos com hash e criptografia, mas trafegam em **texto puro** nas respostas da API
-- `status` inicia como `PENDENTE`; a edição (`PATCH`) ainda não aceita alterar `status`, então a transição continua sem endpoint
+- `status` inicia como `PENDENTE`; a transição (`AGUARDO`/`APROVADO`/`CANCELADO`/`NEGADO`) é feita via `PATCH /apacs/:id`
 - `procedure` aceita apenas `EXAME` ou `CIRURGIA`
 - `priority` aceita apenas `URGENTE` ou `NORMAL`
 
@@ -460,18 +460,20 @@ Edita campos de uma APAC já cadastrada.
   "name": "João da Silva",
   "acs": "MARLON",
   "procedure": "CIRURGIA",
-  "municipality": "São José dos Ramos"
+  "municipality": "São José dos Ramos",
+  "status": "APROVADO"
 }
 ```
 
-| Campo          | Tipo     | Descrição                                                |
-| -------------- | -------- | -------------------------------------------------------- |
-| `name`         | `string` | Nome do paciente                                         |
-| `acs`          | `string` | Agente Comunitário de Saúde responsável — ver enum `Acs` |
-| `procedure`    | `string` | `EXAME` ou `CIRURGIA`                                    |
-| `municipality` | `string` | Município                                                |
+| Campo          | Tipo     | Descrição                                                        |
+| -------------- | -------- | ---------------------------------------------------------------- |
+| `name`         | `string` | Nome do paciente                                                 |
+| `acs`          | `string` | Agente Comunitário de Saúde responsável — ver enum `Acs`         |
+| `procedure`    | `string` | `EXAME` ou `CIRURGIA`                                            |
+| `municipality` | `string` | Município                                                        |
+| `status`       | `string` | `PENDENTE` \| `AGUARDO` \| `APROVADO` \| `CANCELADO` \| `NEGADO` |
 
-> Não editável por este endpoint: `cns`, `priority`, `birth_date`, `cpf`, `status`.
+> Não editável por este endpoint: `cns`, `priority`, `birth_date`, `cpf`.
 
 **Resposta de sucesso (200):** `ApacDomain` completo já atualizado (mesmo shape de `GET /apacs`, ver acima).
 
