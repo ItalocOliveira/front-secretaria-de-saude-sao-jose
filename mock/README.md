@@ -57,7 +57,7 @@ As listagens são servidas pelo json-server, então aceitam filtro, ordenação 
 
 ```
 GET /apacs?status=PENDENTE
-GET /apacs?procedure=EXAME&priority=URGENTE
+GET /apacs?procedure=CONSULTA_EM_PEDIATRIA&priority=URGENTE
 GET /apacs?_sort=-created_at
 GET /apacs?_page=1&_per_page=10
 ```

@@ -1,6 +1,13 @@
 import { CircleAlertIcon, FileTextIcon, XIcon } from "lucide-react"
 
-import { APAC_ACS_LABEL, APAC_PRIORITY_LABEL, APAC_STATUS_LABEL, type ApacAcs } from "@/lib/apac"
+import {
+  APAC_ACS_LABEL,
+  APAC_PRIORITY_LABEL,
+  APAC_PROCEDURE_LABEL,
+  APAC_STATUS_LABEL,
+  type ApacAcs,
+  type ApacProcedure,
+} from "@/lib/apac"
 import { APAC_PDF_MIME, formatFileSize, type ApacFormValues } from "@/lib/apac-form"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -59,7 +66,13 @@ export function ApacFormReviewStep({
         <ReviewRow label="Município" value={values.municipality || NOT_PROVIDED} />
         <ReviewRow
           label="Procedimento"
-          value={values.procedure === "" ? NOT_PROVIDED : <Badge variant="secondary">{values.procedure}</Badge>}
+          value={
+            values.procedure === "" ? (
+              NOT_PROVIDED
+            ) : (
+              <Badge variant="secondary">{APAC_PROCEDURE_LABEL[values.procedure as ApacProcedure]}</Badge>
+            )
+          }
         />
         <ReviewRow
           label="Prioridade"
