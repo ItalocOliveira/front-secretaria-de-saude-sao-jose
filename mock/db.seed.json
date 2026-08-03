@@ -82,7 +82,7 @@
       "status": "APROVADO",
       "municipality": "Sapé",
       "procedure": "EXAME",
-      "priority": "NORMAL",
+      "priority": "ELETIVO",
       "created_at": "2026-06-08T08:10:00.000Z",
       "updated_at": "2026-06-08T08:10:00.000Z"
     },
@@ -95,7 +95,7 @@
       "status": "NEGADO",
       "municipality": "Caldas Brandão",
       "procedure": "CIRURGIA",
-      "priority": "NORMAL",
+      "priority": "ELETIVO",
       "created_at": "2026-06-11T16:05:00.000Z",
       "updated_at": "2026-06-11T16:05:00.000Z"
     },
@@ -121,7 +121,7 @@
       "status": "PENDENTE",
       "municipality": null,
       "procedure": "EXAME",
-      "priority": "NORMAL",
+      "priority": "ELETIVO",
       "created_at": "2026-06-20T14:55:00.000Z",
       "updated_at": "2026-06-20T14:55:00.000Z"
     }
