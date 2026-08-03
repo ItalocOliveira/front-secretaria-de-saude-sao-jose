@@ -75,7 +75,7 @@ export type ApacProcedure = (typeof APAC_PROCEDURE_LIST)[number]
 
 export const APAC_PRIORITY = {
   URGENTE: "URGENTE",
-  NORMAL: "NORMAL",
+  ELETIVO: "ELETIVO",
 } as const
 
 export type ApacPriority = (typeof APAC_PRIORITY)[keyof typeof APAC_PRIORITY]
@@ -128,7 +128,7 @@ export const APAC_STATUS_BADGE: Record<ApacStatus, "default" | "secondary" | "de
 
 export const APAC_PRIORITY_LABEL: Record<ApacPriority, string> = {
   URGENTE: "Urgente",
-  NORMAL: "Eletivo",
+  ELETIVO: "Eletivo",
 }
 
 /** Nome de exibição de cada ACS — o enum usa nome em `SCREAMING_SNAKE_CASE`. */

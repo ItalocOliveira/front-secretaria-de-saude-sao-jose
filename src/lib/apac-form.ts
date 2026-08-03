@@ -36,7 +36,7 @@ export const INITIAL_APAC_FORM: ApacFormValues = {
   birthDate: "",
   municipality: "",
   procedure: "",
-  priority: APAC_PRIORITY.NORMAL,
+  priority: APAC_PRIORITY.ELETIVO,
   acs: "",
   pdfFile: null,
 }
