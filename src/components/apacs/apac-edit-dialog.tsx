@@ -6,7 +6,7 @@ import { MUNICIPALITIES } from "@/data/apacs-mock"
 import {
   APAC_ACS_LABEL,
   APAC_ACS_LIST,
-  APAC_PROCEDURE_LIST,
+  APAC_PROCEDURE_OPTIONS,
   APAC_STATUS_LABEL,
   APAC_STATUS_LIST,
   type ApacAcs,
@@ -159,19 +159,19 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
             <Field>
               <FieldLabel htmlFor="editar-procedimento">Tipo de procedimento</FieldLabel>
               <Combobox
-                items={APAC_PROCEDURE_LIST}
-                value={current.procedure}
-                onValueChange={(procedure: string | null) =>
-                  setValues({ ...current, procedure: (procedure ?? current.procedure) as ApacProcedure })
+                items={APAC_PROCEDURE_OPTIONS}
+                value={APAC_PROCEDURE_OPTIONS.find((option) => option.value === current.procedure) ?? null}
+                onValueChange={(option) =>
+                  setValues({ ...current, procedure: (option?.value ?? current.procedure) as ApacProcedure })
                 }
               >
                 <ComboboxInput id="editar-procedimento" placeholder="Busque o procedimento" />
                 <ComboboxContent>
                   <ComboboxEmpty>Nenhum procedimento encontrado.</ComboboxEmpty>
                   <ComboboxList>
-                    {(procedure) => (
-                      <ComboboxItem key={procedure} value={procedure}>
-                        {procedure}
+                    {(option) => (
+                      <ComboboxItem key={option.value} value={option}>
+                        {option.label}
                       </ComboboxItem>
                     )}
                   </ComboboxList>

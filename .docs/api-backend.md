@@ -48,16 +48,16 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 
 **Campos aceitos na criação** (`ApacCreateDto`):
 
-| Campo          | Obrigatório | Tipo / enum                                                     |
-| -------------- | :---------: | --------------------------------------------------------------- |
-| `name`         |     Sim     | `string` — nome do paciente                                     |
-| `cns`          |     Sim     | `string` — Cartão Nacional de Saúde                             |
-| `procedure`    |     Sim     | `string` — texto livre, não é mais um enum fixo                 |
-| `priority`     |     Sim     | `URGENTE` \| `ELETIVO`                                          |
-| `acs`          |     Sim     | ver enum `Acs` abaixo — Agente Comunitário de Saúde responsável |
-| `birth_date`   |     Não     | `Date` (ISO 8601)                                               |
-| `cpf`          |     Não     | `string`                                                        |
-| `municipality` |     Não     | `string`                                                        |
+| Campo          | Obrigatório | Tipo / enum                                                      |
+| -------------- | :---------: | ---------------------------------------------------------------- |
+| `name`         |     Sim     | `string` — nome do paciente                                      |
+| `cns`          |     Sim     | `string` — Cartão Nacional de Saúde                              |
+| `procedure`    |     Sim     | ver enum `Procedures` — chave `SCREAMING_SNAKE_CASE`, sem acento |
+| `priority`     |     Sim     | `URGENTE` \| `ELETIVO`                                           |
+| `acs`          |     Sim     | ver enum `Acs` abaixo — Agente Comunitário de Saúde responsável  |
+| `birth_date`   |     Não     | `Date` (ISO 8601)                                                |
+| `cpf`          |     Não     | `string`                                                         |
+| `municipality` |     Não     | `string`                                                         |
 
 **Enum `Acs`:**
 
@@ -83,7 +83,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 - Toda APAC deve possuir `name`, `cns`, `procedure` e `priority`
 - `cns` e `cpf` (quando informado) são persistidos com hash e criptografia, mas trafegam em **texto puro** nas respostas da API
 - `status` inicia como `PENDENTE`; a transição (`AGUARDO`/`APROVADO`/`CANCELADO`/`NEGADO`) é feita via `PATCH /apacs/:id`
-- `procedure` é texto livre (deixou de ser um enum fixo — `EXAME`/`CIRURGIA` eram só os valores originais)
+- `procedure` é um enum Prisma (`Procedures`) — a chave é `SCREAMING_SNAKE_CASE` sem acento (ex.: `CONSULTA_EM_DERMATOLOGIA_ADULTO`), não o texto formatado exibido na tela. `EXAME`/`CIRURGIA` eram os valores originais; hoje é um catálogo de ~47 procedimentos, ver `APAC_PROCEDURE`/`APAC_PROCEDURE_LABEL` em `src/lib/apac.ts`
 - `priority` aceita apenas `URGENTE` ou `ELETIVO` (`ELETIVO` era `NORMAL` antes desta mudança de regra de negócio)
 
 ### Segurança e acesso
@@ -343,7 +343,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 {
   "name": "João da Silva",
   "cns": "123456789012345",
-  "procedure": "EXAME",
+  "procedure": "CONSULTA_EM_PEDIATRIA",
   "priority": "URGENTE",
   "acs": "MARLON",
   "birth_date": "1990-05-15T00:00:00.000Z",
@@ -356,7 +356,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 | -------------- | ------------------- | ----------- | -------------------------------------------------------- |
 | `name`         | `string`            | Sim         | Nome do paciente                                         |
 | `cns`          | `string`            | Sim         | Cartão Nacional de Saúde                                 |
-| `procedure`    | `string`            | Sim         | Tipo de procedimento — texto livre                       |
+| `procedure`    | `string`            | Sim         | Tipo de procedimento — ver enum `Procedures`             |
 | `priority`     | `string`            | Sim         | Prioridade: `URGENTE` ou `ELETIVO`                       |
 | `acs`          | `string`            | Sim         | Agente Comunitário de Saúde responsável — ver enum `Acs` |
 | `birth_date`   | `string` (ISO 8601) | Não         | Data de nascimento                                       |
@@ -369,7 +369,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 
 | Enum                        | Valores                                                  |
 | --------------------------- | -------------------------------------------------------- |
-| `procedure`                 | texto livre — não é mais um enum                         |
+| `procedure`                 | enum `Procedures` — ~47 valores, ver `src/lib/apac.ts`   |
 | `priority`                  | `URGENTE`, `ELETIVO`                                     |
 | `acs`                       | ver enum `Acs` no início da seção de APACs               |
 | `status` (somente resposta) | `PENDENTE`, `AGUARDO`, `APROVADO`, `CANCELADO`, `NEGADO` |
@@ -381,7 +381,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
   "apac": {
     "name": "João da Silva",
     "cns": "valor-criptografado",
-    "procedure": "EXAME",
+    "procedure": "CONSULTA_EM_PEDIATRIA",
     "priority": "URGENTE",
     "acs": "MARLON",
     "status": "PENDENTE",
@@ -425,7 +425,7 @@ Lista todas as APACs cadastradas.
   {
     "name": "João da Silva",
     "cns": "valor-criptografado",
-    "procedure": "EXAME",
+    "procedure": "CONSULTA_EM_PEDIATRIA",
     "priority": "URGENTE",
     "acs": "MARLON",
     "status": "PENDENTE",
@@ -459,7 +459,7 @@ Edita campos de uma APAC já cadastrada.
 {
   "name": "João da Silva",
   "acs": "MARLON",
-  "procedure": "CIRURGIA",
+  "procedure": "CONSULTA_EM_CIRURGIA_PLASTICA",
   "municipality": "São José dos Ramos",
   "status": "APROVADO"
 }
@@ -469,7 +469,7 @@ Edita campos de uma APAC já cadastrada.
 | -------------- | -------- | ---------------------------------------------------------------- |
 | `name`         | `string` | Nome do paciente                                                 |
 | `acs`          | `string` | Agente Comunitário de Saúde responsável — ver enum `Acs`         |
-| `procedure`    | `string` | Tipo de procedimento — texto livre                               |
+| `procedure`    | `string` | Tipo de procedimento — ver enum `Procedures`                     |
 | `municipality` | `string` | Município                                                        |
 | `status`       | `string` | `PENDENTE` \| `AGUARDO` \| `APROVADO` \| `CANCELADO` \| `NEGADO` |
 

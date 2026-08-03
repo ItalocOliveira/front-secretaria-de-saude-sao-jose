@@ -3,7 +3,7 @@ import {
   APAC_ACS_LIST,
   APAC_PRIORITY_LABEL,
   APAC_PRIORITY_LIST,
-  APAC_PROCEDURE_LIST,
+  APAC_PROCEDURE_OPTIONS,
   type ApacAcs,
   type ApacPriority,
   type ApacProcedure,
@@ -35,9 +35,9 @@ export function ApacFormRequestStep({
       <Field data-invalid={errors.has("procedure")}>
         <FieldLabel htmlFor="solicitacao-procedimento">Tipo de procedimento *</FieldLabel>
         <Combobox
-          items={APAC_PROCEDURE_LIST}
-          value={values.procedure || null}
-          onValueChange={(procedure: string | null) => onChange({ procedure: (procedure ?? "") as ApacProcedure })}
+          items={APAC_PROCEDURE_OPTIONS}
+          value={APAC_PROCEDURE_OPTIONS.find((option) => option.value === values.procedure) ?? null}
+          onValueChange={(option) => onChange({ procedure: (option?.value ?? "") as ApacProcedure })}
         >
           <ComboboxInput
             id="solicitacao-procedimento"
@@ -47,9 +47,9 @@ export function ApacFormRequestStep({
           <ComboboxContent>
             <ComboboxEmpty>Nenhum procedimento encontrado.</ComboboxEmpty>
             <ComboboxList>
-              {(procedure) => (
-                <ComboboxItem key={procedure} value={procedure}>
-                  {procedure}
+              {(option) => (
+                <ComboboxItem key={option.value} value={option}>
+                  {option.label}
                 </ComboboxItem>
               )}
             </ComboboxList>
