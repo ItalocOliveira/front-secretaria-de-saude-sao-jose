@@ -128,7 +128,7 @@ export const APAC_STATUS_BADGE: Record<ApacStatus, "default" | "secondary" | "de
 
 export const APAC_PRIORITY_LABEL: Record<ApacPriority, string> = {
   URGENTE: "Urgente",
-  NORMAL: "Normal",
+  NORMAL: "Eletivo",
 }
 
 /** Nome de exibição de cada ACS — o enum usa nome em `SCREAMING_SNAKE_CASE`. */
