@@ -3,12 +3,21 @@ import {
   APAC_ACS_LIST,
   APAC_PRIORITY_LABEL,
   APAC_PRIORITY_LIST,
+  APAC_PROCEDURE_LIST,
   type ApacAcs,
   type ApacPriority,
+  type ApacProcedure,
 } from "@/lib/apac"
 import type { ApacFormValues } from "@/lib/apac-form"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -25,13 +34,27 @@ export function ApacFormRequestStep({
     <FieldGroup>
       <Field data-invalid={errors.has("procedure")}>
         <FieldLabel htmlFor="solicitacao-procedimento">Tipo de procedimento *</FieldLabel>
-        <Input
-          id="solicitacao-procedimento"
-          placeholder="Descreva o procedimento"
-          aria-invalid={errors.has("procedure")}
-          value={values.procedure}
-          onChange={(event) => onChange({ procedure: event.target.value })}
-        />
+        <Combobox
+          items={APAC_PROCEDURE_LIST}
+          value={values.procedure || null}
+          onValueChange={(procedure: string | null) => onChange({ procedure: (procedure ?? "") as ApacProcedure })}
+        >
+          <ComboboxInput
+            id="solicitacao-procedimento"
+            placeholder="Busque o procedimento"
+            aria-invalid={errors.has("procedure")}
+          />
+          <ComboboxContent>
+            <ComboboxEmpty>Nenhum procedimento encontrado.</ComboboxEmpty>
+            <ComboboxList>
+              {(procedure) => (
+                <ComboboxItem key={procedure} value={procedure}>
+                  {procedure}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
       </Field>
 
       <Field data-invalid={errors.has("acs")}>
