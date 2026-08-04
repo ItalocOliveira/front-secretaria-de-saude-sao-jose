@@ -11,6 +11,7 @@ export const APAC_STATUS = {
   APROVADO: "APROVADO",
   CANCELADO: "CANCELADO",
   NEGADO: "NEGADO",
+  ENTREGUE: "ENTREGUE",
 } as const
 
 export type ApacStatus = (typeof APAC_STATUS)[keyof typeof APAC_STATUS]
@@ -117,6 +118,7 @@ export const APAC_STATUS_LABEL: Record<ApacStatus, string> = {
   APROVADO: "Aprovada",
   CANCELADO: "Cancelada",
   NEGADO: "Negada",
+  ENTREGUE: "Entregue",
 }
 
 /** Variante de `Badge` usada para cada status — só tokens semânticos. */
@@ -126,6 +128,7 @@ export const APAC_STATUS_BADGE: Record<ApacStatus, "default" | "secondary" | "de
   APROVADO: "default",
   CANCELADO: "outline",
   NEGADO: "destructive",
+  ENTREGUE: "default",
 }
 
 export const APAC_PRIORITY_LABEL: Record<ApacPriority, string> = {
