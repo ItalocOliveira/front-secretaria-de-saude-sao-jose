@@ -1,4 +1,4 @@
-import { CheckCircle2Icon, ClockIcon, FileTextIcon, SearchCheckIcon, XCircleIcon } from "lucide-react"
+import { CheckCircle2Icon, ClockIcon, FileTextIcon, PackageCheckIcon, SearchCheckIcon, XCircleIcon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
 import { APAC_STATUS, type ApacStatus } from "@/lib/apac"
@@ -24,11 +24,12 @@ const STATS: Stat[] = [
   { label: "Em análise", hint: "Com a regulação", icon: SearchCheckIcon, status: APAC_STATUS.AGUARDO },
   { label: "Aprovadas", hint: "Liberadas", icon: CheckCircle2Icon, status: APAC_STATUS.APROVADO },
   { label: "Negadas", hint: "Recusadas", icon: XCircleIcon, status: APAC_STATUS.NEGADO },
+  { label: "Entregues", hint: "Procedimento realizado", icon: PackageCheckIcon, status: APAC_STATUS.ENTREGUE },
 ]
 
 export function ApacStats({ apacs, isPending }: { apacs: Apac[]; isPending: boolean }) {
   return (
-    <div className="grid gap-4 *:min-w-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-4 *:min-w-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {STATS.map((stat) => {
         const value =
           stat.status === undefined ? apacs.length : apacs.filter((apac) => apac.status === stat.status).length

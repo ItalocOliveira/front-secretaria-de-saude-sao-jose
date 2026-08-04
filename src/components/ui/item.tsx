@@ -55,12 +55,16 @@ function Item({
 }: useRender.ComponentProps<"div"> & VariantProps<typeof itemVariants>) {
   return useRender({
     defaultTagName: "div",
-    props: mergeProps<"div">(
-      {
-        className: cn(itemVariants({ variant, size, className })),
-      },
-      props
-    ),
+    props: {
+      ...mergeProps<"div">(
+        {
+          className: cn(itemVariants({ variant, size, className })),
+        },
+        props
+      ),
+      "data-slot": "item",
+      "data-variant": variant,
+    },
     render,
     state: {
       slot: "item",
