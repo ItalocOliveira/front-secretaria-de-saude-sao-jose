@@ -21,3 +21,11 @@ export function onlyDigits(value: string, maxLength?: number) {
   const digits = value.replaceAll(/\D/g, "")
   return maxLength === undefined ? digits : digits.slice(0, maxLength)
 }
+
+/** Formata progressivamente para `000.000.000-00` — aceita dígitos crus ou já mascarados. */
+export function formatCpf(value: string) {
+  const digits = onlyDigits(value, 11)
+  const [, p1, p2, p3, p4] = digits.match(/^(\d{0,3})(\d{0,3})?(\d{0,3})?(\d{0,2})?$/) ?? []
+
+  return [p1, p2 && `.${p2}`, p3 && `.${p3}`, p4 && `-${p4}`].filter(Boolean).join("")
+}

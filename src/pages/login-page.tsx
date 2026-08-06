@@ -4,6 +4,7 @@ import { EyeIcon, EyeOffIcon, HeartPulseIcon, LogInIcon } from "lucide-react"
 
 import { resolveDestination } from "@/lib/permissions"
 import { decodeToken } from "@/lib/session"
+import { formatCpf, onlyDigits } from "@/lib/utils"
 import { useLogin } from "@/hooks/use-auth"
 import { useSession } from "@/hooks/use-session"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -87,11 +88,12 @@ export function LoginPage() {
                     id="login-cpf"
                     inputMode="numeric"
                     autoComplete="username"
-                    placeholder="000.000.000-00"
+                    placeholder="00000000000"
+                    maxLength={14}
                     required
                     disabled={isPending}
-                    value={cpf}
-                    onChange={(event) => setCpf(event.target.value)}
+                    value={formatCpf(cpf)}
+                    onChange={(event) => setCpf(onlyDigits(event.target.value, 11))}
                   />
                 </Field>
 

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router"
 import { ArrowLeftIcon, UserPlusIcon } from "lucide-react"
 
 import { USER_ROLE_LABEL, USER_ROLE_LIST, type UserRole } from "@/lib/apac"
-import { onlyDigits } from "@/lib/utils"
+import { formatCpf, onlyDigits } from "@/lib/utils"
 import { useCreateUser } from "@/hooks/use-users"
 import { AppHeader } from "@/components/layout/app-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -96,11 +96,11 @@ export function NewUserPage() {
                   <Input
                     id="usuario-cpf"
                     inputMode="numeric"
-                    placeholder="00000000000"
-                    maxLength={11}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
                     required
                     disabled={isPending}
-                    value={form.cpf}
+                    value={formatCpf(form.cpf)}
                     onChange={(event) => patch({ cpf: onlyDigits(event.target.value, 11) })}
                   />
                   <FieldDescription>Somente números. O CPF identifica a conta no login.</FieldDescription>
