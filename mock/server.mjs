@@ -111,6 +111,7 @@ const ACS_LIST = [
 const ACCESS = {
   users: ["DEV", "DIRETOR", "SECRETARIA"],
   apacs: ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"],
+  itens: ["DEV", "DIRETOR", "REGULADOR"],
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +146,7 @@ await db.read()
 db.data ??= {}
 db.data.users ??= []
 db.data.apacs ??= []
+db.data.itens ??= []
 db.data._credentials ??= []
 
 const jsonServer = createApp(db, { logger: false })
@@ -414,6 +416,31 @@ async function createApac(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// POST /itens
+// ---------------------------------------------------------------------------
+
+async function createItem(req, res) {
+  const fail = (details) => send(res, 500, { error: "Erro ao criar item", details })
+
+  const body = await readJsonBody(req)
+  if (!body) return fail({ message: "Corpo da requisição deve ser um objeto JSON." })
+  if (!body.name) return fail({ name: "Campo obrigatório." })
+
+  const item = {
+    id: randomUUID(),
+    name: String(body.name),
+    status: "DISPONIVEL", // definido no backend, não vem do cliente
+    amount: 1, // idem
+    ...(body.description ? { description: String(body.description) } : {}),
+  }
+
+  db.data.itens.push(item)
+  await db.write()
+
+  return send(res, 201, item)
+}
+
+// ---------------------------------------------------------------------------
 // /mock-uploads/:id.pdf — imita as presigned URLs (PUT de upload, GET de
 // download) que a API real gera a partir do Cloudflare R2.
 // ---------------------------------------------------------------------------
@@ -486,6 +513,9 @@ function routeIndex() {
       { method: "GET", path: "/apacs", roles: ACCESS.apacs.join(", ") },
       { method: "GET", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
       { method: "PATCH | PUT | DELETE", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
+      { method: "POST", path: "/itens", roles: ACCESS.itens.join(", ") },
+      { method: "GET", path: "/itens", roles: ACCESS.itens.join(", ") },
+      { method: "PATCH | DELETE", path: "/itens/:id", roles: ACCESS.itens.join(", ") },
       {
         method: "PUT",
         path: "/mock-uploads/:id.pdf?exp=...",
@@ -538,6 +568,7 @@ const server = createServer(async (req, res) => {
   if (method === "POST" && rest.length === 0) {
     if (collection === "users") return createUser(req, res)
     if (collection === "apacs") return createApac(req, res)
+    if (collection === "itens") return createItem(req, res)
   }
 
   // `pdf_url` é gerado sob demanda a cada GET, como na API real — o json-server só

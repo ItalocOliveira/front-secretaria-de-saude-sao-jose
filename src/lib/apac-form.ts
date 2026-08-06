@@ -10,6 +10,7 @@
 
 import type { CreateApacPayload } from "@/api/apacs"
 import { APAC_PRIORITY, type ApacAcs, type ApacPriority, type ApacProcedure } from "@/lib/apac"
+import { onlyDigits } from "@/lib/utils"
 
 export type ApacFormValues = {
   name: string
@@ -70,11 +71,6 @@ export function getStepErrors(step: number, values: ApacFormValues) {
   }
 
   return errors
-}
-
-/** Só dígitos: a API grava CNS/CPF sem máscara. */
-function onlyDigits(value: string) {
-  return value.replaceAll(/\D/g, "")
 }
 
 /**

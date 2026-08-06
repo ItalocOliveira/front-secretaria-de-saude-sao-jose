@@ -1,5 +1,6 @@
 import { MUNICIPALITIES } from "@/data/apacs-mock"
 import type { ApacFormValues } from "@/lib/apac-form"
+import { onlyDigits } from "@/lib/utils"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -33,9 +34,10 @@ export function ApacFormPatientStep({
           id="paciente-cns"
           inputMode="numeric"
           placeholder="000000000000000"
+          maxLength={15}
           aria-invalid={errors.has("cns")}
           value={values.cns}
-          onChange={(event) => onChange({ cns: event.target.value })}
+          onChange={(event) => onChange({ cns: onlyDigits(event.target.value, 15) })}
         />
         <FieldDescription>Somente números.</FieldDescription>
       </Field>
@@ -46,8 +48,9 @@ export function ApacFormPatientStep({
           id="paciente-cpf"
           inputMode="numeric"
           placeholder="00000000000"
+          maxLength={11}
           value={values.cpf}
-          onChange={(event) => onChange({ cpf: event.target.value })}
+          onChange={(event) => onChange({ cpf: onlyDigits(event.target.value, 11) })}
         />
         <FieldDescription>Opcional no cadastro.</FieldDescription>
       </Field>

@@ -15,3 +15,9 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+/** Remove tudo que não for dígito; opcionalmente trunca (ex.: CPF = 11, CNS = 15). */
+export function onlyDigits(value: string, maxLength?: number) {
+  const digits = value.replaceAll(/\D/g, "")
+  return maxLength === undefined ? digits : digits.slice(0, maxLength)
+}

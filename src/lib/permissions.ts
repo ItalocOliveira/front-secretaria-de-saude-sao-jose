@@ -13,12 +13,19 @@ export const APAC_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "RECEPCIONISTA
 /** Roles com acesso a `/users` (listar e criar). */
 export const USER_MANAGEMENT_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIA"]
 
+/** Roles com acesso a `/itens` (almoxarifado). */
+export const ITEM_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "REGULADOR"]
+
 export function canAccessApacs(role: UserRole) {
   return APAC_ROLES.includes(role)
 }
 
 export function canManageUsers(role: UserRole) {
   return USER_MANAGEMENT_ROLES.includes(role)
+}
+
+export function canAccessItens(role: UserRole) {
+  return ITEM_ROLES.includes(role)
 }
 
 /**
@@ -50,6 +57,10 @@ export function resolveDestination(from: string | undefined, role: UserRole) {
 
   if (from.startsWith("/usuarios")) {
     return canManageUsers(role) ? from : home
+  }
+
+  if (from.startsWith("/almoxarifado")) {
+    return canAccessItens(role) ? from : home
   }
 
   return home
