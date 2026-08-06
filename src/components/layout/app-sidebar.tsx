@@ -6,6 +6,7 @@ import {
   FileTextIcon,
   HeartPulseIcon,
   LayoutDashboardIcon,
+  PackageIcon,
   SettingsIcon,
   StethoscopeIcon,
   TriangleAlertIcon,
@@ -14,7 +15,7 @@ import {
 } from "lucide-react"
 
 import type { UserRole } from "@/lib/apac"
-import { APAC_ROLES, homeRouteFor, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
+import { APAC_ROLES, homeRouteFor, ITEM_ROLES, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
 import { useSession } from "@/hooks/use-session"
 import {
   Sidebar,
@@ -46,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { title: "Dashboard", icon: LayoutDashboardIcon },
   { title: "APACs", icon: FileTextIcon, url: "/apacs", roles: APAC_ROLES },
   { title: "Usuários", icon: UserCogIcon, url: "/usuarios", roles: USER_MANAGEMENT_ROLES },
+  { title: "Almoxarifado", icon: PackageIcon, url: "/almoxarifado", roles: ITEM_ROLES },
   { title: "Pendências", icon: TriangleAlertIcon },
   { title: "Pacientes", icon: UsersIcon },
   { title: "Profissionais", icon: StethoscopeIcon },
