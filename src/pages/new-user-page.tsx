@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router"
 import { ArrowLeftIcon, UserPlusIcon } from "lucide-react"
 
 import { USER_ROLE_LABEL, USER_ROLE_LIST, type UserRole } from "@/lib/apac"
+import { onlyDigits } from "@/lib/utils"
 import { useCreateUser } from "@/hooks/use-users"
 import { AppHeader } from "@/components/layout/app-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -15,11 +16,6 @@ import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 
 const INITIAL_FORM = { name: "", cpf: "", password: "", confirmation: "", role: "" }
-
-/** Só dígitos: a API guarda o CPF sem máscara e ele nunca deve ir para a URL. */
-function onlyDigits(value: string) {
-  return value.replaceAll(/\D/g, "")
-}
 
 export function NewUserPage() {
   const navigate = useNavigate()
@@ -43,7 +39,7 @@ export function NewUserPage() {
     createUser(
       {
         name: form.name,
-        cpf: onlyDigits(form.cpf),
+        cpf: form.cpf,
         password: form.password,
         role: form.role as UserRole,
       },
@@ -101,10 +97,11 @@ export function NewUserPage() {
                     id="usuario-cpf"
                     inputMode="numeric"
                     placeholder="00000000000"
+                    maxLength={11}
                     required
                     disabled={isPending}
                     value={form.cpf}
-                    onChange={(event) => patch({ cpf: event.target.value })}
+                    onChange={(event) => patch({ cpf: onlyDigits(event.target.value, 11) })}
                   />
                   <FieldDescription>Somente números. O CPF identifica a conta no login.</FieldDescription>
                 </Field>
