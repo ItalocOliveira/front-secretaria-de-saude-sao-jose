@@ -20,6 +20,8 @@ pnpm api:mock     # API mockada em :3000 — credenciais em mock/README.md
 pnpm dev          # frontend em :3001
 ```
 
+Ou os dois num comando só: `pnpm dev:mock` (usa `concurrently`).
+
 ### Rodando contra a Railway
 
 ```bash

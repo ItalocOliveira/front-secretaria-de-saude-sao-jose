@@ -90,6 +90,9 @@ const PROCEDURES = [
   "CONSULTA_EM_CIRURGIA_PEDIATRICA",
 ]
 const PRIORITIES = ["URGENTE", "ELETIVO"]
+// Espelha `ITEM_TYPE`/`MOVEMENT_TYPE` em `src/lib/itens.ts`.
+const ITEM_TYPES = ["EQUIPAMENTO", "MEDICAMENTO"]
+const MOVEMENT_TYPES = ["ENTRADA", "SAIDA"]
 const ACS_LIST = [
   "MARLON",
   "MARIA_JOSE_SILVA_RIBEIRO",
@@ -419,22 +422,96 @@ async function createApac(req, res) {
 // POST /itens
 // ---------------------------------------------------------------------------
 
-async function createItem(req, res) {
+async function createItem(req, res, user) {
   const fail = (details) => send(res, 500, { error: "Erro ao criar item", details })
 
   const body = await readJsonBody(req)
   if (!body) return fail({ message: "Corpo da requisição deve ser um objeto JSON." })
-  if (!body.name) return fail({ name: "Campo obrigatório." })
+
+  const details = {}
+  if (!body.name) details.name = "Campo obrigatório."
+  if (!ITEM_TYPES.includes(body.type)) details.type = `Valores aceitos: ${ITEM_TYPES.join(", ")}.`
+  if (body.amount != null && (!Number.isFinite(Number(body.amount)) || Number(body.amount) < 0)) {
+    details.amount = "Deve ser um número não negativo."
+  }
+  if (Object.keys(details).length > 0) return fail(details)
+
+  const amount = body.amount != null ? Number(body.amount) : 0
+  const name = String(body.name)
 
   const item = {
     id: randomUUID(),
-    name: String(body.name),
+    name,
     status: "DISPONIVEL", // definido no backend, não vem do cliente
-    amount: 1, // idem
+    amount,
+    type: body.type,
     ...(body.description ? { description: String(body.description) } : {}),
+    // `amount: 0` representa "produto sem estoque ainda" — sem movimento no histórico.
+    movements:
+      amount > 0
+        ? [
+            {
+              id: randomUUID(),
+              itemId: "", // preenchido abaixo, depois que o id do item existe
+              userId: user.id,
+              movementType: "ENTRADA",
+              amount,
+              description: `Item ${name} foi criado no estoque com ${amount} unidades.`,
+              dateTime: new Date().toISOString(),
+            },
+          ]
+        : [],
   }
+  if (item.movements[0]) item.movements[0].itemId = item.id
 
   db.data.itens.push(item)
+  await db.write()
+
+  return send(res, 201, item)
+}
+
+// ---------------------------------------------------------------------------
+// POST /itens/:id/movements
+// ---------------------------------------------------------------------------
+
+async function createItemMovement(req, res, itemId, user) {
+  const body = await readJsonBody(req)
+  if (!body) return send(res, 500, { message: "Corpo da requisição deve ser um objeto JSON." })
+
+  if (!MOVEMENT_TYPES.includes(body.movementType)) {
+    return send(res, 500, { message: `movementType inválido. Valores aceitos: ${MOVEMENT_TYPES.join(", ")}.` })
+  }
+
+  const amount = Number(body.amount)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return send(res, 500, { message: "amount deve ser um número maior que zero." })
+  }
+
+  const item = db.data.itens.find((entry) => entry.id === itemId)
+  if (!item) return send(res, 500, { message: "Item não encontrado." })
+
+  if (body.movementType === "SAIDA" && amount > item.amount) {
+    return send(res, 500, { message: "Estoque insuficiente para esta saída." })
+  }
+
+  item.amount = body.movementType === "ENTRADA" ? item.amount + amount : item.amount - amount
+
+  const description =
+    body.movementType === "ENTRADA"
+      ? `Foram adicionadas ${amount} unidades de ${item.name} ao estoque.`
+      : `Saída de ${amount} unidades de ${item.name}.`
+
+  item.movements ??= []
+  item.movements.unshift({
+    id: randomUUID(),
+    itemId: item.id,
+    userId: user.id,
+    movementType: body.movementType,
+    amount,
+    description,
+    dateTime: new Date().toISOString(),
+  })
+
   await db.write()
 
   return send(res, 201, item)
@@ -516,6 +593,7 @@ function routeIndex() {
       { method: "POST", path: "/itens", roles: ACCESS.itens.join(", ") },
       { method: "GET", path: "/itens", roles: ACCESS.itens.join(", ") },
       { method: "PATCH | DELETE", path: "/itens/:id", roles: ACCESS.itens.join(", ") },
+      { method: "POST", path: "/itens/:id/movements", roles: ACCESS.itens.join(", ") },
       {
         method: "PUT",
         path: "/mock-uploads/:id.pdf?exp=...",
@@ -554,10 +632,13 @@ const server = createServer(async (req, res) => {
 
   if (collection === "auth") return handleAuth(req, res, rest)
 
+  // `/itens/:id/movements` é a única rota aninhada — todo o resto continua limitado a `/:collection[/:id]`.
+  const isItemMovementsRoute = collection === "itens" && rest.length === 2 && rest[1] === "movements"
+
   // Whitelist: o json-server exporia qualquer chave do db.json como endpoint,
   // inclusive `_credentials`.
   const roles = ACCESS[collection]
-  if (!roles || rest.length > 1) return send(res, 404, { message: "Rota não encontrada." })
+  if (!roles || (rest.length > 1 && !isItemMovementsRoute)) return send(res, 404, { message: "Rota não encontrada." })
 
   const { user, error } = authenticate(req)
   if (error) return sendError(res, error)
@@ -565,10 +646,14 @@ const server = createServer(async (req, res) => {
   const denied = authorize(user, roles).error
   if (denied) return sendError(res, denied)
 
+  if (method === "POST" && isItemMovementsRoute) {
+    return createItemMovement(req, res, rest[0], user)
+  }
+
   if (method === "POST" && rest.length === 0) {
     if (collection === "users") return createUser(req, res)
     if (collection === "apacs") return createApac(req, res)
-    if (collection === "itens") return createItem(req, res)
+    if (collection === "itens") return createItem(req, res, user)
   }
 
   // `pdf_url` é gerado sob demanda a cada GET, como na API real — o json-server só

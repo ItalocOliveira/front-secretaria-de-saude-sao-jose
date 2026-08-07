@@ -10,6 +10,7 @@ import { ApacsPage } from "@/pages/apacs-page"
 import { ItensPage } from "@/pages/itens-page"
 import { LoginPage } from "@/pages/login-page"
 import { NewUserPage } from "@/pages/new-user-page"
+import { PendenciasPage } from "@/pages/pendencias-page"
 import { UsersPage } from "@/pages/users-page"
 
 export const router = createBrowserRouter([
@@ -29,7 +30,10 @@ export const router = createBrowserRouter([
               // então sidebar e navegação continuam de pé.
               {
                 element: <RequireRole allowed={APAC_ROLES} />,
-                children: [{ path: "/apacs", element: <ApacsPage />, errorElement: <RouteErrorBoundary /> }],
+                children: [
+                  { path: "/apacs", element: <ApacsPage />, errorElement: <RouteErrorBoundary /> },
+                  { path: "/pendencias", element: <PendenciasPage />, errorElement: <RouteErrorBoundary /> },
+                ],
               },
               {
                 element: <RequireRole allowed={USER_MANAGEMENT_ROLES} />,

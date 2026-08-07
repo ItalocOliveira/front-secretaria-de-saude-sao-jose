@@ -9,6 +9,7 @@ import {
   type ApacProcedure,
 } from "@/lib/apac"
 import { APAC_PDF_MIME, formatFileSize, type ApacFormValues } from "@/lib/apac-form"
+import { formatCpf } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Attachment,
@@ -61,7 +62,7 @@ export function ApacFormReviewStep({
       <ItemGroup className="grid gap-2 sm:grid-cols-2">
         <ReviewRow label="Paciente" value={values.name || NOT_PROVIDED} />
         <ReviewRow label="CNS" value={values.cns || NOT_PROVIDED} />
-        <ReviewRow label="CPF" value={values.cpf || NOT_PROVIDED} />
+        <ReviewRow label="CPF" value={values.cpf ? formatCpf(values.cpf) : NOT_PROVIDED} />
         <ReviewRow label="Data de nascimento" value={values.birthDate || NOT_PROVIDED} />
         <ReviewRow label="Município" value={values.municipality || NOT_PROVIDED} />
         <ReviewRow

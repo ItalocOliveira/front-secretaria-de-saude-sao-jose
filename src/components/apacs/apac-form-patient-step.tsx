@@ -1,6 +1,6 @@
 import { MUNICIPALITIES } from "@/data/apacs-mock"
 import type { ApacFormValues } from "@/lib/apac-form"
-import { onlyDigits } from "@/lib/utils"
+import { formatCpf, onlyDigits } from "@/lib/utils"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -47,9 +47,9 @@ export function ApacFormPatientStep({
         <Input
           id="paciente-cpf"
           inputMode="numeric"
-          placeholder="00000000000"
-          maxLength={11}
-          value={values.cpf}
+          placeholder="000.000.000-00"
+          maxLength={14}
+          value={formatCpf(values.cpf)}
           onChange={(event) => onChange({ cpf: onlyDigits(event.target.value, 11) })}
         />
         <FieldDescription>Opcional no cadastro.</FieldDescription>
