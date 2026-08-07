@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { EyeIcon, FileTextIcon, InboxIcon, PencilIcon, RefreshCwIcon, Trash2Icon } from "lucide-react"
+import { EyeIcon, FileTextIcon, InboxIcon, PencilIcon, RefreshCwIcon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
 import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
@@ -18,8 +18,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const PREVIEW_SIZE = 5
+const PROCEDURE_LABEL_MAX_LENGTH = 15
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" })
+
+function truncateProcedureLabel(label: string) {
+  return label.length > PROCEDURE_LABEL_MAX_LENGTH ? `${label.slice(0, PROCEDURE_LABEL_MAX_LENGTH)}...` : label
+}
 
 function formatDate(value: string | null) {
   if (value === null) {
@@ -130,7 +135,9 @@ export function ApacsTableCard({
                 {visible.map((apac) => (
                   <TableRow key={apac.id}>
                     <TableCell className="pl-4 font-medium">{apac.name}</TableCell>
-                    <TableCell>{APAC_PROCEDURE_LABEL[apac.procedure]}</TableCell>
+                    <TableCell title={APAC_PROCEDURE_LABEL[apac.procedure]}>
+                      {truncateProcedureLabel(APAC_PROCEDURE_LABEL[apac.procedure])}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{apac.municipality ?? "—"}</TableCell>
                     <TableCell>
                       <div className="flex flex-col items-start gap-1">
@@ -189,21 +196,6 @@ export function ApacsTableCard({
                             }
                           />
                           <TooltipContent>Editar</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`Excluir APAC de ${apac.name}`}
-                                onClick={() => setDeleting(apac)}
-                              >
-                                <Trash2Icon />
-                              </Button>
-                            }
-                          />
-                          <TooltipContent>Excluir</TooltipContent>
                         </Tooltip>
                       </div>
                     </TableCell>

@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 
@@ -45,10 +46,14 @@ export function ItemDeleteAlert({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{item === null ? "Excluir item?" : `Excluir "${item.name}"?`}</AlertDialogTitle>
-          <AlertDialogDescription>
-            Essa ação não pode ser desfeita.{error === null ? "" : ` ${error.message}`}
-          </AlertDialogDescription>
+          <AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription>
         </AlertDialogHeader>
+        {error === null ? null : (
+          <Alert variant="destructive">
+            <AlertTitle>Não foi possível excluir</AlertTitle>
+            <AlertDescription>{error.message}</AlertDescription>
+          </Alert>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
           <AlertDialogAction variant="destructive" disabled={isPending} onClick={confirm}>

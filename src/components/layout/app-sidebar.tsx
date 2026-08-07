@@ -46,9 +46,9 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { title: "Dashboard", icon: LayoutDashboardIcon },
   { title: "APACs", icon: FileTextIcon, url: "/apacs", roles: APAC_ROLES },
+  { title: "Pendências", icon: TriangleAlertIcon, url: "/pendencias", roles: APAC_ROLES },
   { title: "Usuários", icon: UserCogIcon, url: "/usuarios", roles: USER_MANAGEMENT_ROLES },
   { title: "Almoxarifado", icon: PackageIcon, url: "/almoxarifado", roles: ITEM_ROLES },
-  { title: "Pendências", icon: TriangleAlertIcon, url: "/pendencias", roles: APAC_ROLES },
   { title: "Pacientes", icon: UsersIcon },
   { title: "Profissionais", icon: StethoscopeIcon },
   { title: "Unidades", icon: BuildingIcon },
