@@ -2,7 +2,14 @@ import { useState } from "react"
 import { CheckIcon } from "lucide-react"
 
 import type { ItemDto, UpdateItemPayload } from "@/api/itens"
-import { ITEM_STATUS_LABEL, ITEM_STATUS_LIST, type ItemStatus } from "@/lib/itens"
+import {
+  ITEM_STATUS_LABEL,
+  ITEM_STATUS_LIST,
+  ITEM_TYPE_LABEL,
+  ITEM_TYPE_LIST,
+  type ItemStatus,
+  type ItemType,
+} from "@/lib/itens"
 import { useUpdateItem } from "@/hooks/use-itens"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -15,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
@@ -27,6 +34,7 @@ type FormValues = {
   description: string
   status: ItemStatus
   amount: number
+  type: ItemType
 }
 
 function toFormValues(item: ItemDto): FormValues {
@@ -35,6 +43,7 @@ function toFormValues(item: ItemDto): FormValues {
     description: item.description ?? "",
     status: item.status,
     amount: item.amount,
+    type: item.type,
   }
 }
 
@@ -45,6 +54,7 @@ function diffPayload(item: ItemDto, values: FormValues): UpdateItemPayload {
   if (values.description !== (item.description ?? "")) payload.description = values.description
   if (values.status !== item.status) payload.status = values.status
   if (values.amount !== item.amount) payload.amount = values.amount
+  if (values.type !== item.type) payload.type = values.type
 
   return payload
 }
@@ -94,7 +104,7 @@ export function ItemEditDialog({
     <Dialog open={item !== null} onOpenChange={(open) => (open ? null : close())}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Editar item</DialogTitle>
+          <DialogTitle>Editar produto</DialogTitle>
           <DialogDescription>Atualiza os dados via PATCH /itens/:id — envie só o que mudar.</DialogDescription>
         </DialogHeader>
 
@@ -123,6 +133,31 @@ export function ItemEditDialog({
                 value={current.description}
                 onChange={(event) => setValues({ ...current, description: event.target.value })}
               />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="editar-item-tipo">Tipo</FieldLabel>
+              <Select
+                value={current.type}
+                onValueChange={(type: string | null) =>
+                  setValues({ ...current, type: (type ?? current.type) as ItemType })
+                }
+              >
+                <SelectTrigger id="editar-item-tipo" className="w-full">
+                  <SelectValue placeholder="Selecione o tipo">
+                    {(type: string | null) => (type ? ITEM_TYPE_LABEL[type as ItemType] : "Selecione o tipo")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {ITEM_TYPE_LIST.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {ITEM_TYPE_LABEL[type]}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </Field>
 
             <Field>
@@ -161,6 +196,9 @@ export function ItemEditDialog({
                 value={current.amount}
                 onChange={(event) => setValues({ ...current, amount: Number(event.target.value) })}
               />
+              <FieldDescription>
+                Ajuste direto — não gera registro no extrato. Para rastrear, use Entrada/Saída nos detalhes do produto.
+              </FieldDescription>
             </Field>
           </FieldGroup>
         )}

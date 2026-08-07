@@ -1,9 +1,10 @@
 import { useState } from "react"
-import { PackageSearchIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import { EyeIcon, PackageSearchIcon } from "lucide-react"
 
 import type { ItemDto } from "@/api/itens"
-import { ITEM_STATUS_BADGE, ITEM_STATUS_LABEL } from "@/lib/itens"
+import { ITEM_STATUS_BADGE, ITEM_STATUS_LABEL, ITEM_TYPE_LABEL } from "@/lib/itens"
 import { ItemDeleteAlert } from "@/components/itens/item-delete-alert"
+import { ItemDetailsDialog } from "@/components/itens/item-details-dialog"
 import { ItemEditDialog } from "@/components/itens/item-edit-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const SKELETON_ROWS = 5
 
+/** Parte A: visão geral do estoque — produtos únicos com saldo consolidado. Detalhe/extrato ficam em `ItemDetailsDialog`. */
 export function ItensTableCard({
   itens,
   isPending,
@@ -25,14 +27,22 @@ export function ItensTableCard({
   isPending: boolean
   error: Error | null
 }) {
-  const [editing, setEditing] = useState<ItemDto | null>(null)
-  const [deleting, setDeleting] = useState<ItemDto | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Deriva dos `itens` atuais em vez de guardar o objeto no state: assim o
+  // dialog aberto reflete o histórico mais recente depois de qualquer
+  // invalidação (criar movimento, editar, etc.), sem precisar de useEffect.
+  const selected = itens.find((item) => item.id === selectedId) ?? null
+  const editing = itens.find((item) => item.id === editingId) ?? null
+  const deleting = itens.find((item) => item.id === deletingId) ?? null
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Itens cadastrados
+          Produtos cadastrados
           {isPending ? null : <Badge variant="secondary">{itens.length}</Badge>}
         </CardTitle>
         <CardDescription>Dados vindos de GET /itens.</CardDescription>
@@ -42,7 +52,7 @@ export function ItensTableCard({
         {error !== null ? (
           <div className="px-4">
             <Alert variant="destructive">
-              <AlertTitle>Não foi possível carregar os itens</AlertTitle>
+              <AlertTitle>Não foi possível carregar os produtos</AlertTitle>
               <AlertDescription>{error.message}</AlertDescription>
             </Alert>
           </div>
@@ -63,8 +73,8 @@ export function ItensTableCard({
                 <EmptyMedia variant="icon">
                   <PackageSearchIcon />
                 </EmptyMedia>
-                <EmptyTitle>Nenhum item cadastrado</EmptyTitle>
-                <EmptyDescription>Cadastre o primeiro item em "Novo item".</EmptyDescription>
+                <EmptyTitle>Nenhum produto cadastrado</EmptyTitle>
+                <EmptyDescription>Cadastre o primeiro produto em "Novo produto".</EmptyDescription>
               </EmptyHeader>
             </Empty>
           </div>
@@ -76,9 +86,9 @@ export function ItensTableCard({
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-4">Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Situação</TableHead>
-                  <TableHead>Quantidade</TableHead>
+                  <TableHead>Saldo</TableHead>
                   <TableHead className="pr-4 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -86,7 +96,7 @@ export function ItensTableCard({
                 {itens.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="pl-4 font-medium">{item.name}</TableCell>
-                    <TableCell className="max-w-64 truncate text-muted-foreground">{item.description ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{ITEM_TYPE_LABEL[item.type]}</TableCell>
                     <TableCell>
                       <Badge variant={ITEM_STATUS_BADGE[item.status]}>{ITEM_STATUS_LABEL[item.status]}</Badge>
                     </TableCell>
@@ -99,29 +109,14 @@ export function ItensTableCard({
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label={`Editar ${item.name}`}
-                                onClick={() => setEditing(item)}
+                                aria-label={`Ver detalhes de ${item.name}`}
+                                onClick={() => setSelectedId(item.id)}
                               >
-                                <PencilIcon />
+                                <EyeIcon />
                               </Button>
                             }
                           />
-                          <TooltipContent>Editar</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`Excluir ${item.name}`}
-                                onClick={() => setDeleting(item)}
-                              >
-                                <Trash2Icon />
-                              </Button>
-                            }
-                          />
-                          <TooltipContent>Excluir</TooltipContent>
+                          <TooltipContent>Ver detalhes</TooltipContent>
                         </Tooltip>
                       </div>
                     </TableCell>
@@ -133,8 +128,20 @@ export function ItensTableCard({
         ) : null}
       </CardContent>
 
-      <ItemEditDialog item={editing} onOpenChange={(open) => (open ? null : setEditing(null))} />
-      <ItemDeleteAlert item={deleting} onOpenChange={(open) => (open ? null : setDeleting(null))} />
+      <ItemDetailsDialog
+        item={selected}
+        onOpenChange={(open) => (open ? null : setSelectedId(null))}
+        onEdit={(item) => {
+          setSelectedId(null)
+          setEditingId(item.id)
+        }}
+        onDelete={(item) => {
+          setSelectedId(null)
+          setDeletingId(item.id)
+        }}
+      />
+      <ItemEditDialog item={editing} onOpenChange={(open) => (open ? null : setEditingId(null))} />
+      <ItemDeleteAlert item={deleting} onOpenChange={(open) => (open ? null : setDeletingId(null))} />
     </Card>
   )
 }

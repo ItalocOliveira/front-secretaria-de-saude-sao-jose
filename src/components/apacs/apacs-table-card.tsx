@@ -1,8 +1,10 @@
 import { useState } from "react"
-import { EyeIcon, FileTextIcon, InboxIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import { EyeIcon, FileTextIcon, InboxIcon, PencilIcon, RefreshCwIcon, Trash2Icon } from "lucide-react"
 
 import type { Apac } from "@/api/apacs"
 import { APAC_PRIORITY_LABEL, APAC_PROCEDURE_LABEL, APAC_STATUS_BADGE, APAC_STATUS_LABEL } from "@/lib/apac"
+import { cn } from "@/lib/utils"
+import { useApacs } from "@/hooks/use-apacs"
 import { ApacDeleteAlert } from "@/components/apacs/apac-delete-alert"
 import { ApacDetailsDialog } from "@/components/apacs/apac-details-dialog"
 import { ApacEditDialog } from "@/components/apacs/apac-edit-dialog"
@@ -41,6 +43,7 @@ export function ApacsTableCard({
   const [selected, setSelected] = useState<Apac | null>(null)
   const [editing, setEditing] = useState<Apac | null>(null)
   const [deleting, setDeleting] = useState<Apac | null>(null)
+  const { refetch, isFetching } = useApacs()
 
   const visible = showAll ? apacs : apacs.slice(0, PREVIEW_SIZE)
   const hasMore = apacs.length > PREVIEW_SIZE
@@ -53,13 +56,29 @@ export function ApacsTableCard({
           {isPending ? null : <Badge variant="secondary">{apacs.length}</Badge>}
         </CardTitle>
         <CardDescription>Autorizações retornadas por GET /apacs.</CardDescription>
-        {hasMore ? (
-          <CardAction>
+        <CardAction className="flex items-center gap-1">
+          {hasMore ? (
             <Button variant="ghost" size="sm" onClick={() => setShowAll((current) => !current)}>
               {showAll ? "Ver menos" : "Ver todas"}
             </Button>
-          </CardAction>
-        ) : null}
+          ) : null}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Atualizar APACs"
+                  disabled={isFetching}
+                  onClick={() => refetch()}
+                >
+                  <RefreshCwIcon className={cn(isFetching && "animate-spin")} />
+                </Button>
+              }
+            />
+            <TooltipContent>Atualizar</TooltipContent>
+          </Tooltip>
+        </CardAction>
       </CardHeader>
 
       <CardContent className="px-0">

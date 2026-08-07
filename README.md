@@ -26,14 +26,15 @@ pnpm dev        # http://localhost:3001
 
 ## Scripts
 
-| Comando          | Descrição                                 |
-| ---------------- | ----------------------------------------- |
-| `pnpm dev`       | Dev server com HMR na porta `3001`        |
-| `pnpm build`     | Type-check + build de produção em `dist/` |
-| `pnpm preview`   | Serve localmente o build de produção      |
-| `pnpm typecheck` | Verificação de tipos (`tsc --noEmit`)     |
-| `pnpm lint`      | ESLint                                    |
-| `pnpm format`    | Prettier em `**/*.{ts,tsx}`               |
+| Comando          | Descrição                                                             |
+| ---------------- | --------------------------------------------------------------------- |
+| `pnpm dev`       | Dev server com HMR na porta `3001` — espera a API em `localhost:3000` |
+| `pnpm dev:mock`  | Idem, mas sobe também a API mockada (`pnpm api:mock`) junto           |
+| `pnpm build`     | Type-check + build de produção em `dist/`                             |
+| `pnpm preview`   | Serve localmente o build de produção                                  |
+| `pnpm typecheck` | Verificação de tipos (`tsc --noEmit`)                                 |
+| `pnpm lint`      | ESLint                                                                |
+| `pnpm format`    | Prettier em `**/*.{ts,tsx}`                                           |
 
 > Ainda não há testes automatizados configurados neste projeto.
 
