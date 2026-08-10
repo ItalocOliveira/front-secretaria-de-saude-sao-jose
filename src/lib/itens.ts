@@ -26,15 +26,27 @@ export const ITEM_STATUS_BADGE: Record<ItemStatus, "default" | "secondary" | "de
 export const ITEM_STATUS_LIST = Object.values(ITEM_STATUS)
 
 export const ITEM_TYPE = {
-  EQUIPAMENTO: "EQUIPAMENTO",
   MEDICAMENTO: "MEDICAMENTO",
+  ODONTOLOGICO: "ODONTOLOGICO",
+  LABORATORIAL: "LABORATORIAL",
+  EXPEDIENTE: "EXPEDIENTE",
+  INSUMO: "INSUMO",
+  CONSUMO_GERAL: "CONSUMO_GERAL",
+  MATERIAL_DE_LIMPEZA: "MATERIAL_DE_LIMPEZA",
+  EQUIPAMENTO: "EQUIPAMENTO",
 } as const
 
 export type ItemType = (typeof ITEM_TYPE)[keyof typeof ITEM_TYPE]
 
 export const ITEM_TYPE_LABEL: Record<ItemType, string> = {
-  EQUIPAMENTO: "Equipamento",
   MEDICAMENTO: "Medicamento",
+  ODONTOLOGICO: "Odontológico",
+  LABORATORIAL: "Laboratorial",
+  EXPEDIENTE: "Expediente",
+  INSUMO: "Insumo",
+  CONSUMO_GERAL: "Consumo geral",
+  MATERIAL_DE_LIMPEZA: "Material de limpeza",
+  EQUIPAMENTO: "Equipamento",
 }
 
 export const ITEM_TYPE_LIST = Object.values(ITEM_TYPE)
