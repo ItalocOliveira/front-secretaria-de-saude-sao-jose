@@ -14,7 +14,7 @@ export function useLogin() {
     mutationFn: login,
     onSuccess: (data) => {
       // Limpa antes de autenticar: o cache pode ter dados de outra conta, e a
-      // troca de token dispara refetch imediato das queries habilitadas.
+      // troca de token dispara rçefetch imediato das queries habilitadas.
       queryClient.clear()
       setToken(data.token)
     },
