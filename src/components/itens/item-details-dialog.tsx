@@ -1,19 +1,31 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ArrowDownIcon, ArrowUpIcon, HistoryIcon, PencilIcon, RefreshCwIcon, Trash2Icon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, HistoryIcon, PencilIcon, RefreshCwIcon, Trash2Icon, XIcon } from "lucide-react"
 
 import type { ItemDto } from "@/api/itens"
 import {
+  ITEM_IMAGE_MIME_ACCEPT,
   ITEM_STATUS_BADGE,
   ITEM_STATUS_LABEL,
   ITEM_TYPE_LABEL,
+  isImageFile,
   MOVEMENT_TYPE_BADGE,
   MOVEMENT_TYPE_LABEL,
   type MovementType,
 } from "@/lib/itens"
-import { useCreateItemMovement, useItens } from "@/hooks/use-itens"
+import { useCreateItemMovement, useItens, useUploadItemImage } from "@/hooks/use-itens"
+import { formatFileSize } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,9 +38,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 import { Input } from "@/components/ui/input"
-import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item"
+import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -40,6 +53,9 @@ function formatDateTime(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? "—" : format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
 }
+
+/** Produto do bucket. Foto comprovante já criada, mas o `PUT` pro R2 falhou — guarda o necessário pra reenviar sem recriar o movimento. */
+type PendingMovementUpload = { uploadUrl: string; file: File; movementLabel: string }
 
 /**
  * Parte C: saldo + extrato. Ao clicar em Entrada/Saída, o extrato dá lugar
@@ -59,14 +75,44 @@ export function ItemDetailsDialog({
 }) {
   const [movementType, setMovementType] = useState<MovementType | null>(null)
   const [amount, setAmount] = useState("")
-  const { mutate: createMovement, isPending, error, reset } = useCreateItemMovement()
+  const [destination, setDestination] = useState("")
+  const [movementImageFile, setMovementImageFile] = useState<File | null>(null)
+  const [pendingMovementUpload, setPendingMovementUpload] = useState<PendingMovementUpload | null>(null)
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null)
+  // `image_url` vem preenchida mesmo sem foto enviada (presigned pra uma key que pode não
+  // existir no bucket) — guarda o id do item/movimento cuja imagem falhou pra não tentar de novo.
+  const [failedImageItemId, setFailedImageItemId] = useState<string | null>(null)
+  const [failedMovementImageIds, setFailedMovementImageIds] = useState<ReadonlySet<string>>(new Set())
+  const { mutate: createMovement, isPending: creatingMovement, error, reset } = useCreateItemMovement()
+  const {
+    mutate: uploadMovementImage,
+    isPending: uploadingMovementImage,
+    error: movementUploadError,
+    reset: resetMovementUpload,
+  } = useUploadItemImage()
   // Reaproveita a query já ativa em `ItensTableCard` (mesma `queryKey`, sem requisição extra) só para expor o refetch manual do extrato.
   const { refetch: refetchItens, isFetching: isRefetchingItens } = useItens()
 
+  const isPending = creatingMovement || uploadingMovementImage
+
+  const movementImagePreviewUrl = useMemo(
+    () => (movementImageFile === null ? null : URL.createObjectURL(movementImageFile)),
+    [movementImageFile]
+  )
+  useEffect(() => {
+    return () => {
+      if (movementImagePreviewUrl !== null) URL.revokeObjectURL(movementImagePreviewUrl)
+    }
+  }, [movementImagePreviewUrl])
+
   const cancelMovement = () => {
     reset()
+    resetMovementUpload()
     setAmount("")
+    setDestination("")
     setMovementType(null)
+    setMovementImageFile(null)
+    setPendingMovementUpload(null)
   }
 
   const close = (open: boolean) => {
@@ -81,18 +127,60 @@ export function ItemDetailsDialog({
       return
     }
 
+    const movementLabel = movementType === "ENTRADA" ? "Entrada" : "Saída"
+
     createMovement(
-      { id: item.id, payload: { movementType, amount: Number(amount) } },
+      { id: item.id, payload: { movementType, amount: Number(amount), destination: destination.trim() } },
+      {
+        onSuccess: ({ uploadUrl }) => {
+          if (movementImageFile === null) {
+            toast.add({
+              title: movementType === "ENTRADA" ? "Entrada registrada" : "Saída registrada",
+              description: `Estoque de ${item.name} atualizado.`,
+            })
+            cancelMovement()
+            return
+          }
+
+          uploadMovementImage(
+            { uploadUrl, file: movementImageFile },
+            {
+              onSuccess: () => {
+                toast.add({
+                  title: movementType === "ENTRADA" ? "Entrada registrada" : "Saída registrada",
+                  description: `Estoque de ${item.name} atualizado. Foto enviada.`,
+                })
+                cancelMovement()
+              },
+              // O movimento já existe — não recriar. Guarda o arquivo pra permitir só o reenvio do PUT.
+              onError: () => setPendingMovementUpload({ uploadUrl, file: movementImageFile, movementLabel }),
+            }
+          )
+        },
+      }
+    )
+  }
+
+  const retryMovementImageUpload = () => {
+    if (pendingMovementUpload === null) return
+
+    uploadMovementImage(
+      { uploadUrl: pendingMovementUpload.uploadUrl, file: pendingMovementUpload.file },
       {
         onSuccess: () => {
-          toast.add({
-            title: movementType === "ENTRADA" ? "Entrada registrada" : "Saída registrada",
-            description: `Estoque de ${item.name} atualizado.`,
-          })
+          toast.add({ title: "Foto enviada", description: "Foto do movimento enviada com sucesso." })
           cancelMovement()
         },
       }
     )
+  }
+
+  const dismissPendingMovementUpload = () => {
+    toast.add({
+      title: "Movimento registrado sem foto",
+      description: "A foto comprovante não foi salva, mas o movimento já foi registrado.",
+    })
+    cancelMovement()
   }
 
   return (
@@ -108,8 +196,34 @@ export function ItemDetailsDialog({
           <DialogDescription>{item === null ? "" : ITEM_TYPE_LABEL[item.type]}</DialogDescription>
         </DialogHeader>
 
-        {item === null ? null : (
+        {item !== null && pendingMovementUpload !== null ? (
+          <Alert variant="destructive">
+            <AlertTitle>O envio da foto falhou</AlertTitle>
+            <AlertDescription>
+              {pendingMovementUpload.movementLabel} de {item.name} já foi registrada — só a foto comprovante não foi
+              salva. {movementUploadError?.message ?? "Tente reenviar o arquivo."}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {item === null || pendingMovementUpload !== null ? null : (
           <div className="flex flex-col gap-4">
+            {item.image_url === undefined || failedImageItemId === item.id ? null : (
+              <button
+                type="button"
+                onClick={() => setZoomedImageUrl(item.image_url ?? null)}
+                className="mx-auto cursor-zoom-in rounded-lg"
+                aria-label={`Ampliar foto de ${item.name}`}
+              >
+                <img
+                  src={item.image_url}
+                  alt={item.name}
+                  className="h-40 w-40 rounded-lg border object-cover"
+                  onError={() => setFailedImageItemId(item.id)}
+                />
+              </button>
+            )}
+
             <div className="flex flex-col items-center gap-3 rounded-lg border bg-muted/50 py-4">
               <span className="text-sm text-muted-foreground">Saldo atual</span>
               <span className="font-heading text-4xl font-medium tabular-nums">{item.amount}</span>
@@ -173,6 +287,25 @@ export function ItemDetailsDialog({
                   <ItemGroup className="max-h-72 gap-2 overflow-y-auto">
                     {item.movements.map((movement) => (
                       <Item key={movement.id} variant="muted" size="sm">
+                        {movement.image_url === undefined || failedMovementImageIds.has(movement.id) ? null : (
+                          <ItemMedia>
+                            <button
+                              type="button"
+                              onClick={() => setZoomedImageUrl(movement.image_url ?? null)}
+                              className="cursor-zoom-in"
+                              aria-label="Ampliar foto comprovante"
+                            >
+                              <img
+                                src={movement.image_url}
+                                alt=""
+                                className="size-10 rounded-md border object-cover"
+                                onError={() =>
+                                  setFailedMovementImageIds((current) => new Set(current).add(movement.id))
+                                }
+                              />
+                            </button>
+                          </ItemMedia>
+                        )}
                         <ItemContent>
                           <ItemTitle className="justify-between">
                             <Badge variant={MOVEMENT_TYPE_BADGE[movement.movementType]}>
@@ -216,13 +349,81 @@ export function ItemDetailsDialog({
                     onChange={(event) => setAmount(event.target.value)}
                   />
                 </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="movimento-destino">
+                    {movementType === "ENTRADA" ? "Origem" : "Destino"}
+                  </FieldLabel>
+                  <Input
+                    id="movimento-destino"
+                    required
+                    disabled={isPending}
+                    value={destination}
+                    onChange={(event) => setDestination(event.target.value)}
+                    placeholder={
+                      movementType === "ENTRADA" ? "Ex.: Fornecedor, doação..." : "Ex.: Setor, unidade, paciente..."
+                    }
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="movimento-foto">Foto comprovante</FieldLabel>
+                  {movementImageFile === null ? (
+                    <Input
+                      id="movimento-foto"
+                      type="file"
+                      accept={ITEM_IMAGE_MIME_ACCEPT}
+                      disabled={isPending}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null
+                        if (file !== null && !isImageFile(file)) {
+                          toast.add({ title: "Arquivo inválido", description: "Selecione uma imagem." })
+                          event.target.value = ""
+                          return
+                        }
+                        setMovementImageFile(file)
+                      }}
+                    />
+                  ) : (
+                    <Attachment>
+                      <AttachmentMedia variant="image">
+                        {movementImagePreviewUrl === null ? null : <img src={movementImagePreviewUrl} alt="" />}
+                      </AttachmentMedia>
+                      <AttachmentContent>
+                        <AttachmentTitle>{movementImageFile.name}</AttachmentTitle>
+                        <AttachmentDescription>{formatFileSize(movementImageFile.size)}</AttachmentDescription>
+                      </AttachmentContent>
+                      <AttachmentActions>
+                        <AttachmentAction
+                          aria-label="Remover foto"
+                          disabled={isPending}
+                          onClick={() => setMovementImageFile(null)}
+                        >
+                          <XIcon />
+                        </AttachmentAction>
+                      </AttachmentActions>
+                    </Attachment>
+                  )}
+                  <FieldDescription>Opcional. Enviada direto para o armazenamento após o registro.</FieldDescription>
+                </Field>
               </form>
             )}
           </div>
         )}
 
         <DialogFooter>
-          {movementType === null ? (
+          {pendingMovementUpload !== null ? (
+            <>
+              <Button variant="ghost" onClick={dismissPendingMovementUpload} disabled={uploadingMovementImage}>
+                <XIcon data-icon="inline-start" />
+                Continuar sem foto
+              </Button>
+              <Button onClick={retryMovementImageUpload} disabled={uploadingMovementImage}>
+                {uploadingMovementImage ? <Spinner data-icon="inline-start" /> : null}
+                Tentar reenviar
+              </Button>
+            </>
+          ) : movementType === null ? (
             <>
               <DialogClose render={<Button variant="outline">Fechar</Button>} />
               {item === null ? null : (
@@ -251,6 +452,8 @@ export function ItemDetailsDialog({
           )}
         </DialogFooter>
       </DialogContent>
+
+      <ImageLightbox src={zoomedImageUrl} onOpenChange={(open) => (open ? null : setZoomedImageUrl(null))} />
     </Dialog>
   )
 }

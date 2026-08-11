@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Navigate, useLocation, useNavigate } from "react-router"
-import { EyeIcon, EyeOffIcon, HeartPulseIcon, LogInIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, HeartPulseIcon, LogInIcon, TriangleAlertIcon } from "lucide-react"
 
 import { resolveDestination } from "@/lib/permissions"
 import { decodeToken } from "@/lib/session"
@@ -63,6 +63,14 @@ export function LoginPage() {
             <span className="text-xs text-muted-foreground">Regulação</span>
           </div>
         </div>
+
+        <Alert>
+          <TriangleAlertIcon />
+          <AlertTitle>Sistema em fase de testes</AlertTitle>
+          <AlertDescription>
+            Mudanças ainda serão feitas. Não utilize para salvar arquivos definitivamente.
+          </AlertDescription>
+        </Alert>
 
         <Card>
           {/* O `<form>` vira o container flex do Card para preservar o espaçamento entre header/content/footer. */}

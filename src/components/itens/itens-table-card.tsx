@@ -7,10 +7,12 @@ import { ItemDeleteAlert } from "@/components/itens/item-delete-alert"
 import { ItemDetailsDialog } from "@/components/itens/item-details-dialog"
 import { ItemEditDialog } from "@/components/itens/item-edit-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -30,6 +32,7 @@ export function ItensTableCard({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null)
 
   // Deriva dos `itens` atuais em vez de guardar o objeto no state: assim o
   // dialog aberto reflete o histórico mais recente depois de qualquer
@@ -95,7 +98,29 @@ export function ItensTableCard({
               <TableBody>
                 {itens.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="pl-4 font-medium">{item.name}</TableCell>
+                    <TableCell className="pl-4 font-medium">
+                      <div className="flex items-center gap-3">
+                        {item.image_url === undefined ? (
+                          <Avatar className="size-[120px] overflow-hidden rounded-md after:hidden">
+                            <AvatarFallback className="rounded-none">
+                              <PackageSearchIcon className="size-10" />
+                            </AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setZoomedImageUrl(item.image_url ?? null)}
+                            className="cursor-zoom-in"
+                            aria-label={`Ampliar foto de ${item.name}`}
+                          >
+                            <Avatar className="size-[120px] overflow-hidden rounded-md after:hidden">
+                              <AvatarImage src={item.image_url} alt="" className="rounded-none" />
+                            </Avatar>
+                          </button>
+                        )}
+                        {item.name}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{ITEM_TYPE_LABEL[item.type]}</TableCell>
                     <TableCell>
                       <Badge variant={ITEM_STATUS_BADGE[item.status]}>{ITEM_STATUS_LABEL[item.status]}</Badge>
@@ -142,6 +167,7 @@ export function ItensTableCard({
       />
       <ItemEditDialog item={editing} onOpenChange={(open) => (open ? null : setEditingId(null))} />
       <ItemDeleteAlert item={deleting} onOpenChange={(open) => (open ? null : setDeletingId(null))} />
+      <ImageLightbox src={zoomedImageUrl} onOpenChange={(open) => (open ? null : setZoomedImageUrl(null))} />
     </Card>
   )
 }

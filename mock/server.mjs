@@ -11,7 +11,7 @@
  * fachadas reversíveis e o segredo do JWT está no código.
  */
 import { copyFileSync, createReadStream, existsSync, mkdirSync, rmSync } from "node:fs"
-import { writeFile } from "node:fs/promises"
+import { readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto"
 import { dirname, join } from "node:path"
@@ -465,6 +465,7 @@ async function createItem(req, res, user) {
               userId: user.id,
               movementType: "ENTRADA",
               amount,
+              destination: "Estoque inicial",
               description: `Item ${name} foi criado no estoque com ${amount} unidades.`,
               dateTime: new Date().toISOString(),
             },
@@ -476,7 +477,14 @@ async function createItem(req, res, user) {
   db.data.itens.push(item)
   await db.write()
 
-  return send(res, 201, item)
+  // Espelha a API real: o backend nunca recebe a imagem, só devolve uma
+  // presigned URL pro cliente fazer o PUT direto no bucket — sempre, mesmo
+  // sem o cliente ter escolhido uma foto (mesmo esquema do PDF das APACs).
+  // Sem `image_type`/restrição de Content-Type: a key é `itens/<id>`, sem
+  // extensão, e o upload aceita qualquer mime de imagem.
+  const uploadUrl = mockItemImageUrl(item.id, UPLOAD_TTL_MS)
+
+  return send(res, 201, { item, uploadUrl })
 }
 
 // ---------------------------------------------------------------------------
@@ -496,8 +504,15 @@ async function createItemMovement(req, res, itemId, user) {
     return send(res, 500, { message: "amount deve ser um número maior que zero." })
   }
 
+  if (!body.destination) {
+    return send(res, 500, { message: "destination é obrigatório." })
+  }
+
   const item = db.data.itens.find((entry) => entry.id === itemId)
   if (!item) return send(res, 500, { message: "Item não encontrado." })
+
+  const author = db.data.users.find((entry) => entry.id === user.id)
+  if (!author) return send(res, 500, { message: "Usuário não encontrado." })
 
   if (body.movementType === "SAIDA" && amount > item.amount) {
     return send(res, 500, { message: "Estoque insuficiente para esta saída." })
@@ -505,30 +520,40 @@ async function createItemMovement(req, res, itemId, user) {
 
   item.amount = body.movementType === "ENTRADA" ? item.amount + amount : item.amount - amount
 
+  const destination = String(body.destination)
   const description =
     body.movementType === "ENTRADA"
-      ? `Foram adicionadas ${amount} unidades de ${item.name} ao estoque.`
-      : `Saída de ${amount} unidades de ${item.name}.`
+      ? `${author.name} registrou a adição de ${amount} unidades de ${item.name} ao estoque.`
+      : `${author.name} registrou a saída de ${amount} unidades de ${item.name} vindas de ${destination} ao estoque.`
 
-  item.movements ??= []
-  item.movements.unshift({
+  const movement = {
     id: randomUUID(),
     itemId: item.id,
     userId: user.id,
     movementType: body.movementType,
     amount,
+    destination,
     description,
     dateTime: new Date().toISOString(),
-  })
+  }
+
+  item.movements ??= []
+  item.movements.unshift(movement)
 
   await db.write()
 
-  return send(res, 201, item)
+  // Espelha a API real: o backend não recebe a foto comprovante, só devolve
+  // uma presigned URL pro cliente fazer o PUT direto no bucket — sempre,
+  // mesmo esquema da foto do item e do PDF das APACs.
+  const uploadUrl = mockMovementImageUrl(movement.id, UPLOAD_TTL_MS)
+
+  return send(res, 201, { item, uploadUrl })
 }
 
 // ---------------------------------------------------------------------------
-// /mock-uploads/:id.pdf — imita as presigned URLs (PUT de upload, GET de
-// download) que a API real gera a partir do Cloudflare R2.
+// /mock-uploads/:filename — imita as presigned URLs (PUT de upload, GET de
+// download) que a API real gera a partir do Cloudflare R2, tanto para o PDF
+// das APACs quanto para a imagem dos itens.
 // ---------------------------------------------------------------------------
 
 function mockPdfUrl(id, ttlMs) {
@@ -540,13 +565,61 @@ function withPdfUrl(apac) {
   return apac?.id ? { ...apac, pdf_url: mockPdfUrl(apac.id, DOWNLOAD_TTL_MS) } : apac
 }
 
+// Nome do arquivo em disco não usa `/` — só a chave lógica (`itens/<id>`, sem
+// extensão, como a API real) imita o path do bucket.
+function itemImageFilename(id) {
+  return `itens-${id}`
+}
+
+function mockItemImageUrl(id, ttlMs) {
+  return `http://${HOST}:${PORT}/mock-uploads/${itemImageFilename(id)}?exp=${Date.now() + ttlMs}`
+}
+
+// Mesma lógica de `itemImageFilename`, mas para a foto comprovante de um movimento.
+function movementImageFilename(id) {
+  return `movements-${id}`
+}
+
+function mockMovementImageUrl(id, ttlMs) {
+  return `http://${HOST}:${PORT}/mock-uploads/${movementImageFilename(id)}?exp=${Date.now() + ttlMs}`
+}
+
+/**
+ * Injeta `image_url` no item e em cada movimento do histórico — sempre,
+ * tenha foto enviada ou não (mesmo comportamento do `pdf_url`).
+ */
+function withImageUrl(item) {
+  if (!item?.id) return item
+  return {
+    ...item,
+    image_url: mockItemImageUrl(item.id, DOWNLOAD_TTL_MS),
+    movements: (item.movements ?? []).map((movement) => ({
+      ...movement,
+      image_url: mockMovementImageUrl(movement.id, DOWNLOAD_TTL_MS),
+    })),
+  }
+}
+
+// Sem `image_type`/restrição de Content-Type no contrato: a key do item não
+// tem extensão, então (ao contrário do `.pdf` fixo das APACs) o `Content-Type`
+// da resposta de download precisa vir de algum lugar — gravamos o que o
+// cliente mandou no `PUT` num arquivo `.contenttype` ao lado do arquivo.
+function contentTypePath(filename) {
+  return join(UPLOADS_DIR, `${filename}.contenttype`)
+}
+
+function contentTypeForUpload(filename) {
+  if (filename.endsWith(".pdf")) return "application/pdf"
+  return "application/octet-stream"
+}
+
 async function readRawBody(req) {
   const chunks = []
   for await (const chunk of req) chunks.push(chunk)
   return Buffer.concat(chunks)
 }
 
-async function uploadMockPdf(req, res, filename, searchParams) {
+async function uploadMockFile(req, res, filename, searchParams) {
   const exp = Number(searchParams.get("exp"))
   if (!Number.isFinite(exp) || Date.now() > exp) {
     return send(res, 403, { message: "Link de upload expirado." })
@@ -554,11 +627,12 @@ async function uploadMockPdf(req, res, filename, searchParams) {
 
   const body = await readRawBody(req)
   await writeFile(join(UPLOADS_DIR, filename), body)
+  await writeFile(contentTypePath(filename), req.headers["content-type"] ?? "")
 
   return send(res, 200, { ok: true })
 }
 
-function downloadMockPdf(req, res, filename, searchParams) {
+async function downloadMockFile(req, res, filename, searchParams) {
   const exp = Number(searchParams.get("exp"))
   if (!Number.isFinite(exp) || Date.now() > exp) {
     return send(res, 403, { message: "Link de download expirado." })
@@ -566,10 +640,14 @@ function downloadMockPdf(req, res, filename, searchParams) {
 
   const filePath = join(UPLOADS_DIR, filename)
   if (!existsSync(filePath)) {
-    return send(res, 404, { message: "Nenhum PDF enviado para esta APAC ainda." })
+    return send(res, 404, { message: "Nenhum arquivo enviado ainda." })
   }
 
-  res.writeHead(200, { ...CORS_HEADERS, "content-type": "application/pdf" })
+  const storedContentType = existsSync(contentTypePath(filename))
+    ? (await readFile(contentTypePath(filename), "utf8")).trim()
+    : ""
+
+  res.writeHead(200, { ...CORS_HEADERS, "content-type": storedContentType || contentTypeForUpload(filename) })
   createReadStream(filePath).pipe(res)
 }
 
@@ -605,13 +683,13 @@ function routeIndex() {
       { method: "POST", path: "/itens/:id/movements", roles: ACCESS.itens.join(", ") },
       {
         method: "PUT",
-        path: "/mock-uploads/:id.pdf?exp=...",
-        roles: "nenhuma (imita a presigned URL de upload do R2 devolvida por POST /apacs)",
+        path: "/mock-uploads/:filename?exp=...",
+        roles: "nenhuma (imita a presigned URL de upload do R2 devolvida por POST /apacs e POST /itens)",
       },
       {
         method: "GET",
-        path: "/mock-uploads/:id.pdf?exp=...",
-        roles: "nenhuma (imita a presigned URL de download do R2 devolvida em pdf_url por GET /apacs)",
+        path: "/mock-uploads/:filename?exp=...",
+        roles: "nenhuma (imita a presigned URL de download do R2 devolvida em pdf_url/image_url)",
       },
     ],
   }
@@ -635,8 +713,8 @@ const server = createServer(async (req, res) => {
   // Imita o R2: URL própria, sem role nem `Authorization` — só o `exp` na query.
   if (collection === "mock-uploads" && rest.length === 1) {
     const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
-    if (method === "PUT") return uploadMockPdf(req, res, rest[0], searchParams)
-    if (method === "GET") return downloadMockPdf(req, res, rest[0], searchParams)
+    if (method === "PUT") return uploadMockFile(req, res, rest[0], searchParams)
+    if (method === "GET") return downloadMockFile(req, res, rest[0], searchParams)
   }
 
   if (collection === "auth") return handleAuth(req, res, rest)
@@ -665,11 +743,11 @@ const server = createServer(async (req, res) => {
     if (collection === "itens") return createItem(req, res, user)
   }
 
-  // `pdf_url` é gerado sob demanda a cada GET, como na API real — o json-server só
-  // serve o que está persistido em db.json, então essas duas rotas (sem query
-  // params) respondem aqui, direto do banco em memória, com o campo injetado.
-  // Com filtro/ordenação/paginação (`?status=...`, `?_sort=...`), cai no
-  // json-server abaixo e não vem `pdf_url` — só para desenvolvimento.
+  // `pdf_url`/`image_url` são gerados sob demanda a cada GET, como na API real —
+  // o json-server só serve o que está persistido em db.json, então essas rotas
+  // (sem query params) respondem aqui, direto do banco em memória, com o campo
+  // injetado. Com filtro/ordenação/paginação (`?status=...`, `?_sort=...`), cai
+  // no json-server abaixo e não vem `pdf_url`/`image_url` — só para desenvolvimento.
   if (method === "GET" && collection === "apacs") {
     const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
     if (rest.length === 0 && searchParams.size === 0) {
@@ -679,6 +757,18 @@ const server = createServer(async (req, res) => {
       const found = db.data.apacs.find((item) => item.id === rest[0])
       if (!found) return send(res, 404, { message: "APAC não encontrada." })
       return send(res, 200, withPdfUrl(found))
+    }
+  }
+
+  if (method === "GET" && collection === "itens") {
+    const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
+    if (rest.length === 0 && searchParams.size === 0) {
+      return send(res, 200, db.data.itens.map(withImageUrl))
+    }
+    if (rest.length === 1 && searchParams.size === 0) {
+      const found = db.data.itens.find((item) => item.id === rest[0])
+      if (!found) return send(res, 404, { message: "Item não encontrado." })
+      return send(res, 200, withImageUrl(found))
     }
   }
 

@@ -6,6 +6,7 @@ import {
   deleteItem,
   listItens,
   updateItem,
+  uploadItemImage,
   type CreateItemMovementPayload,
   type UpdateItemPayload,
 } from "@/api/itens"
@@ -53,5 +54,12 @@ export function useCreateItemMovement() {
     mutationFn: ({ id, payload }: { id: string; payload: CreateItemMovementPayload }) =>
       createItemMovement(id, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY }),
+  })
+}
+
+/** PUT direto pro bucket — não invalida a query: `image_url` já vem em `item`/`GET /itens` assim que o item é criado. */
+export function useUploadItemImage() {
+  return useMutation({
+    mutationFn: ({ uploadUrl, file }: { uploadUrl: string; file: File }) => uploadItemImage(uploadUrl, file),
   })
 }

@@ -29,3 +29,10 @@ export function formatCpf(value: string) {
 
   return [p1, p2 && `.${p2}`, p3 && `.${p3}`, p4 && `-${p4}`].filter(Boolean).join("")
 }
+
+export function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  const kb = bytes / 1024
+  if (kb < 1024) return `${kb.toFixed(0)} KB`
+  return `${(kb / 1024).toFixed(1)} MB`
+}

@@ -45,13 +45,6 @@ export const INITIAL_APAC_FORM: ApacFormValues = {
 /** MIME aceito pelo bucket — a API salva o objeto como `apacs/<id>.pdf`. */
 export const APAC_PDF_MIME = "application/pdf"
 
-export function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  const kb = bytes / 1024
-  if (kb < 1024) return `${kb.toFixed(0)} KB`
-  return `${(kb / 1024).toFixed(1)} MB`
-}
-
 /** Campos de texto do formulário — exclui `pdfFile`, que não tem `.trim()`. */
 type ApacFormTextField = Exclude<keyof ApacFormValues, "pdfFile">
 
