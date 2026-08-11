@@ -8,8 +8,8 @@ import {
   type ApacAcs,
   type ApacProcedure,
 } from "@/lib/apac"
-import { APAC_PDF_MIME, formatFileSize, type ApacFormValues } from "@/lib/apac-form"
-import { formatCpf } from "@/lib/utils"
+import { APAC_PDF_MIME, type ApacFormValues } from "@/lib/apac-form"
+import { formatCpf, formatFileSize } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Attachment,

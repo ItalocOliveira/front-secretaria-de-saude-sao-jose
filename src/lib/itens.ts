@@ -71,3 +71,14 @@ export const MOVEMENT_TYPE_BADGE: Record<MovementType, "default" | "secondary" |
 }
 
 export const MOVEMENT_TYPE_LIST = Object.values(MOVEMENT_TYPE)
+
+/**
+ * A API não restringe o `Content-Type` do upload — a chave no bucket é
+ * `itens/<id>`, sem extensão. `accept` aqui é só UX (evitar que o usuário
+ * escolha um arquivo que claramente não é foto).
+ */
+export const ITEM_IMAGE_MIME_ACCEPT = "image/*"
+
+export function isImageFile(file: File): boolean {
+  return file.type.startsWith("image/")
+}

@@ -59,6 +59,10 @@ export function ItemDetailsDialog({
 }) {
   const [movementType, setMovementType] = useState<MovementType | null>(null)
   const [amount, setAmount] = useState("")
+  const [destination, setDestination] = useState("")
+  // `image_url` vem preenchida mesmo sem foto enviada (presigned pra uma key que pode não
+  // existir no bucket) — guarda o id do item cuja imagem falhou pra não tentar de novo.
+  const [failedImageItemId, setFailedImageItemId] = useState<string | null>(null)
   const { mutate: createMovement, isPending, error, reset } = useCreateItemMovement()
   // Reaproveita a query já ativa em `ItensTableCard` (mesma `queryKey`, sem requisição extra) só para expor o refetch manual do extrato.
   const { refetch: refetchItens, isFetching: isRefetchingItens } = useItens()
@@ -66,6 +70,7 @@ export function ItemDetailsDialog({
   const cancelMovement = () => {
     reset()
     setAmount("")
+    setDestination("")
     setMovementType(null)
   }
 
@@ -82,7 +87,7 @@ export function ItemDetailsDialog({
     }
 
     createMovement(
-      { id: item.id, payload: { movementType, amount: Number(amount) } },
+      { id: item.id, payload: { movementType, amount: Number(amount), destination: destination.trim() } },
       {
         onSuccess: () => {
           toast.add({
@@ -110,6 +115,15 @@ export function ItemDetailsDialog({
 
         {item === null ? null : (
           <div className="flex flex-col gap-4">
+            {item.image_url === undefined || failedImageItemId === item.id ? null : (
+              <img
+                src={item.image_url}
+                alt={item.name}
+                className="mx-auto h-40 w-40 rounded-lg border object-cover"
+                onError={() => setFailedImageItemId(item.id)}
+              />
+            )}
+
             <div className="flex flex-col items-center gap-3 rounded-lg border bg-muted/50 py-4">
               <span className="text-sm text-muted-foreground">Saldo atual</span>
               <span className="font-heading text-4xl font-medium tabular-nums">{item.amount}</span>
@@ -214,6 +228,22 @@ export function ItemDetailsDialog({
                     disabled={isPending}
                     value={amount}
                     onChange={(event) => setAmount(event.target.value)}
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="movimento-destino">
+                    {movementType === "ENTRADA" ? "Origem" : "Destino"}
+                  </FieldLabel>
+                  <Input
+                    id="movimento-destino"
+                    required
+                    disabled={isPending}
+                    value={destination}
+                    onChange={(event) => setDestination(event.target.value)}
+                    placeholder={
+                      movementType === "ENTRADA" ? "Ex.: Fornecedor, doação..." : "Ex.: Setor, unidade, paciente..."
+                    }
                   />
                 </Field>
               </form>

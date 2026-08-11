@@ -7,6 +7,7 @@ import { ItemDeleteAlert } from "@/components/itens/item-delete-alert"
 import { ItemDetailsDialog } from "@/components/itens/item-details-dialog"
 import { ItemEditDialog } from "@/components/itens/item-edit-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -95,7 +96,19 @@ export function ItensTableCard({
               <TableBody>
                 {itens.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="pl-4 font-medium">{item.name}</TableCell>
+                    <TableCell className="pl-4 font-medium">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-[120px] overflow-hidden rounded-md after:hidden">
+                          {item.image_url === undefined ? null : (
+                            <AvatarImage src={item.image_url} alt="" className="rounded-none" />
+                          )}
+                          <AvatarFallback className="rounded-none">
+                            <PackageSearchIcon className="size-10" />
+                          </AvatarFallback>
+                        </Avatar>
+                        {item.name}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{ITEM_TYPE_LABEL[item.type]}</TableCell>
                     <TableCell>
                       <Badge variant={ITEM_STATUS_BADGE[item.status]}>{ITEM_STATUS_LABEL[item.status]}</Badge>
