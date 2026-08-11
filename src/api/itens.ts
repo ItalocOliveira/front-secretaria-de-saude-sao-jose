@@ -10,6 +10,12 @@ export type ItemMovementDto = {
   destination: string
   description: string
   dateTime: string
+  /**
+   * Presigned URL de download, válida por 1h, gerada a cada `GET /itens` —
+   * presente mesmo que nenhuma foto de comprovação tenha sido enviada (mesmo
+   * comportamento do `image_url` do item e do `pdf_url` das APACs).
+   */
+  image_url?: string
 }
 
 /** `ItemDomain` do backend — `status` sai `DISPONIVEL` por padrão. `movements` vem do mais recente para o mais antigo. */
@@ -112,11 +118,17 @@ export async function uploadItemImage(uploadUrl: string, file: File, signal?: Ab
   }
 }
 
+export type CreateItemMovementResult = {
+  item: ItemDto
+  /** Presigned PUT do Cloudflare R2, válida por 15 min, sempre devolvida. Usar com `uploadItemImage`. */
+  uploadUrl: string
+}
+
 /**
  * Erros ainda não diferenciam status HTTP (tudo cai em 500) — trate por
  * `error.message`: `"Item não encontrado."` ou `"Estoque insuficiente para
  * esta saída."`.
  */
 export function createItemMovement(id: string, payload: CreateItemMovementPayload) {
-  return request<ItemDto>(`/itens/${id}/movements`, { method: "POST", body: payload })
+  return request<CreateItemMovementResult>(`/itens/${id}/movements`, { method: "POST", body: payload })
 }

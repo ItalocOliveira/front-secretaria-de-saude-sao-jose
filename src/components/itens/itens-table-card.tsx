@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -31,6 +32,7 @@ export function ItensTableCard({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null)
 
   // Deriva dos `itens` atuais em vez de guardar o objeto no state: assim o
   // dialog aberto reflete o histórico mais recente depois de qualquer
@@ -98,14 +100,24 @@ export function ItensTableCard({
                   <TableRow key={item.id}>
                     <TableCell className="pl-4 font-medium">
                       <div className="flex items-center gap-3">
-                        <Avatar className="size-[120px] overflow-hidden rounded-md after:hidden">
-                          {item.image_url === undefined ? null : (
-                            <AvatarImage src={item.image_url} alt="" className="rounded-none" />
-                          )}
-                          <AvatarFallback className="rounded-none">
-                            <PackageSearchIcon className="size-10" />
-                          </AvatarFallback>
-                        </Avatar>
+                        {item.image_url === undefined ? (
+                          <Avatar className="size-[120px] overflow-hidden rounded-md after:hidden">
+                            <AvatarFallback className="rounded-none">
+                              <PackageSearchIcon className="size-10" />
+                            </AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setZoomedImageUrl(item.image_url ?? null)}
+                            className="cursor-zoom-in"
+                            aria-label={`Ampliar foto de ${item.name}`}
+                          >
+                            <Avatar className="size-[120px] overflow-hidden rounded-md after:hidden">
+                              <AvatarImage src={item.image_url} alt="" className="rounded-none" />
+                            </Avatar>
+                          </button>
+                        )}
                         {item.name}
                       </div>
                     </TableCell>
@@ -155,6 +167,7 @@ export function ItensTableCard({
       />
       <ItemEditDialog item={editing} onOpenChange={(open) => (open ? null : setEditingId(null))} />
       <ItemDeleteAlert item={deleting} onOpenChange={(open) => (open ? null : setDeletingId(null))} />
+      <ImageLightbox src={zoomedImageUrl} onOpenChange={(open) => (open ? null : setZoomedImageUrl(null))} />
     </Card>
   )
 }

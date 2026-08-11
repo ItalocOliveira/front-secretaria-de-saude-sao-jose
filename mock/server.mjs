@@ -526,8 +526,7 @@ async function createItemMovement(req, res, itemId, user) {
       ? `${author.name} registrou a adição de ${amount} unidades de ${item.name} ao estoque.`
       : `${author.name} registrou a saída de ${amount} unidades de ${item.name} vindas de ${destination} ao estoque.`
 
-  item.movements ??= []
-  item.movements.unshift({
+  const movement = {
     id: randomUUID(),
     itemId: item.id,
     userId: user.id,
@@ -536,11 +535,19 @@ async function createItemMovement(req, res, itemId, user) {
     destination,
     description,
     dateTime: new Date().toISOString(),
-  })
+  }
+
+  item.movements ??= []
+  item.movements.unshift(movement)
 
   await db.write()
 
-  return send(res, 201, item)
+  // Espelha a API real: o backend não recebe a foto comprovante, só devolve
+  // uma presigned URL pro cliente fazer o PUT direto no bucket — sempre,
+  // mesmo esquema da foto do item e do PDF das APACs.
+  const uploadUrl = mockMovementImageUrl(movement.id, UPLOAD_TTL_MS)
+
+  return send(res, 201, { item, uploadUrl })
 }
 
 // ---------------------------------------------------------------------------
@@ -568,9 +575,29 @@ function mockItemImageUrl(id, ttlMs) {
   return `http://${HOST}:${PORT}/mock-uploads/${itemImageFilename(id)}?exp=${Date.now() + ttlMs}`
 }
 
-/** Injeta `image_url` em cada item — sempre, tenha imagem enviada ou não (mesmo comportamento do `pdf_url`). */
+// Mesma lógica de `itemImageFilename`, mas para a foto comprovante de um movimento.
+function movementImageFilename(id) {
+  return `movements-${id}`
+}
+
+function mockMovementImageUrl(id, ttlMs) {
+  return `http://${HOST}:${PORT}/mock-uploads/${movementImageFilename(id)}?exp=${Date.now() + ttlMs}`
+}
+
+/**
+ * Injeta `image_url` no item e em cada movimento do histórico — sempre,
+ * tenha foto enviada ou não (mesmo comportamento do `pdf_url`).
+ */
 function withImageUrl(item) {
-  return item?.id ? { ...item, image_url: mockItemImageUrl(item.id, DOWNLOAD_TTL_MS) } : item
+  if (!item?.id) return item
+  return {
+    ...item,
+    image_url: mockItemImageUrl(item.id, DOWNLOAD_TTL_MS),
+    movements: (item.movements ?? []).map((movement) => ({
+      ...movement,
+      image_url: mockMovementImageUrl(movement.id, DOWNLOAD_TTL_MS),
+    })),
+  }
 }
 
 // Sem `image_type`/restrição de Content-Type no contrato: a key do item não
