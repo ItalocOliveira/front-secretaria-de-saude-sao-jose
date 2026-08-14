@@ -16,6 +16,9 @@ export const USER_MANAGEMENT_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SE
 /** Roles com acesso a `/itens` (almoxarifado). */
 export const ITEM_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "REGULADOR"]
 
+/** Roles com acesso a `/documents` (ofícios). Por enquanto só `DEV` — outras roles recebem 403 da API. */
+export const DOCUMENT_ROLES: readonly UserRole[] = ["DEV"]
+
 export function canAccessApacs(role: UserRole) {
   return APAC_ROLES.includes(role)
 }
@@ -26,6 +29,10 @@ export function canManageUsers(role: UserRole) {
 
 export function canAccessItens(role: UserRole) {
   return ITEM_ROLES.includes(role)
+}
+
+export function canAccessDocuments(role: UserRole) {
+  return DOCUMENT_ROLES.includes(role)
 }
 
 /**
@@ -61,6 +68,10 @@ export function resolveDestination(from: string | undefined, role: UserRole) {
 
   if (from.startsWith("/almoxarifado")) {
     return canAccessItens(role) ? from : home
+  }
+
+  if (from.startsWith("/documents")) {
+    return canAccessDocuments(role) ? from : home
   }
 
   return home

@@ -102,6 +102,17 @@ const ITEM_TYPES = [
   "EQUIPAMENTO",
 ]
 const MOVEMENT_TYPES = ["ENTRADA", "SAIDA"]
+// Espelha `DOCUMENT_DESTINATION_LIST`/`DOCUMENT_STATUS_LIST` em `src/lib/document.ts`.
+const DOCUMENT_DESTINATIONS = [
+  "COMPRAS",
+  "EDUCACAO",
+  "FINANCAS",
+  "RH",
+  "CAMARA_DOS_VEREADORES",
+  "PROMOTORIA",
+  "OUTRO",
+]
+const DOCUMENT_STATUSES = ["ATENDIDO", "SOLICITADO", "NEGADO", "FINALIZADO"]
 const ACS_LIST = [
   "MARLON",
   "MARIA_JOSE_SILVA_RIBEIRO",
@@ -124,6 +135,8 @@ const ACCESS = {
   users: ["DEV", "DIRETOR", "SECRETARIA"],
   apacs: ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"],
   itens: ["DEV", "DIRETOR", "REGULADOR"],
+  // Feature nova: só DEV tem acesso por enquanto, outras roles recebem 403.
+  documents: ["DEV"],
 }
 
 // ---------------------------------------------------------------------------
@@ -159,6 +172,7 @@ db.data ??= {}
 db.data.users ??= []
 db.data.apacs ??= []
 db.data.itens ??= []
+db.data.documents ??= []
 db.data._credentials ??= []
 
 const jsonServer = createApp(db, { logger: false })
@@ -428,6 +442,79 @@ async function createApac(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// /documents
+// ---------------------------------------------------------------------------
+
+/** Formato MMAAAA + sequencial do mês, ex: "08202600001". Só para o mock — a API real define o algoritmo. */
+function nextProtocolNumber() {
+  const now = new Date()
+  const mm = String(now.getMonth() + 1).padStart(2, "0")
+  const yyyy = String(now.getFullYear())
+  const prefix = `${mm}${yyyy}`
+
+  const sequence = db.data.documents.filter((document) => document.protocol_number.startsWith(prefix)).length + 1
+
+  return `${prefix}${String(sequence).padStart(5, "0")}`
+}
+
+async function createDocument(req, res) {
+  const body = await readJsonBody(req)
+  if (!body) return send(res, 400, { message: "Corpo da requisição deve ser um objeto JSON." })
+
+  if (!body.name) return send(res, 400, { message: "name é obrigatório." })
+  if (!DOCUMENT_DESTINATIONS.includes(body.destination)) {
+    return send(res, 400, { message: `destination inválido. Valores aceitos: ${DOCUMENT_DESTINATIONS.join(", ")}.` })
+  }
+  if (body.destination === "OUTRO" && !body.other_destination) {
+    return send(res, 400, { message: "other_destination é obrigatório quando destination é OUTRO." })
+  }
+
+  const now = new Date().toISOString()
+  const document = {
+    id: randomUUID(),
+    protocol_number: nextProtocolNumber(),
+    name: String(body.name).toUpperCase(),
+    ...(body.note ? { note: String(body.note) } : {}),
+    destination: body.destination,
+    ...(body.destination === "OUTRO" ? { other_destination: String(body.other_destination) } : {}),
+    status: "SOLICITADO", // `status` nunca vem do cliente
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  db.data.documents.push(document)
+  await db.write()
+
+  // Espelha a API real: o backend não recebe o PDF, só devolve uma presigned URL
+  // pro cliente fazer o PUT direto no bucket (aqui, num endpoint local que imita
+  // o R2, `exp` incluso) — mesmo esquema de `createApac`.
+  const uploadUrl = mockPdfUrl(document.id, UPLOAD_TTL_MS)
+
+  return send(res, 201, { document, uploadUrl })
+}
+
+async function updateDocument(req, res, id) {
+  const body = await readJsonBody(req)
+  if (!body) return send(res, 400, { message: "Corpo da requisição deve ser um objeto JSON." })
+
+  const document = db.data.documents.find((entry) => entry.id === id)
+  if (!document) return send(res, 500, { message: "Documento não encontrado." })
+
+  if (body.status !== undefined && !DOCUMENT_STATUSES.includes(body.status)) {
+    return send(res, 400, { message: `status inválido. Valores aceitos: ${DOCUMENT_STATUSES.join(", ")}.` })
+  }
+
+  if (body.name !== undefined) document.name = String(body.name).toUpperCase()
+  if (body.note !== undefined) document.note = String(body.note)
+  if (body.status !== undefined) document.status = body.status
+  document.updatedAt = new Date().toISOString()
+
+  await db.write()
+
+  return send(res, 200, document)
+}
+
+// ---------------------------------------------------------------------------
 // POST /itens
 // ---------------------------------------------------------------------------
 
@@ -681,6 +768,9 @@ function routeIndex() {
       { method: "GET", path: "/itens", roles: ACCESS.itens.join(", ") },
       { method: "PATCH | DELETE", path: "/itens/:id", roles: ACCESS.itens.join(", ") },
       { method: "POST", path: "/itens/:id/movements", roles: ACCESS.itens.join(", ") },
+      { method: "POST", path: "/documents", roles: ACCESS.documents.join(", ") },
+      { method: "GET", path: "/documents", roles: ACCESS.documents.join(", ") },
+      { method: "PATCH", path: "/documents/:id", roles: ACCESS.documents.join(", ") },
       {
         method: "PUT",
         path: "/mock-uploads/:filename?exp=...",
@@ -741,6 +831,11 @@ const server = createServer(async (req, res) => {
     if (collection === "users") return createUser(req, res)
     if (collection === "apacs") return createApac(req, res)
     if (collection === "itens") return createItem(req, res, user)
+    if (collection === "documents") return createDocument(req, res)
+  }
+
+  if (method === "PATCH" && collection === "documents" && rest.length === 1) {
+    return updateDocument(req, res, rest[0])
   }
 
   // `pdf_url`/`image_url` são gerados sob demanda a cada GET, como na API real —
@@ -757,6 +852,15 @@ const server = createServer(async (req, res) => {
       const found = db.data.apacs.find((item) => item.id === rest[0])
       if (!found) return send(res, 404, { message: "APAC não encontrada." })
       return send(res, 200, withPdfUrl(found))
+    }
+  }
+
+  // Mesma lógica de `withPdfUrl` das APACs (reutilizada, já é genérica): `pdf_url`
+  // gerado sob demanda a cada GET, não persistido em db.json.
+  if (method === "GET" && collection === "documents") {
+    const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
+    if (rest.length === 0 && searchParams.size === 0) {
+      return send(res, 200, db.data.documents.map(withPdfUrl))
     }
   }
 
