@@ -1,21 +1,19 @@
 import { Link, useLocation } from "react-router"
 import {
-  BuildingIcon,
   ChartColumnIcon,
   CircleQuestionMarkIcon,
+  FileSignatureIcon,
   FileTextIcon,
   HeartPulseIcon,
   LayoutDashboardIcon,
   PackageIcon,
   SettingsIcon,
-  StethoscopeIcon,
   TriangleAlertIcon,
   UserCogIcon,
-  UsersIcon,
 } from "lucide-react"
 
 import type { UserRole } from "@/lib/apac"
-import { APAC_ROLES, homeRouteFor, ITEM_ROLES, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
+import { APAC_ROLES, DOCUMENT_ROLES, homeRouteFor, ITEM_ROLES, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
 import { useSession } from "@/hooks/use-session"
 import {
   Sidebar,
@@ -49,9 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { title: "Pendências", icon: TriangleAlertIcon, url: "/pendencias", roles: APAC_ROLES },
   { title: "Usuários", icon: UserCogIcon, url: "/usuarios", roles: USER_MANAGEMENT_ROLES },
   { title: "Almoxarifado", icon: PackageIcon, url: "/almoxarifado", roles: ITEM_ROLES },
-  { title: "Pacientes", icon: UsersIcon },
-  { title: "Profissionais", icon: StethoscopeIcon },
-  { title: "Unidades", icon: BuildingIcon },
+  { title: "Ofícios", icon: FileSignatureIcon, url: "/documents", roles: DOCUMENT_ROLES },
   { title: "Relatórios", icon: ChartColumnIcon },
 ]
 
