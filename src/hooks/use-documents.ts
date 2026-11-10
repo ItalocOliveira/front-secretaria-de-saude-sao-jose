@@ -2,11 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
   createDocument,
+  deleteDocument,
   listDocuments,
   updateDocument,
   uploadDocumentPdf,
   type UpdateDocumentPayload,
 } from "@/api/documents"
+import { ApiError } from "@/api/client"
 
 export const DOCUMENTS_QUERY_KEY = ["documents"] as const
 
@@ -32,6 +34,22 @@ export function useUpdateDocument() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateDocumentPayload }) => updateDocument(id, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: DOCUMENTS_QUERY_KEY }),
+  })
+}
+
+/**
+ * Invalida a lista também no `404`: o documento já não existe (excluído em outra aba,
+ * por exemplo), então ele tem que sumir da tabela do mesmo jeito.
+ */
+export function useDeleteDocument() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => deleteDocument(id),
+    onSettled: (_data, error) =>
+      error === null || (error instanceof ApiError && error.status === 404)
+        ? queryClient.invalidateQueries({ queryKey: DOCUMENTS_QUERY_KEY })
+        : undefined,
   })
 }
 

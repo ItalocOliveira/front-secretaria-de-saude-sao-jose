@@ -100,6 +100,16 @@ export async function updateDocument(id: string, payload: UpdateDocumentPayload)
 }
 
 /**
+ * `DELETE /documents/:id` — só `DEV`. Apaga o registro **e** o PDF no armazenamento; não dá
+ * pra desfazer. Responde `204` sem corpo e `404` se o documento já não existe. Sem `body`,
+ * então `request()` não manda `Content-Type: application/json` (com corpo vazio, o Fastify
+ * responderia `400`).
+ */
+export async function deleteDocument(id: string): Promise<void> {
+  await request<undefined>(`/documents/${id}`, { method: "DELETE" })
+}
+
+/**
  * PUT direto pro bucket com a presigned URL devolvida por `createDocument`. O backend
  * nunca vê o arquivo, então isso **não** passa por `request()`: sem `Bearer`. `fetch`
  * usa o `Content-Type` do próprio `File` automaticamente — mesmo padrão de `uploadApacPdf`
