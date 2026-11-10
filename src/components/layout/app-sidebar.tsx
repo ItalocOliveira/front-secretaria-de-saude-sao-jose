@@ -13,7 +13,14 @@ import {
 } from "lucide-react"
 
 import type { UserRole } from "@/lib/apac"
-import { APAC_ROLES, DOCUMENT_ROLES, homeRouteFor, ITEM_ROLES, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
+import {
+  APAC_ROLES,
+  DOCUMENT_ROLES,
+  homeRouteFor,
+  ITEM_ROLES,
+  REPORT_ROLES,
+  USER_MANAGEMENT_ROLES,
+} from "@/lib/permissions"
 import { useSession } from "@/hooks/use-session"
 import {
   Sidebar,
@@ -48,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
   { title: "Usuários", icon: UserCogIcon, url: "/usuarios", roles: USER_MANAGEMENT_ROLES },
   { title: "Almoxarifado", icon: PackageIcon, url: "/almoxarifado", roles: ITEM_ROLES },
   { title: "Ofícios", icon: FileSignatureIcon, url: "/documents", roles: DOCUMENT_ROLES },
-  { title: "Relatórios", icon: ChartColumnIcon },
+  { title: "Relatórios", icon: ChartColumnIcon, url: "/relatorios", roles: REPORT_ROLES },
 ]
 
 const SUPPORT_ITEMS: NavItem[] = [

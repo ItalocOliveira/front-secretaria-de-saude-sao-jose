@@ -137,6 +137,7 @@ const ACCESS = {
   itens: ["DEV", "DIRETOR", "REGULADOR"],
   // Feature nova: só DEV tem acesso por enquanto, outras roles recebem 403.
   documents: ["DEV"],
+  reports: ["DEV", "DIRETOR", "REGULADOR"],
 }
 
 // ---------------------------------------------------------------------------
@@ -439,6 +440,115 @@ async function createApac(req, res) {
   const uploadUrl = mockPdfUrl(apac.id, UPLOAD_TTL_MS)
 
   return send(res, 201, { apac, uploadUrl })
+}
+
+// ---------------------------------------------------------------------------
+// POST /reports/apacs — espelha `.docs/temp/RELATORIO_APACS.md`
+// ---------------------------------------------------------------------------
+
+// Brasília/Fortaleza não tem horário de verão: offset fixo de -3h.
+const BRT_OFFSET_MS = 3 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** "YYYY-MM-DD" do instante no fuso de Brasília. */
+function brtDay(ms) {
+  return new Date(ms - BRT_OFFSET_MS).toISOString().slice(0, 10)
+}
+
+function countBy(list, key) {
+  const result = {}
+  for (const item of list) {
+    const value = key(item)
+    // Registros antigos do seed não têm todos os campos (ex.: `acs`).
+    if (value == null) continue
+    result[value] = (result[value] ?? 0) + 1
+  }
+  return result
+}
+
+function createdMs(apac) {
+  return Date.parse(apac.created_at ?? apac.createdAt)
+}
+
+async function reportApacs(req, res) {
+  const body = (await readJsonBody(req)) ?? {}
+  const interval = body.interval ?? "day"
+  if (interval !== "day" && interval !== "week") {
+    return send(res, 400, { error: 'Valor inválido para "interval". Use um destes: day, week.' })
+  }
+
+  let start
+  let end
+  let prevStart
+  let prevEnd
+
+  if (body.startDate && body.endDate) {
+    start = Date.parse(body.startDate)
+    end = Date.parse(body.endDate)
+    if (Number.isNaN(start) || Number.isNaN(end)) {
+      return send(res, 400, { error: 'Datas inválidas. Envie "startDate" e "endDate" no formato ISO 8601.' })
+    }
+    const duration = end - start + 1
+    prevEnd = start - 1
+    prevStart = start - duration
+  } else {
+    const local = new Date(Date.now() - BRT_OFFSET_MS)
+    const year = local.getUTCFullYear()
+    const month = local.getUTCMonth()
+    start = Date.UTC(year, month, 1) + BRT_OFFSET_MS
+    end = Date.UTC(year, month + 1, 1) + BRT_OFFSET_MS - 1
+    prevStart = Date.UTC(year, month - 1, 1) + BRT_OFFSET_MS
+    prevEnd = start - 1
+  }
+
+  const apacs = db.data.apacs
+  const inRange = (from, to) => apacs.filter((apac) => createdMs(apac) >= from && createdMs(apac) <= to)
+  const inPeriod = inRange(start, end)
+  const total = inPeriod.length
+  const previousTotal = inRange(prevStart, prevEnd).length
+  const difference = total - previousTotal
+
+  const queue = apacs.filter((apac) => apac.status === "PENDENTE" || apac.status === "AGUARDO")
+  const byPriority = Object.fromEntries(PRIORITIES.map((priority) => [priority, 0]))
+  for (const apac of queue) byPriority[apac.priority] = (byPriority[apac.priority] ?? 0) + 1
+
+  const perDay = countBy(inPeriod, (apac) => brtDay(createdMs(apac)))
+  const points = []
+  if (start <= end) {
+    let cursor = Date.parse(`${brtDay(start)}T00:00:00Z`)
+    const last = Date.parse(`${brtDay(end)}T00:00:00Z`)
+    if (interval === "week") {
+      // Recua até a segunda-feira (getUTCDay: 0 = domingo).
+      cursor -= ((new Date(cursor).getUTCDay() + 6) % 7) * DAY_MS
+    }
+    const step = interval === "week" ? 7 * DAY_MS : DAY_MS
+    for (; cursor <= last; cursor += step) {
+      let count = 0
+      for (let day = cursor; day < cursor + step; day += DAY_MS) {
+        count += perDay[new Date(day).toISOString().slice(0, 10)] ?? 0
+      }
+      points.push({ date: new Date(cursor).toISOString().slice(0, 10), count })
+    }
+  }
+
+  return send(res, 200, {
+    period: { startDate: new Date(start).toISOString(), endDate: new Date(end).toISOString() },
+    totalCreatedINperiod: total,
+    comparisonWithPreviousPeriod: {
+      previousPeriod: { startDate: new Date(prevStart).toISOString(), endDate: new Date(prevEnd).toISOString() },
+      previousTotal,
+      difference,
+      percentChange: previousTotal === 0 ? null : Math.round((difference / previousTotal) * 1000) / 10,
+    },
+    countByStatusInPeriod: countBy(inPeriod, (apac) => apac.status),
+    countByStatus: countBy(apacs, (apac) => apac.status),
+    countByProcedureInPeriod: countBy(inPeriod, (apac) => apac.procedure),
+    countByPriorityInPeriod: countBy(inPeriod, (apac) => apac.priority),
+    countByAcsInPeriod: countBy(inPeriod, (apac) => apac.acs),
+    countByMunicipalityInPeriod: countBy(inPeriod, (apac) => apac.municipality || "NAO_INFORMADO"),
+    pendingQueue: { statuses: ["PENDENTE", "AGUARDO"], total: queue.length, byPriority },
+    createdOverTime: { interval, timeZone: "America/Fortaleza", points },
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -771,6 +881,7 @@ function routeIndex() {
       { method: "POST", path: "/documents", roles: ACCESS.documents.join(", ") },
       { method: "GET", path: "/documents", roles: ACCESS.documents.join(", ") },
       { method: "PATCH", path: "/documents/:id", roles: ACCESS.documents.join(", ") },
+      { method: "POST", path: "/reports/apacs", roles: ACCESS.reports.join(", ") },
       {
         method: "PUT",
         path: "/mock-uploads/:filename?exp=...",
@@ -832,6 +943,12 @@ const server = createServer(async (req, res) => {
     if (collection === "apacs") return createApac(req, res)
     if (collection === "itens") return createItem(req, res, user)
     if (collection === "documents") return createDocument(req, res)
+  }
+
+  // `reports` não é coleção do json-server: só `POST /reports/apacs` existe.
+  if (collection === "reports") {
+    if (method === "POST" && rest.length === 1 && rest[0] === "apacs") return reportApacs(req, res)
+    return send(res, 404, { message: "Rota não encontrada." })
   }
 
   if (method === "PATCH" && collection === "documents" && rest.length === 1) {
