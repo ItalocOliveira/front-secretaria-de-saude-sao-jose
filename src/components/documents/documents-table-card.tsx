@@ -1,10 +1,13 @@
 import { useState } from "react"
-import { FileIcon, FileTextIcon, PencilIcon, RefreshCwIcon } from "lucide-react"
+import { FileIcon, FileTextIcon, PencilIcon, RefreshCwIcon, Trash2Icon } from "lucide-react"
 
 import type { Document } from "@/api/documents"
 import { DOCUMENT_DESTINATION_LABEL, DOCUMENT_STATUS_BADGE, DOCUMENT_STATUS_LABEL } from "@/lib/document"
+import { canDeleteDocuments } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import { useDocuments } from "@/hooks/use-documents"
+import { useSession } from "@/hooks/use-session"
+import { DocumentDeleteAlert } from "@/components/documents/document-delete-alert"
 import { DocumentEditDialog } from "@/components/documents/document-edit-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -41,7 +44,10 @@ export function DocumentsTableCard({
 }) {
   const [showAll, setShowAll] = useState(false)
   const [editing, setEditing] = useState<Document | null>(null)
+  const [deleting, setDeleting] = useState<Document | null>(null)
   const { refetch, isFetching } = useDocuments()
+  const { claims } = useSession()
+  const canDelete = claims !== null && canDeleteDocuments(claims.role)
 
   const visible = showAll ? documents : documents.slice(0, PREVIEW_SIZE)
   const hasMore = documents.length > PREVIEW_SIZE
@@ -172,6 +178,23 @@ export function DocumentsTableCard({
                           />
                           <TooltipContent>Editar</TooltipContent>
                         </Tooltip>
+                        {canDelete ? (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label={`Excluir ofício ${document.protocolNumber}`}
+                                  onClick={() => setDeleting(document)}
+                                >
+                                  <Trash2Icon />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent>Excluir</TooltipContent>
+                          </Tooltip>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -183,6 +206,9 @@ export function DocumentsTableCard({
       </CardContent>
 
       <DocumentEditDialog document={editing} onOpenChange={(open) => (open ? null : setEditing(null))} />
+      {canDelete ? (
+        <DocumentDeleteAlert document={deleting} onOpenChange={(open) => (open ? null : setDeleting(null))} />
+      ) : null}
     </Card>
   )
 }

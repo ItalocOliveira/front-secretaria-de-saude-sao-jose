@@ -624,6 +624,19 @@ async function updateDocument(req, res, id) {
   return send(res, 200, document)
 }
 
+/** `DELETE /documents/:id` — apaga o registro e o PDF (aqui, o arquivo em `uploads/`). 204 sem corpo; 404 se não existe. */
+async function deleteDocument(res, id) {
+  const index = db.data.documents.findIndex((entry) => entry.id === id)
+  if (index === -1) return send(res, 404, { error: "Documento não encontrado." })
+
+  db.data.documents.splice(index, 1)
+  await db.write()
+  rmSync(join(UPLOADS_DIR, `${id}.pdf`), { force: true })
+
+  res.writeHead(204)
+  return res.end()
+}
+
 // ---------------------------------------------------------------------------
 // POST /itens
 // ---------------------------------------------------------------------------
@@ -880,7 +893,7 @@ function routeIndex() {
       { method: "POST", path: "/itens/:id/movements", roles: ACCESS.itens.join(", ") },
       { method: "POST", path: "/documents", roles: ACCESS.documents.join(", ") },
       { method: "GET", path: "/documents", roles: ACCESS.documents.join(", ") },
-      { method: "PATCH", path: "/documents/:id", roles: ACCESS.documents.join(", ") },
+      { method: "PATCH | DELETE", path: "/documents/:id", roles: ACCESS.documents.join(", ") },
       { method: "POST", path: "/reports/apacs", roles: ACCESS.reports.join(", ") },
       {
         method: "PUT",
@@ -953,6 +966,10 @@ const server = createServer(async (req, res) => {
 
   if (method === "PATCH" && collection === "documents" && rest.length === 1) {
     return updateDocument(req, res, rest[0])
+  }
+
+  if (method === "DELETE" && collection === "documents" && rest.length === 1) {
+    return deleteDocument(res, rest[0])
   }
 
   // `pdf_url`/`image_url` são gerados sob demanda a cada GET, como na API real —
