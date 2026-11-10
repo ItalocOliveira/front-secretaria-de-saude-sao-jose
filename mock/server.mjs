@@ -137,7 +137,7 @@ const ACCESS = {
   itens: ["DEV", "DIRETOR", "REGULADOR"],
   // Feature nova: só DEV tem acesso por enquanto, outras roles recebem 403.
   documents: ["DEV"],
-  reports: ["DEV", "DIRETOR", "REGULADOR"],
+  reports: ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR"],
 }
 
 // ---------------------------------------------------------------------------

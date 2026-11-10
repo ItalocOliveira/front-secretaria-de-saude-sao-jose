@@ -19,8 +19,8 @@ export const ITEM_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "REGULADOR"]
 /** Roles com acesso a `/documents` (ofícios). Por enquanto só `DEV` — outras roles recebem 403 da API. */
 export const DOCUMENT_ROLES: readonly UserRole[] = ["DEV"]
 
-/** Roles com acesso a `POST /reports/apacs` (relatórios). */
-export const REPORT_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "REGULADOR"]
+/** Roles com acesso a `POST /reports/apacs` (relatórios) — todos os perfis. */
+export const REPORT_ROLES: readonly UserRole[] = ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
 
 export function canAccessApacs(role: UserRole) {
   return APAC_ROLES.includes(role)
