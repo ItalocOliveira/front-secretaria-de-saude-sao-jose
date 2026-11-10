@@ -22,7 +22,7 @@ export function listUsers(signal?: AbortSignal) {
   return request<UserDto[]>("/users", { signal })
 }
 
-/** `POST /users` exige autenticação e role `DEV`, `DIRETOR`, `SECRETARIA` ou `COORDENADOR`. */
+/** `POST /users` exige autenticação e role `DEV`, `DIRETOR`, `SECRETARIO` ou `COORDENADOR`. */
 export function createUser(payload: CreateUserPayload) {
   return request<UserDto>("/users", { method: "POST", body: payload })
 }

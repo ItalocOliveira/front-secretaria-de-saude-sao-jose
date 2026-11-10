@@ -10,8 +10,8 @@ import type { UserRole } from "@/lib/apac"
 /** Roles com acesso a `/apacs` (listar e criar). */
 export const APAC_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
 
-/** Roles com acesso a `/users` (listar e criar). `COORDENADOR` tem as mesmas permissões de `SECRETARIA`. */
-export const USER_MANAGEMENT_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIA", "COORDENADOR"]
+/** Roles com acesso a `/users` (listar e criar). `COORDENADOR` tem as mesmas permissões de `SECRETARIO`. */
+export const USER_MANAGEMENT_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIO", "COORDENADOR"]
 
 /** Roles com acesso a `/itens` (almoxarifado). */
 export const ITEM_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "REGULADOR"]
@@ -31,7 +31,7 @@ export const DOCUMENT_DELETE_ROLES: readonly UserRole[] = ["DEV"]
  */
 export const REPORT_ROLES: readonly UserRole[] = [
   "DEV",
-  "SECRETARIA",
+  "SECRETARIO",
   "DIRETOR",
   "RECEPCIONISTA",
   "REGULADOR",
@@ -65,7 +65,7 @@ export function canAccessReports(role: UserRole) {
 /**
  * Primeira rota que o perfil consegue abrir.
  *
- * `SECRETARIA`/`COORDENADOR` não enxergam APACs e `RECEPCIONISTA`/`REGULADOR`
+ * `SECRETARIO`/`COORDENADOR` não enxergam APACs e `RECEPCIONISTA`/`REGULADOR`
  * não enxergam usuários, então não existe uma home única para todo mundo.
  * `/relatorios` é o último recurso, para um perfil que não alcance nenhum dos dois.
  */

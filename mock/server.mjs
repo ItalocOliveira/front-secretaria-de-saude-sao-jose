@@ -36,7 +36,7 @@ const TOKEN_TTL_SECONDS = 60 * 60 // 1 hora, como na API real
 const UPLOAD_TTL_MS = 15 * 60 * 1000 // validade da presigned URL de upload, como na API real
 const DOWNLOAD_TTL_MS = 60 * 60 * 1000 // validade da presigned URL de download, como na API real
 
-const ROLES = ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR", "COORDENADOR"]
+const ROLES = ["DEV", "SECRETARIO", "DIRETOR", "RECEPCIONISTA", "REGULADOR", "COORDENADOR"]
 // Espelha `APAC_PROCEDURE_LIST` em `src/lib/apac.ts` — chave do enum Prisma
 // (SCREAMING_SNAKE_CASE, sem acento), não o texto formatado. Mantenha as duas
 // listas em sincronia.
@@ -132,13 +132,13 @@ const ACS_LIST = [
 
 /** Roles com acesso a cada coleção, conforme a matriz de permissões da doc. */
 const ACCESS = {
-  // COORDENADOR tem as mesmas permissões de SECRETARIA (usuários + relatório).
-  users: ["DEV", "DIRETOR", "SECRETARIA", "COORDENADOR"],
+  // COORDENADOR tem as mesmas permissões de SECRETARIO (usuários + relatório).
+  users: ["DEV", "DIRETOR", "SECRETARIO", "COORDENADOR"],
   apacs: ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"],
   itens: ["DEV", "DIRETOR", "REGULADOR"],
   // Feature nova: só DEV tem acesso por enquanto, outras roles recebem 403.
   documents: ["DEV"],
-  reports: ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR", "COORDENADOR"],
+  reports: ["DEV", "SECRETARIO", "DIRETOR", "RECEPCIONISTA", "REGULADOR", "COORDENADOR"],
 }
 
 // ---------------------------------------------------------------------------
