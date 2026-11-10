@@ -4,7 +4,6 @@ import {
   CircleQuestionMarkIcon,
   FileSignatureIcon,
   FileTextIcon,
-  HeartPulseIcon,
   LayoutDashboardIcon,
   PackageIcon,
   SettingsIcon,
@@ -118,13 +117,11 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" tooltip="Regulação em Saúde" render={<Link to={homeRoute} />}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <HeartPulseIcon />
-              </div>
-              <div className="flex flex-col gap-0.5 leading-none">
-                <span className="font-medium">SAÚDE</span>
-                <span className="text-xs text-muted-foreground">Regulação</span>
+            <SidebarMenuButton size="lg" tooltip="ICOS" render={<Link to={homeRoute} />}>
+              <img src="/logo_secretaria.png" alt="" className="size-8 shrink-0 object-contain" />
+              <div className="flex min-w-0 flex-col gap-0.5 leading-none">
+                <span className="truncate text-xl font-bold tracking-wide">ICOS</span>
+                <span className="truncate text-xs text-muted-foreground">São José dos Ramos</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
