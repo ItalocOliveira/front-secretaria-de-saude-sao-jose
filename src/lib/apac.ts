@@ -105,7 +105,7 @@ export type ApacAcs = (typeof APAC_ACS)[keyof typeof APAC_ACS]
 export const USER_ROLE = {
   DEV: "DEV",
   DIRETOR: "DIRETOR",
-  SECRETARIA: "SECRETARIA",
+  SECRETARIO: "SECRETARIO",
   RECEPCIONISTA: "RECEPCIONISTA",
   REGULADOR: "REGULADOR",
   COORDENADOR: "COORDENADOR",
@@ -212,7 +212,7 @@ export const APAC_ACS_LABEL: Record<ApacAcs, string> = {
 export const USER_ROLE_LABEL: Record<UserRole, string> = {
   DEV: "Desenvolvedor",
   DIRETOR: "Diretor Geral",
-  SECRETARIA: "Secretário(a) de Saúde",
+  SECRETARIO: "Secretário(a) de Saúde",
   RECEPCIONISTA: "Recepcionista",
   REGULADOR: "Regulador",
   COORDENADOR: "Coordenador",

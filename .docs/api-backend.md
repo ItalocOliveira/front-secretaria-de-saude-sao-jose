@@ -76,7 +76,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 - Todo usuário deve possuir `name`, `cpf`, `password` e `role`
 - O `cpf` é chave única no banco (`cpf_hash` com constraint `@unique`)
 - A senha é armazenada como hash (Argon2); o CPF é armazenado com hash e criptografia
-- Roles válidas: `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR`
+- Roles válidas: `DEV`, `SECRETARIO`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR`
 
 ### APACs
 
@@ -102,7 +102,7 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 | --------------- | :---: | :----: | :----: | :-----: |
 | `DEV`           |  ✅   |   ✅   |   —    |    —    |
 | `DIRETOR`       |  ✅   |   ✅   |   —    |    —    |
-| `SECRETARIA`    |  ✅   |   ✅   |   —    |    —    |
+| `SECRETARIO`    |  ✅   |   ✅   |   —    |    —    |
 | `RECEPCIONISTA` |  ❌   |   ❌   |   —    |    —    |
 | `REGULADOR`     |  ❌   |   ❌   |   —    |    —    |
 | `COORDENADOR`   |  ✅   |   ✅   |   —    |    —    |
@@ -113,7 +113,7 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 | --------------- | :---: | :----: | :----: | :-----: |
 | `DEV`           |  ✅   |   ✅   |   ✅   |   ✅    |
 | `DIRETOR`       |  ✅   |   ✅   |   ✅   |   ✅    |
-| `SECRETARIA`    |  ❌   |   ❌   |   ❌   |   ❌    |
+| `SECRETARIO`    |  ❌   |   ❌   |   ❌   |   ❌    |
 | `RECEPCIONISTA` |  ✅   |   ✅   |   ✅   |   ✅    |
 | `REGULADOR`     |  ✅   |   ✅   |   ✅   |   ✅    |
 | `COORDENADOR`   |  ❌   |   ❌   |   ❌   |   ❌    |
@@ -144,10 +144,10 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 | --------------- | ----------------------------------------------- |
 | `DEV`           | Desenvolvedor — acesso amplo                    |
 | `DIRETOR`       | Diretor Geral                                   |
-| `SECRETARIA`    | Secretário(a) de Saúde                          |
+| `SECRETARIO`    | Secretário(a) de Saúde                          |
 | `RECEPCIONISTA` | Recepcionista                                   |
 | `REGULADOR`     | Regulador                                       |
-| `COORDENADOR`   | Coordenador — mesmas permissões de `SECRETARIA` |
+| `COORDENADOR`   | Coordenador — mesmas permissões de `SECRETARIO` |
 
 ---
 
@@ -158,14 +158,14 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 | `/auth/login` | POST   | Não          | Público                                        |
 | `/auth/me`    | GET    | Sim          | Qualquer role autenticada                      |
 | `/auth/admin` | GET    | Sim          | `DEV`, `DIRETOR`                               |
-| `/users`      | POST   | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`, `COORDENADOR`  |
-| `/users`      | GET    | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`, `COORDENADOR`  |
+| `/users`      | POST   | Sim          | `DEV`, `DIRETOR`, `SECRETARIO`, `COORDENADOR`  |
+| `/users`      | GET    | Sim          | `DEV`, `DIRETOR`, `SECRETARIO`, `COORDENADOR`  |
 | `/apacs`      | POST   | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 | `/apacs`      | GET    | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 | `/apacs/:id`  | PATCH  | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 | `/apacs/:id`  | DELETE | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 
-> **Nota:** `SECRETARIA`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente. `COORDENADOR` tem as mesmas permissões de `SECRETARIA`.
+> **Nota:** `SECRETARIO`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente. `COORDENADOR` tem as mesmas permissões de `SECRETARIO`.
 
 ---
 
@@ -215,7 +215,7 @@ Retorna os dados do usuário autenticado a partir do token JWT.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** qualquer role autenticada (`DEV`, `DIRETOR`, `SECRETARIA`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR`)
+**Roles permitidas:** qualquer role autenticada (`DEV`, `DIRETOR`, `SECRETARIO`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR`)
 
 **Request body:** nenhum
 
@@ -272,7 +272,7 @@ Cadastra um novo usuário no sistema.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIA`, `COORDENADOR`
+**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIO`, `COORDENADOR`
 
 **Request body:**
 
@@ -290,7 +290,7 @@ Cadastra um novo usuário no sistema.
 | `name`     | `string` | Sim         | Nome completo do usuário                                                                   |
 | `cpf`      | `string` | Sim         | CPF (deve ser único no banco)                                                              |
 | `password` | `string` | Sim         | Senha em texto plano (será hasheada)                                                       |
-| `role`     | `string` | Sim         | Uma das roles: `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR` |
+| `role`     | `string` | Sim         | Uma das roles: `DEV`, `SECRETARIO`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR` |
 
 **Resposta de sucesso (200):**
 
@@ -311,7 +311,7 @@ Lista todos os usuários cadastrados.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIA`, `COORDENADOR`
+**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIO`, `COORDENADOR`
 
 **Request body:** nenhum
 
@@ -547,7 +547,7 @@ Exclui uma APAC.
 | Público (sem token) |  ✅   |           ❌            |          ❌           |      ❌       |       ❌        |     ❌     |      ❌      |     ❌      |      ❌      |
 | `DEV`               |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
 | `DIRETOR`           |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
-| `SECRETARIA`        |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |
+| `SECRETARIO`        |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |
 | `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
 | `REGULADOR`         |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
 | `COORDENADOR`       |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |
