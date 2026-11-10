@@ -22,13 +22,14 @@ Escritas (`POST`, `PATCH`, `PUT`, `DELETE`) persistem em `db.json` e sobrevivem 
 
 Uma conta por role, para exercitar a matriz de permissões:
 
-| Role            | CPF           | Senha           |
-| --------------- | ------------- | --------------- |
-| `DEV`           | `11111111111` | `dev123`        |
-| `DIRETOR`       | `22222222222` | `diretor123`    |
-| `SECRETARIA`    | `33333333333` | `secretaria123` |
-| `RECEPCIONISTA` | `44444444444` | `recepcao123`   |
-| `REGULADOR`     | `55555555555` | `regulador123`  |
+| Role            | CPF           | Senha            |
+| --------------- | ------------- | ---------------- |
+| `DEV`           | `11111111111` | `dev123`         |
+| `DIRETOR`       | `22222222222` | `diretor123`     |
+| `SECRETARIA`    | `33333333333` | `secretaria123`  |
+| `RECEPCIONISTA` | `44444444444` | `recepcao123`    |
+| `REGULADOR`     | `55555555555` | `regulador123`   |
+| `COORDENADOR`   | `66666666666` | `coordenador123` |
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:3000/auth/login \

@@ -44,6 +44,15 @@
       "role": "REGULADOR",
       "created_at": "2026-01-12T09:00:00.000Z",
       "updated_at": "2026-01-12T09:00:00.000Z"
+    },
+    {
+      "id": "8d54931b-6189-4751-bda2-a339293bfb47",
+      "name": "Caio Nogueira",
+      "cpf_hash": "463222884392617ea340376783c428936fb6f5e93383822cc710bedfb4baf678",
+      "cpf_encrypted": "enc:NjY2NjY2NjY2NjY",
+      "role": "COORDENADOR",
+      "created_at": "2026-01-12T09:00:00.000Z",
+      "updated_at": "2026-01-12T09:00:00.000Z"
     }
   ],
   "apacs": [
@@ -156,6 +165,12 @@
       "cpf": "55555555555",
       "password": "regulador123",
       "password_hash": "95fc043c42987cdc2f83036559b5fc7907c7dfa3f8adf462a0d4efa047c59879"
+    },
+    {
+      "user_id": "8d54931b-6189-4751-bda2-a339293bfb47",
+      "cpf": "66666666666",
+      "password": "coordenador123",
+      "password_hash": "b772ed678b33e9866c1945362749d1e9d82287e659dca218a148a7125989f457"
     }
   ]
 }

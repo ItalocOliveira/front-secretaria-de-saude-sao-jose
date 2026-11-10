@@ -12,9 +12,9 @@ Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-| Perfil (`role`)                                              | Acesso       |
-| ------------------------------------------------------------ | ------------ |
-| `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` | ✅ permitido |
+| Perfil (`role`)                                                             | Acesso       |
+| --------------------------------------------------------------------------- | ------------ |
+| `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR` | ✅ permitido |
 
 > É `POST` (e não `GET`) porque os filtros vão no corpo. A rota não altera nada.
 

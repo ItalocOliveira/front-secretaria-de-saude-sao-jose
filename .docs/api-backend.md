@@ -76,7 +76,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 - Todo usuário deve possuir `name`, `cpf`, `password` e `role`
 - O `cpf` é chave única no banco (`cpf_hash` com constraint `@unique`)
 - A senha é armazenada como hash (Argon2); o CPF é armazenado com hash e criptografia
-- Roles válidas: `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`
+- Roles válidas: `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR`
 
 ### APACs
 
@@ -105,6 +105,7 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 | `SECRETARIA`    |  ✅   |   ✅   |   —    |    —    |
 | `RECEPCIONISTA` |  ❌   |   ❌   |   —    |    —    |
 | `REGULADOR`     |  ❌   |   ❌   |   —    |    —    |
+| `COORDENADOR`   |  ❌   |   ❌   |   —    |    —    |
 
 ### APACs (`/apacs`)
 
@@ -115,6 +116,7 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 | `SECRETARIA`    |  ❌   |   ❌   |   ❌   |   ❌    |
 | `RECEPCIONISTA` |  ✅   |   ✅   |   ✅   |   ✅    |
 | `REGULADOR`     |  ✅   |   ✅   |   ✅   |   ✅    |
+| `COORDENADOR`   |  ❌   |   ❌   |   ❌   |   ❌    |
 
 > ✅ = implementado · ❌ = sem permissão · — = requisito previsto, ainda não implementado
 
@@ -138,13 +140,14 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 
 ## Roles disponíveis
 
-| Role            | Descrição                    |
-| --------------- | ---------------------------- |
-| `DEV`           | Desenvolvedor — acesso amplo |
-| `DIRETOR`       | Diretor Geral                |
-| `SECRETARIA`    | Secretária de Saúde          |
-| `RECEPCIONISTA` | Recepcionista                |
-| `REGULADOR`     | Regulador                    |
+| Role            | Descrição                             |
+| --------------- | ------------------------------------- |
+| `DEV`           | Desenvolvedor — acesso amplo          |
+| `DIRETOR`       | Diretor Geral                         |
+| `SECRETARIA`    | Secretária de Saúde                   |
+| `RECEPCIONISTA` | Recepcionista                         |
+| `REGULADOR`     | Regulador                             |
+| `COORDENADOR`   | Coordenador — só o relatório de APACs |
 
 ---
 
@@ -162,7 +165,7 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 | `/apacs/:id`  | PATCH  | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 | `/apacs/:id`  | DELETE | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 
-> **Nota:** `SECRETARIA`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente.
+> **Nota:** `SECRETARIA`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente. `COORDENADOR` não acessa nenhum dos dois: só `POST /reports/apacs` (e `/auth/me`); 403 no resto.
 
 ---
 
@@ -212,7 +215,7 @@ Retorna os dados do usuário autenticado a partir do token JWT.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** qualquer role autenticada (`DEV`, `DIRETOR`, `SECRETARIA`, `RECEPCIONISTA`, `REGULADOR`)
+**Roles permitidas:** qualquer role autenticada (`DEV`, `DIRETOR`, `SECRETARIA`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR`)
 
 **Request body:** nenhum
 
@@ -282,12 +285,12 @@ Cadastra um novo usuário no sistema.
 }
 ```
 
-| Campo      | Tipo     | Obrigatório | Descrição                                                                   |
-| ---------- | -------- | ----------- | --------------------------------------------------------------------------- |
-| `name`     | `string` | Sim         | Nome completo do usuário                                                    |
-| `cpf`      | `string` | Sim         | CPF (deve ser único no banco)                                               |
-| `password` | `string` | Sim         | Senha em texto plano (será hasheada)                                        |
-| `role`     | `string` | Sim         | Uma das roles: `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| Campo      | Tipo     | Obrigatório | Descrição                                                                                  |
+| ---------- | -------- | ----------- | ------------------------------------------------------------------------------------------ |
+| `name`     | `string` | Sim         | Nome completo do usuário                                                                   |
+| `cpf`      | `string` | Sim         | CPF (deve ser único no banco)                                                              |
+| `password` | `string` | Sim         | Senha em texto plano (será hasheada)                                                       |
+| `role`     | `string` | Sim         | Uma das roles: `DEV`, `SECRETARIA`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`, `COORDENADOR` |
 
 **Resposta de sucesso (200):**
 
@@ -547,3 +550,4 @@ Exclui uma APAC.
 | `SECRETARIA`        |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |
 | `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
 | `REGULADOR`         |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
+| `COORDENADOR`       |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ❌     |      ❌      |     ❌      |      ❌      |

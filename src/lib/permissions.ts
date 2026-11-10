@@ -26,8 +26,18 @@ export const DOCUMENT_ROLES: readonly UserRole[] = ["DEV"]
  */
 export const DOCUMENT_DELETE_ROLES: readonly UserRole[] = ["DEV"]
 
-/** Roles com acesso a `POST /reports/apacs` (relatórios) — todos os perfis. */
-export const REPORT_ROLES: readonly UserRole[] = ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
+/**
+ * Roles com acesso a `POST /reports/apacs` (relatórios) — todos os perfis.
+ * `COORDENADOR` só alcança esta área (a API responde 403 em todo o resto).
+ */
+export const REPORT_ROLES: readonly UserRole[] = [
+  "DEV",
+  "SECRETARIA",
+  "DIRETOR",
+  "RECEPCIONISTA",
+  "REGULADOR",
+  "COORDENADOR",
+]
 
 export function canAccessApacs(role: UserRole) {
   return APAC_ROLES.includes(role)
@@ -56,11 +66,16 @@ export function canAccessReports(role: UserRole) {
 /**
  * Primeira rota que o perfil consegue abrir.
  *
- * `SECRETARIA` não enxerga APACs e `RECEPCIONISTA`/`REGULADOR` não enxergam
- * usuários, então não existe uma home única para todo mundo.
+ * `SECRETARIA` não enxerga APACs, `RECEPCIONISTA`/`REGULADOR` não enxergam
+ * usuários e `COORDENADOR` só enxerga relatórios, então não existe uma home
+ * única para todo mundo.
  */
 export function homeRouteFor(role: UserRole) {
-  return canAccessApacs(role) ? "/apacs" : "/usuarios"
+  if (canAccessApacs(role)) {
+    return "/apacs"
+  }
+
+  return canManageUsers(role) ? "/usuarios" : "/relatorios"
 }
 
 /**
