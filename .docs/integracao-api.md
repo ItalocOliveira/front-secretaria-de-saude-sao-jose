@@ -120,7 +120,7 @@ Se o `PUT` falhar (link expirado, rede caiu), a APAC **já existe** — o form (
 | `/usuarios`                          | `GET /users`        |
 | `/usuarios/novo`                     | `POST /users`       |
 
-Rotas são guardadas por autenticação (`RequireAuth`) e por perfil (`RequireRole`), e a sidebar esconde o que o perfil não alcança. Como `SECRETARIA` não vê APACs, `RECEPCIONISTA`/`REGULADOR` não veem usuários e `COORDENADOR` só vê relatórios, **não existe home única**: `homeRouteFor()` decide o destino pós-login.
+Rotas são guardadas por autenticação (`RequireAuth`) e por perfil (`RequireRole`), e a sidebar esconde o que o perfil não alcança. Como `SECRETARIA`/`COORDENADOR` não veem APACs e `RECEPCIONISTA`/`REGULADOR` não veem usuários, **não existe home única**: `homeRouteFor()` decide o destino pós-login.
 
 ## Lacunas do contrato
 

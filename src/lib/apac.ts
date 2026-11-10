@@ -212,7 +212,7 @@ export const APAC_ACS_LABEL: Record<ApacAcs, string> = {
 export const USER_ROLE_LABEL: Record<UserRole, string> = {
   DEV: "Desenvolvedor",
   DIRETOR: "Diretor Geral",
-  SECRETARIA: "Secretária de Saúde",
+  SECRETARIA: "Secretário(a) de Saúde",
   RECEPCIONISTA: "Recepcionista",
   REGULADOR: "Regulador",
   COORDENADOR: "Coordenador",

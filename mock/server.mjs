@@ -132,12 +132,12 @@ const ACS_LIST = [
 
 /** Roles com acesso a cada coleção, conforme a matriz de permissões da doc. */
 const ACCESS = {
-  users: ["DEV", "DIRETOR", "SECRETARIA"],
+  // COORDENADOR tem as mesmas permissões de SECRETARIA (usuários + relatório).
+  users: ["DEV", "DIRETOR", "SECRETARIA", "COORDENADOR"],
   apacs: ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"],
   itens: ["DEV", "DIRETOR", "REGULADOR"],
   // Feature nova: só DEV tem acesso por enquanto, outras roles recebem 403.
   documents: ["DEV"],
-  // COORDENADOR só alcança o relatório (e /auth/me) — 403 no resto, como na API.
   reports: ["DEV", "SECRETARIA", "DIRETOR", "RECEPCIONISTA", "REGULADOR", "COORDENADOR"],
 }
 

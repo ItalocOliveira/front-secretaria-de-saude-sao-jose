@@ -105,7 +105,7 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 | `SECRETARIA`    |  ✅   |   ✅   |   —    |    —    |
 | `RECEPCIONISTA` |  ❌   |   ❌   |   —    |    —    |
 | `REGULADOR`     |  ❌   |   ❌   |   —    |    —    |
-| `COORDENADOR`   |  ❌   |   ❌   |   —    |    —    |
+| `COORDENADOR`   |  ✅   |   ✅   |   —    |    —    |
 
 ### APACs (`/apacs`)
 
@@ -140,14 +140,14 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 
 ## Roles disponíveis
 
-| Role            | Descrição                             |
-| --------------- | ------------------------------------- |
-| `DEV`           | Desenvolvedor — acesso amplo          |
-| `DIRETOR`       | Diretor Geral                         |
-| `SECRETARIA`    | Secretária de Saúde                   |
-| `RECEPCIONISTA` | Recepcionista                         |
-| `REGULADOR`     | Regulador                             |
-| `COORDENADOR`   | Coordenador — só o relatório de APACs |
+| Role            | Descrição                                       |
+| --------------- | ----------------------------------------------- |
+| `DEV`           | Desenvolvedor — acesso amplo                    |
+| `DIRETOR`       | Diretor Geral                                   |
+| `SECRETARIA`    | Secretário(a) de Saúde                          |
+| `RECEPCIONISTA` | Recepcionista                                   |
+| `REGULADOR`     | Regulador                                       |
+| `COORDENADOR`   | Coordenador — mesmas permissões de `SECRETARIA` |
 
 ---
 
@@ -158,14 +158,14 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 | `/auth/login` | POST   | Não          | Público                                        |
 | `/auth/me`    | GET    | Sim          | Qualquer role autenticada                      |
 | `/auth/admin` | GET    | Sim          | `DEV`, `DIRETOR`                               |
-| `/users`      | POST   | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`                 |
-| `/users`      | GET    | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`                 |
+| `/users`      | POST   | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`, `COORDENADOR`  |
+| `/users`      | GET    | Sim          | `DEV`, `DIRETOR`, `SECRETARIA`, `COORDENADOR`  |
 | `/apacs`      | POST   | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 | `/apacs`      | GET    | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 | `/apacs/:id`  | PATCH  | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 | `/apacs/:id`  | DELETE | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
 
-> **Nota:** `SECRETARIA`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente. `COORDENADOR` não acessa nenhum dos dois: só `POST /reports/apacs` (e `/auth/me`); 403 no resto.
+> **Nota:** `SECRETARIA`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente. `COORDENADOR` tem as mesmas permissões de `SECRETARIA`.
 
 ---
 
@@ -272,7 +272,7 @@ Cadastra um novo usuário no sistema.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIA`
+**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIA`, `COORDENADOR`
 
 **Request body:**
 
@@ -311,7 +311,7 @@ Lista todos os usuários cadastrados.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIA`
+**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIA`, `COORDENADOR`
 
 **Request body:** nenhum
 
@@ -550,4 +550,4 @@ Exclui uma APAC.
 | `SECRETARIA`        |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |
 | `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
 | `REGULADOR`         |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
-| `COORDENADOR`       |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ❌     |      ❌      |     ❌      |      ❌      |
+| `COORDENADOR`       |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |

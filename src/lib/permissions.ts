@@ -10,8 +10,8 @@ import type { UserRole } from "@/lib/apac"
 /** Roles com acesso a `/apacs` (listar e criar). */
 export const APAC_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
 
-/** Roles com acesso a `/users` (listar e criar). */
-export const USER_MANAGEMENT_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIA"]
+/** Roles com acesso a `/users` (listar e criar). `COORDENADOR` tem as mesmas permissões de `SECRETARIA`. */
+export const USER_MANAGEMENT_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIA", "COORDENADOR"]
 
 /** Roles com acesso a `/itens` (almoxarifado). */
 export const ITEM_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "REGULADOR"]
@@ -28,7 +28,6 @@ export const DOCUMENT_DELETE_ROLES: readonly UserRole[] = ["DEV"]
 
 /**
  * Roles com acesso a `POST /reports/apacs` (relatórios) — todos os perfis.
- * `COORDENADOR` só alcança esta área (a API responde 403 em todo o resto).
  */
 export const REPORT_ROLES: readonly UserRole[] = [
   "DEV",
@@ -66,9 +65,9 @@ export function canAccessReports(role: UserRole) {
 /**
  * Primeira rota que o perfil consegue abrir.
  *
- * `SECRETARIA` não enxerga APACs, `RECEPCIONISTA`/`REGULADOR` não enxergam
- * usuários e `COORDENADOR` só enxerga relatórios, então não existe uma home
- * única para todo mundo.
+ * `SECRETARIA`/`COORDENADOR` não enxergam APACs e `RECEPCIONISTA`/`REGULADOR`
+ * não enxergam usuários, então não existe uma home única para todo mundo.
+ * `/relatorios` é o último recurso, para um perfil que não alcance nenhum dos dois.
  */
 export function homeRouteFor(role: UserRole) {
   if (canAccessApacs(role)) {
