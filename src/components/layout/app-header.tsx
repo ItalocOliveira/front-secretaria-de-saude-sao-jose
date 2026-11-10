@@ -18,7 +18,7 @@ const NOTIFICATION_COUNT = 12
 
 export function AppHeader({ section }: { section: string }) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur print:hidden">
       <SidebarTrigger />
       <Separator orientation="vertical" className="mr-1 h-4" />
 

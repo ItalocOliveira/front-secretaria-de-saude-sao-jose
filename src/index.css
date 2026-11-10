@@ -118,6 +118,27 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+/* Exportação do relatório em PDF (impressão do navegador): some a navegação,
+   mantém as cores de fundo (barras, badges). O gráfico tem versão própria para
+   impressão em `report-created-chart.tsx`. */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  [data-slot="sidebar"],
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"] {
+    display: none !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
