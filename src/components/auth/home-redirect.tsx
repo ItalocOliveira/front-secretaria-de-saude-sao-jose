@@ -3,10 +3,7 @@ import { Navigate } from "react-router"
 import { homeRouteFor } from "@/lib/permissions"
 import { useSession } from "@/hooks/use-session"
 
-/**
- * Destino padrão. `SECRETARIO`/`COORDENADOR` não acessam APACs e `RECEPCIONISTA`/`REGULADOR`
- * não acessam usuários, então a home depende do perfil.
- */
+/** Destino padrão, decidido por `homeRouteFor` (hoje `/apacs` para todos os cargos). */
 export function HomeRedirect() {
   const { claims } = useSession()
 

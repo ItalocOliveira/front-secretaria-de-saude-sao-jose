@@ -1,42 +1,43 @@
 /**
- * Matriz de permissões do frontend — espelha `.docs/api-backend.md`.
+ * Matriz de permissões do frontend — espelha `.docs/temp/PERMISSOES.md` (que por sua
+ * vez espelha as listas de cargos nos controllers da API).
  *
  * A API é a autoridade (responde 403); isto existe para a UI esconder o que o
  * perfil não pode fazer, em vez de deixar o usuário bater na parede.
+ *
+ * As listas são explícitas de propósito, como na API: um cargo novo não ganha
+ * acesso a nada sozinho, precisa ser incluído em cada lista que deve liberá-lo.
  */
 
 import type { UserRole } from "@/lib/apac"
 
-/** Roles com acesso a `/apacs` (listar e criar). */
-export const APAC_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"]
+/** Todos os cargos. `RECEPCIONISTA` é o único com acesso parcial. */
+const ALL_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIO", "REGULADOR", "COORDENADOR", "RECEPCIONISTA"]
 
-/** Roles com acesso a `/users` (listar e criar). `COORDENADOR` tem as mesmas permissões de `SECRETARIO`. */
-export const USER_MANAGEMENT_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIO", "COORDENADOR"]
+/** Todos, exceto `RECEPCIONISTA` (almoxarifado e documentos). */
+const ALL_EXCEPT_RECEPCIONISTA: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIO", "REGULADOR", "COORDENADOR"]
+
+/** Roles com acesso a `/apacs` (criar, listar, editar, excluir). */
+export const APAC_ROLES = ALL_ROLES
+
+/** Roles com acesso a `/users` (listar e criar). */
+export const USER_MANAGEMENT_ROLES = ALL_ROLES
 
 /** Roles com acesso a `/itens` (almoxarifado). */
-export const ITEM_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "REGULADOR"]
+export const ITEM_ROLES = ALL_EXCEPT_RECEPCIONISTA
 
-/** Roles com acesso a `/documents` (ofícios). Por enquanto só `DEV` — outras roles recebem 403 da API. */
-export const DOCUMENT_ROLES: readonly UserRole[] = ["DEV"]
+/** Roles com acesso a `/documents` (ofícios). */
+export const DOCUMENT_ROLES = ALL_EXCEPT_RECEPCIONISTA
 
 /**
  * Roles que podem chamar `DELETE /documents/:id` (apaga o registro **e** o PDF no bucket).
- * Separado de `DOCUMENT_ROLES` de propósito: se a tela de ofícios for liberada para
- * outros perfis, a exclusão continua restrita a `DEV` sem mudar nada aqui.
+ * Hoje é igual a `DOCUMENT_ROLES` (na API, cada módulo libera todas as suas rotas), mas
+ * fica separado para a exclusão poder ser restringida sem mexer no acesso à tela.
  */
-export const DOCUMENT_DELETE_ROLES: readonly UserRole[] = ["DEV"]
+export const DOCUMENT_DELETE_ROLES = DOCUMENT_ROLES
 
-/**
- * Roles com acesso a `POST /reports/apacs` (relatórios) — todos os perfis.
- */
-export const REPORT_ROLES: readonly UserRole[] = [
-  "DEV",
-  "SECRETARIO",
-  "DIRETOR",
-  "RECEPCIONISTA",
-  "REGULADOR",
-  "COORDENADOR",
-]
+/** Roles com acesso a `POST /reports/apacs` (relatórios). */
+export const REPORT_ROLES = ALL_ROLES
 
 export function canAccessApacs(role: UserRole) {
   return APAC_ROLES.includes(role)
@@ -65,9 +66,8 @@ export function canAccessReports(role: UserRole) {
 /**
  * Primeira rota que o perfil consegue abrir.
  *
- * `SECRETARIO`/`COORDENADOR` não enxergam APACs e `RECEPCIONISTA`/`REGULADOR`
- * não enxergam usuários, então não existe uma home única para todo mundo.
- * `/relatorios` é o último recurso, para um perfil que não alcance nenhum dos dois.
+ * Hoje todos os cargos acessam APACs, então todo mundo cai em `/apacs`. Os demais
+ * ramos ficam como rede de segurança caso a matriz volte a ter cargos sem APACs.
  */
 export function homeRouteFor(role: UserRole) {
   if (canAccessApacs(role)) {

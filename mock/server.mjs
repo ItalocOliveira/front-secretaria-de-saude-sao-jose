@@ -130,15 +130,17 @@ const ACS_LIST = [
   "FLAVIO",
 ]
 
-/** Roles com acesso a cada coleção, conforme a matriz de permissões da doc. */
+/** Roles com acesso a cada coleção, conforme `.docs/temp/PERMISSOES.md`. */
+const ALL_ROLES = ["DEV", "DIRETOR", "SECRETARIO", "REGULADOR", "COORDENADOR", "RECEPCIONISTA"]
+// RECEPCIONISTA é o único cargo com acesso parcial: sem almoxarifado e sem documentos.
+const ALL_EXCEPT_RECEPCIONISTA = ALL_ROLES.filter((role) => role !== "RECEPCIONISTA")
+
 const ACCESS = {
-  // COORDENADOR tem as mesmas permissões de SECRETARIO (usuários + relatório).
-  users: ["DEV", "DIRETOR", "SECRETARIO", "COORDENADOR"],
-  apacs: ["DEV", "DIRETOR", "RECEPCIONISTA", "REGULADOR"],
-  itens: ["DEV", "DIRETOR", "REGULADOR"],
-  // Feature nova: só DEV tem acesso por enquanto, outras roles recebem 403.
-  documents: ["DEV"],
-  reports: ["DEV", "SECRETARIO", "DIRETOR", "RECEPCIONISTA", "REGULADOR", "COORDENADOR"],
+  users: ALL_ROLES,
+  apacs: ALL_ROLES,
+  itens: ALL_EXCEPT_RECEPCIONISTA,
+  documents: ALL_EXCEPT_RECEPCIONISTA,
+  reports: ALL_ROLES,
 }
 
 // ---------------------------------------------------------------------------
@@ -335,7 +337,7 @@ async function handleAuth(req, res, segments) {
   }
 
   if (action === "admin" && segments.length === 1 && req.method === "GET") {
-    const denied = authorize(user, ["DEV", "DIRETOR"]).error
+    const denied = authorize(user, ALL_EXCEPT_RECEPCIONISTA).error
     if (denied) return sendError(res, denied)
 
     return send(res, 200, {
@@ -880,7 +882,7 @@ function routeIndex() {
     endpoints: [
       { method: "POST", path: "/auth/login", roles: "público" },
       { method: "GET", path: "/auth/me", roles: "qualquer role autenticada" },
-      { method: "GET", path: "/auth/admin", roles: "DEV, DIRETOR" },
+      { method: "GET", path: "/auth/admin", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "POST", path: "/users", roles: ACCESS.users.join(", ") },
       { method: "GET", path: "/users", roles: ACCESS.users.join(", ") },
       { method: "GET", path: "/users/:id", roles: `${ACCESS.users.join(", ")} (extra do mock)` },
