@@ -108,6 +108,7 @@ export const USER_ROLE = {
   SECRETARIA: "SECRETARIA",
   RECEPCIONISTA: "RECEPCIONISTA",
   REGULADOR: "REGULADOR",
+  COORDENADOR: "COORDENADOR",
 } as const
 
 export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE]
@@ -211,9 +212,10 @@ export const APAC_ACS_LABEL: Record<ApacAcs, string> = {
 export const USER_ROLE_LABEL: Record<UserRole, string> = {
   DEV: "Desenvolvedor",
   DIRETOR: "Diretor Geral",
-  SECRETARIA: "Secretária de Saúde",
+  SECRETARIA: "Secretário(a) de Saúde",
   RECEPCIONISTA: "Recepcionista",
   REGULADOR: "Regulador",
+  COORDENADOR: "Coordenador",
 }
 
 export const APAC_STATUS_LIST = Object.values(APAC_STATUS)

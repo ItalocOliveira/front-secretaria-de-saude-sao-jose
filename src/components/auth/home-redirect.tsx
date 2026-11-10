@@ -4,8 +4,8 @@ import { homeRouteFor } from "@/lib/permissions"
 import { useSession } from "@/hooks/use-session"
 
 /**
- * Destino padrão. `SECRETARIA` não acessa APACs e `RECEPCIONISTA`/`REGULADOR` não
- * acessam usuários, então a home depende do perfil.
+ * Destino padrão. `SECRETARIA`/`COORDENADOR` não acessam APACs e `RECEPCIONISTA`/`REGULADOR`
+ * não acessam usuários, então a home depende do perfil.
  */
 export function HomeRedirect() {
   const { claims } = useSession()
