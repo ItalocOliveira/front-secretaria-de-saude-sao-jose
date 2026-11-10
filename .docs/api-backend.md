@@ -94,7 +94,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 
 ## Poderes — Roles de usuários
 
-Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = excluir
+> Matriz completa (inclui almoxarifado, documentos e relatório): [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md). `DEV`, `DIRETOR`, `SECRETARIO`, `REGULADOR` e `COORDENADOR` acessam tudo; `RECEPCIONISTA` não acessa almoxarifado, documentos nem `/auth/admin`.
 
 ### Usuários (`/users`)
 
@@ -103,9 +103,9 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 | `DEV`           |  ✅   |   ✅   |   —    |    —    |
 | `DIRETOR`       |  ✅   |   ✅   |   —    |    —    |
 | `SECRETARIO`    |  ✅   |   ✅   |   —    |    —    |
-| `RECEPCIONISTA` |  ❌   |   ❌   |   —    |    —    |
-| `REGULADOR`     |  ❌   |   ❌   |   —    |    —    |
+| `REGULADOR`     |  ✅   |   ✅   |   —    |    —    |
 | `COORDENADOR`   |  ✅   |   ✅   |   —    |    —    |
+| `RECEPCIONISTA` |  ✅   |   ✅   |   —    |    —    |
 
 ### APACs (`/apacs`)
 
@@ -113,10 +113,10 @@ Legenda: **C** = criar · **L** = listar/consultar · **E** = editar · **X** = 
 | --------------- | :---: | :----: | :----: | :-----: |
 | `DEV`           |  ✅   |   ✅   |   ✅   |   ✅    |
 | `DIRETOR`       |  ✅   |   ✅   |   ✅   |   ✅    |
-| `SECRETARIO`    |  ❌   |   ❌   |   ❌   |   ❌    |
-| `RECEPCIONISTA` |  ✅   |   ✅   |   ✅   |   ✅    |
+| `SECRETARIO`    |  ✅   |   ✅   |   ✅   |   ✅    |
 | `REGULADOR`     |  ✅   |   ✅   |   ✅   |   ✅    |
-| `COORDENADOR`   |  ❌   |   ❌   |   ❌   |   ❌    |
+| `COORDENADOR`   |  ✅   |   ✅   |   ✅   |   ✅    |
+| `RECEPCIONISTA` |  ✅   |   ✅   |   ✅   |   ✅    |
 
 > ✅ = implementado · ❌ = sem permissão · — = requisito previsto, ainda não implementado
 
@@ -140,32 +140,35 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 
 ## Roles disponíveis
 
-| Role            | Descrição                                       |
-| --------------- | ----------------------------------------------- |
-| `DEV`           | Desenvolvedor — acesso amplo                    |
-| `DIRETOR`       | Diretor Geral                                   |
-| `SECRETARIO`    | Secretário(a) de Saúde                          |
-| `RECEPCIONISTA` | Recepcionista                                   |
-| `REGULADOR`     | Regulador                                       |
-| `COORDENADOR`   | Coordenador — mesmas permissões de `SECRETARIO` |
+| Role            | Descrição              |
+| --------------- | ---------------------- |
+| `DEV`           | Desenvolvedor          |
+| `DIRETOR`       | Diretor Geral          |
+| `SECRETARIO`    | Secretário(a) de Saúde |
+| `RECEPCIONISTA` | Recepcionista          |
+| `REGULADOR`     | Regulador              |
+| `COORDENADOR`   | Coordenador            |
 
 ---
 
 ## Resumo de permissões
 
-| Endpoint      | Método | Autenticação | Roles permitidas                               |
-| ------------- | ------ | ------------ | ---------------------------------------------- |
-| `/auth/login` | POST   | Não          | Público                                        |
-| `/auth/me`    | GET    | Sim          | Qualquer role autenticada                      |
-| `/auth/admin` | GET    | Sim          | `DEV`, `DIRETOR`                               |
-| `/users`      | POST   | Sim          | `DEV`, `DIRETOR`, `SECRETARIO`, `COORDENADOR`  |
-| `/users`      | GET    | Sim          | `DEV`, `DIRETOR`, `SECRETARIO`, `COORDENADOR`  |
-| `/apacs`      | POST   | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
-| `/apacs`      | GET    | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
-| `/apacs/:id`  | PATCH  | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
-| `/apacs/:id`  | DELETE | Sim          | `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR` |
+| Endpoint                                       | Método | Autenticação | Roles permitidas              |
+| ---------------------------------------------- | ------ | ------------ | ----------------------------- |
+| `/auth/login`                                  | POST   | Não          | Público                       |
+| `/auth/me`                                     | GET    | Sim          | Qualquer role autenticada     |
+| `/auth/admin`                                  | GET    | Sim          | Todos, exceto `RECEPCIONISTA` |
+| `/users`                                       | POST   | Sim          | Todos os cargos               |
+| `/users`                                       | GET    | Sim          | Todos os cargos               |
+| `/apacs`                                       | POST   | Sim          | Todos os cargos               |
+| `/apacs`                                       | GET    | Sim          | Todos os cargos               |
+| `/apacs/:id`                                   | PATCH  | Sim          | Todos os cargos               |
+| `/apacs/:id`                                   | DELETE | Sim          | Todos os cargos               |
+| `/reports/apacs`                               | POST   | Sim          | Todos os cargos               |
+| `/itens`, `/itens/:id`, `/itens/:id/movements` | todos  | Sim          | Todos, exceto `RECEPCIONISTA` |
+| `/documents`, `/documents/:id`                 | todos  | Sim          | Todos, exceto `RECEPCIONISTA` |
 
-> **Nota:** `SECRETARIO`, `RECEPCIONISTA` e `REGULADOR` não possuem acesso cruzado entre os módulos de usuários e APACs conforme implementado atualmente. `COORDENADOR` tem as mesmas permissões de `SECRETARIO`.
+> **Nota:** cada módulo libera todas as suas rotas — não existe cargo que só lista. Qualquer cargo com acesso a `POST /users` pode criar usuário de **qualquer** cargo, inclusive `DEV` (a API ainda não limita). Detalhes em [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md).
 
 ---
 
@@ -237,7 +240,7 @@ Endpoint de teste restrito a roles administrativas.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`
+**Roles permitidas:** todas as roles, exceto `RECEPCIONISTA`
 
 **Request body:** nenhum
 
@@ -272,7 +275,7 @@ Cadastra um novo usuário no sistema.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIO`, `COORDENADOR`
+**Roles permitidas:** todas as roles
 
 **Request body:**
 
@@ -311,7 +314,7 @@ Lista todos os usuários cadastrados.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `SECRETARIO`, `COORDENADOR`
+**Roles permitidas:** todas as roles
 
 **Request body:** nenhum
 
@@ -338,7 +341,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`
+**Roles permitidas:** todas as roles
 
 **Request body:**
 
@@ -417,7 +420,7 @@ Lista todas as APACs cadastradas.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`
+**Roles permitidas:** todas as roles
 
 **Request body:** nenhum
 
@@ -454,7 +457,7 @@ Edita campos de uma APAC já cadastrada.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`
+**Roles permitidas:** todas as roles
 
 **Request body** (todos os campos são opcionais — envie só o que for alterar):
 
@@ -494,7 +497,7 @@ Exclui uma APAC.
 
 **Autenticação:** requerida
 
-**Roles permitidas:** `DEV`, `DIRETOR`, `RECEPCIONISTA`, `REGULADOR`
+**Roles permitidas:** todas as roles
 
 **Request body:** nenhum
 
@@ -547,7 +550,7 @@ Exclui uma APAC.
 | Público (sem token) |  ✅   |           ❌            |          ❌           |      ❌       |       ❌        |     ❌     |      ❌      |     ❌      |      ❌      |
 | `DEV`               |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
 | `DIRETOR`           |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
-| `SECRETARIO`        |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |
-| `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
-| `REGULADOR`         |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ✅      |
-| `COORDENADOR`       |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ❌     |      ❌      |     ❌      |      ❌      |
+| `SECRETARIO`        |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
+| `REGULADOR`         |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
+| `COORDENADOR`       |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
+| `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
