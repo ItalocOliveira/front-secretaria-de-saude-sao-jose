@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { ImageLightbox } from "@/components/ui/image-lightbox"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -48,7 +48,6 @@ export function ItensTableCard({
           Produtos cadastrados
           {isPending ? null : <Badge variant="secondary">{itens.length}</Badge>}
         </CardTitle>
-        <CardDescription>Dados vindos de GET /itens.</CardDescription>
       </CardHeader>
 
       <CardContent className="px-0">
