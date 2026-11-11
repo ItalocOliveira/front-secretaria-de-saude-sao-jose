@@ -12,10 +12,12 @@ import { ApiError } from "@/api/client"
 
 export const DOCUMENTS_QUERY_KEY = ["documents"] as const
 
-export function useDocuments() {
+/** `enabled: false` para perfis sem `GET /documents` (`RECEPCIONISTA` só cria) — a API devolveria 403. */
+export function useDocuments({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: DOCUMENTS_QUERY_KEY,
     queryFn: ({ signal }) => listDocuments(signal),
+    enabled,
   })
 }
 

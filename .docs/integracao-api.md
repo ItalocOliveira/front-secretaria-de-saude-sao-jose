@@ -96,7 +96,7 @@ Detalhes em `src/lib/session.ts`:
 
 ### Edição e exclusão de APAC
 
-`PATCH /apacs/:id` aceita `name`, `acs`, `procedure`, `municipality` e `status` — todos opcionais, e o front (`ApacEditDialog` em `src/components/apacs/apac-edit-dialog.tsx`) só envia os campos que o usuário de fato alterou (`cns`, `priority`, `birth_date` e `cpf` não são editáveis por esse endpoint). É esse mesmo formulário que resolve a transição de status (aprovar/negar/etc.) — não existe um endpoint dedicado só pra isso. `DELETE /apacs/:id` (`ApacDeleteAlert`) não tem confirmação de existência prévia: a API não devolve `404`, um `id` inexistente cai em `500`. As duas ações ficam disponíveis na tabela (`ApacsTableCard`) e no diálogo de detalhes (`ApacDetailsDialog`), disponíveis para as mesmas roles que já acessam `/apacs` (`APAC_ROLES` em `src/lib/permissions.ts`).
+`PATCH /apacs/:id` aceita `name`, `acs`, `procedure`, `municipality` e `status` — todos opcionais, e o front (`ApacEditDialog` em `src/components/apacs/apac-edit-dialog.tsx`) só envia os campos que o usuário de fato alterou (`cns`, `priority`, `birth_date` e `cpf` não são editáveis por esse endpoint). É esse mesmo formulário que resolve a transição de status (aprovar/negar/etc.) — não existe um endpoint dedicado só pra isso. `DELETE /apacs/:id` (`ApacDeleteAlert`) não tem confirmação de existência prévia: a API não devolve `404`, um `id` inexistente cai em `500`. As duas ações ficam no diálogo de detalhes (`ApacDetailsDialog`, aberto pela tabela `ApacsTableCard`): editar para todas as roles de `/apacs` (`APAC_ROLES`), excluir só para `APAC_DELETE_ROLES` — o `RECEPCIONISTA` não vê o botão (`src/lib/permissions.ts`).
 
 ### Anexo de PDF: upload direto pro R2
 
@@ -120,7 +120,7 @@ Se o `PUT` falhar (link expirado, rede caiu), a APAC **já existe** — o form (
 | `/usuarios`                          | `GET /users`        |
 | `/usuarios/novo`                     | `POST /users`       |
 
-Rotas são guardadas por autenticação (`RequireAuth`) e por perfil (`RequireRole`), e a sidebar esconde o que o perfil não alcança. A matriz segue [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md) (todos acessam tudo, exceto `RECEPCIONISTA`, sem almoxarifado e ofícios). Hoje todos veem APACs e caem em `/apacs`, mas `homeRouteFor()` continua decidindo o destino pós-login, para o caso de a matriz voltar a ter cargos sem APACs.
+Rotas são guardadas por autenticação (`RequireAuth`) e por perfil (`RequireRole`), e a sidebar esconde o que o perfil não alcança. A matriz segue [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md) (todos acessam tudo, exceto `RECEPCIONISTA`: sem usuários, almoxarifado e exclusão de APAC; em ofícios só cria — a tela mostra o formulário e não chama `GET /documents`). Hoje todos veem APACs e caem em `/apacs`, mas `homeRouteFor()` continua decidindo o destino pós-login, para o caso de a matriz voltar a ter cargos sem APACs.
 
 ## Lacunas do contrato
 

@@ -132,15 +132,24 @@ const ACS_LIST = [
 
 /** Roles com acesso a cada coleção, conforme `.docs/temp/PERMISSOES.md`. */
 const ALL_ROLES = ["DEV", "DIRETOR", "SECRETARIO", "REGULADOR", "COORDENADOR", "RECEPCIONISTA"]
-// RECEPCIONISTA é o único cargo com acesso parcial: sem almoxarifado e sem documentos.
+// RECEPCIONISTA é o único cargo com acesso parcial: só POST /documents, POST/GET /apacs,
+// PATCH /apacs/:id e POST /reports/apacs. Os demais acessam todos os endpoints.
 const ALL_EXCEPT_RECEPCIONISTA = ALL_ROLES.filter((role) => role !== "RECEPCIONISTA")
 
+/** Roles por coleção — a mais ampla entre as rotas dela. O recorte por método fica em `rolesFor`. */
 const ACCESS = {
-  users: ALL_ROLES,
+  users: ALL_EXCEPT_RECEPCIONISTA,
   apacs: ALL_ROLES,
   itens: ALL_EXCEPT_RECEPCIONISTA,
-  documents: ALL_EXCEPT_RECEPCIONISTA,
+  documents: ALL_ROLES,
   reports: ALL_ROLES,
+}
+
+/** Roles da rota específica: `DELETE /apacs/:id` e tudo de `/documents` além do `POST` são restritos. */
+function rolesFor(collection, method, rest) {
+  if (collection === "apacs" && method === "DELETE") return ALL_EXCEPT_RECEPCIONISTA
+  if (collection === "documents" && !(method === "POST" && rest.length === 0)) return ALL_EXCEPT_RECEPCIONISTA
+  return ACCESS[collection]
 }
 
 // ---------------------------------------------------------------------------
@@ -889,14 +898,16 @@ function routeIndex() {
       { method: "POST", path: "/apacs", roles: ACCESS.apacs.join(", ") },
       { method: "GET", path: "/apacs", roles: ACCESS.apacs.join(", ") },
       { method: "GET", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
-      { method: "PATCH | PUT | DELETE", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
+      { method: "PATCH", path: "/apacs/:id", roles: ACCESS.apacs.join(", ") },
+      { method: "PUT", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
+      { method: "DELETE", path: "/apacs/:id", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "POST", path: "/itens", roles: ACCESS.itens.join(", ") },
       { method: "GET", path: "/itens", roles: ACCESS.itens.join(", ") },
       { method: "PATCH | DELETE", path: "/itens/:id", roles: ACCESS.itens.join(", ") },
       { method: "POST", path: "/itens/:id/movements", roles: ACCESS.itens.join(", ") },
       { method: "POST", path: "/documents", roles: ACCESS.documents.join(", ") },
-      { method: "GET", path: "/documents", roles: ACCESS.documents.join(", ") },
-      { method: "PATCH | DELETE", path: "/documents/:id", roles: ACCESS.documents.join(", ") },
+      { method: "GET", path: "/documents", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
+      { method: "PATCH | DELETE", path: "/documents/:id", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "POST", path: "/reports/apacs", roles: ACCESS.reports.join(", ") },
       {
         method: "PUT",
@@ -947,7 +958,7 @@ const server = createServer(async (req, res) => {
   const { user, error } = authenticate(req)
   if (error) return sendError(res, error)
 
-  const denied = authorize(user, roles).error
+  const denied = authorize(user, rolesFor(collection, method, rest)).error
   if (denied) return sendError(res, denied)
 
   if (method === "POST" && isItemMovementsRoute) {

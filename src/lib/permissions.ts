@@ -11,36 +11,45 @@
 
 import type { UserRole } from "@/lib/apac"
 
-/** Todos os cargos. `RECEPCIONISTA` é o único com acesso parcial. */
+/** Todos os cargos. */
 const ALL_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIO", "REGULADOR", "COORDENADOR", "RECEPCIONISTA"]
 
-/** Todos, exceto `RECEPCIONISTA` (almoxarifado e documentos). */
-const ALL_EXCEPT_RECEPCIONISTA: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIO", "REGULADOR", "COORDENADOR"]
+/** Cargos com acesso a todos os endpoints. `RECEPCIONISTA` é o único fora daqui. */
+const FULL_ACCESS_ROLES: readonly UserRole[] = ["DEV", "DIRETOR", "SECRETARIO", "REGULADOR", "COORDENADOR"]
 
-/** Roles com acesso a `/apacs` (criar, listar, editar, excluir). */
+/** Roles com acesso à tela de APACs: `POST /apacs`, `GET /apacs` e `PATCH /apacs/:id`. */
 export const APAC_ROLES = ALL_ROLES
 
+/** Roles que podem chamar `DELETE /apacs/:id` (`RECEPCIONISTA` cria, lista e edita, mas não exclui). */
+export const APAC_DELETE_ROLES = FULL_ACCESS_ROLES
+
 /** Roles com acesso a `/users` (listar e criar). */
-export const USER_MANAGEMENT_ROLES = ALL_ROLES
+export const USER_MANAGEMENT_ROLES = FULL_ACCESS_ROLES
 
 /** Roles com acesso a `/itens` (almoxarifado). */
-export const ITEM_ROLES = ALL_EXCEPT_RECEPCIONISTA
+export const ITEM_ROLES = FULL_ACCESS_ROLES
 
-/** Roles com acesso a `/documents` (ofícios). */
-export const DOCUMENT_ROLES = ALL_EXCEPT_RECEPCIONISTA
+/** Roles com acesso à tela de ofícios — basta `POST /documents` (criar). */
+export const DOCUMENT_ROLES = ALL_ROLES
 
 /**
- * Roles que podem chamar `DELETE /documents/:id` (apaga o registro **e** o PDF no bucket).
- * Hoje é igual a `DOCUMENT_ROLES` (na API, cada módulo libera todas as suas rotas), mas
- * fica separado para a exclusão poder ser restringida sem mexer no acesso à tela.
+ * Roles que podem listar e editar ofícios (`GET /documents`, `PATCH /documents/:id`).
+ * `RECEPCIONISTA` só cria: a tela mostra apenas o formulário.
  */
-export const DOCUMENT_DELETE_ROLES = DOCUMENT_ROLES
+export const DOCUMENT_MANAGE_ROLES = FULL_ACCESS_ROLES
+
+/** Roles que podem chamar `DELETE /documents/:id` (apaga o registro **e** o PDF no bucket). */
+export const DOCUMENT_DELETE_ROLES = FULL_ACCESS_ROLES
 
 /** Roles com acesso a `POST /reports/apacs` (relatórios). */
 export const REPORT_ROLES = ALL_ROLES
 
 export function canAccessApacs(role: UserRole) {
   return APAC_ROLES.includes(role)
+}
+
+export function canDeleteApacs(role: UserRole) {
+  return APAC_DELETE_ROLES.includes(role)
 }
 
 export function canManageUsers(role: UserRole) {
@@ -53,6 +62,10 @@ export function canAccessItens(role: UserRole) {
 
 export function canAccessDocuments(role: UserRole) {
   return DOCUMENT_ROLES.includes(role)
+}
+
+export function canManageDocuments(role: UserRole) {
+  return DOCUMENT_MANAGE_ROLES.includes(role)
 }
 
 export function canDeleteDocuments(role: UserRole) {

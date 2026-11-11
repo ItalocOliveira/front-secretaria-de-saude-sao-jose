@@ -15,35 +15,44 @@ O que cada cargo pode acessar na API. Quem decide de verdade são as listas de c
 
 ## Resumo
 
-`SECRETARIO`, `REGULADOR` e `COORDENADOR` têm as **mesmas permissões de `DIRETOR`**. Esses quatro cargos e o `DEV` acessam tudo.
+`DEV`, `DIRETOR`, `SECRETARIO`, `REGULADOR` e `COORDENADOR` acessam **todos os endpoints**.
 
-`RECEPCIONISTA` é o único cargo com acesso parcial: entra em APACs, no relatório e em usuários, mas não no almoxarifado nem nos documentos.
+`RECEPCIONISTA` é o único cargo com acesso parcial, e só nestas rotas:
+
+- `POST /documents`: criar ofício
+- `POST /apacs`: criar APAC
+- `GET /apacs`: listar APACs (para escolher qual editar)
+- `PATCH /apacs/:id`: editar APAC
+- `POST /reports/apacs`: gerar relatório
+
+Em todo o resto (usuários, excluir APAC, listar/editar/excluir ofícios, almoxarifado e `/auth/admin`) a API responde `403` para ele.
 
 ✅ = tem acesso. — = sem acesso (a API responde `403`).
 
-| Módulo                                | DEV | DIRETOR | SECRETARIO | REGULADOR | COORDENADOR | RECEPCIONISTA |
-| ------------------------------------- | :-: | :-----: | :--------: | :-------: | :---------: | :-----------: |
-| APACs (`/apacs`)                      | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |      ✅       |
-| Relatório de APACs (`/reports/apacs`) | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |      ✅       |
-| Usuários (`/users`)                   | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |      ✅       |
-| Almoxarifado (`/itens`)               | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |       —       |
-| Documentos (`/documents`)             | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |       —       |
-| Área admin de teste (`/auth/admin`)   | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |       —       |
+| Rota                                | DEV | DIRETOR | SECRETARIO | REGULADOR | COORDENADOR | RECEPCIONISTA |
+| ----------------------------------- | :-: | :-----: | :--------: | :-------: | :---------: | :-----------: |
+| `POST /apacs`, `GET /apacs`         | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |      ✅       |
+| `PATCH /apacs/:id`                  | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |      ✅       |
+| `DELETE /apacs/:id`                 | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |       —       |
+| `POST /reports/apacs`               | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |      ✅       |
+| Usuários (`/users`)                 | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |       —       |
+| Almoxarifado (`/itens`)             | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |       —       |
+| `POST /documents`                   | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |      ✅       |
+| `GET`, `PATCH`, `DELETE /documents` | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |       —       |
+| Área admin de teste (`/auth/admin`) | ✅  |   ✅    |     ✅     |    ✅     |     ✅      |       —       |
 
-`POST /auth/login` é público. Para `GET /auth/me`, basta estar logado, com qualquer cargo.
-
-Cada módulo dá acesso a todas as suas rotas. Não existe cargo que só lista e não pode criar, editar ou excluir.
+`POST /auth/login` é público. Para `GET /auth/me`, basta estar logado, com qualquer cargo. A permissão é decidida pelo `role` que vem no `/auth/me`; login, token e formato das respostas não mudaram.
 
 ## Rotas
 
-### APACs: todos os cargos
+### APACs
 
-| Método   | Rota         | O que faz                 |
-| -------- | ------------ | ------------------------- |
-| `POST`   | `/apacs`     | Cria APAC (com PDF)       |
-| `GET`    | `/apacs`     | Lista APACs               |
-| `PATCH`  | `/apacs/:id` | Edita APAC                |
-| `DELETE` | `/apacs/:id` | Exclui APAC e o PDF no R2 |
+| Método   | Rota         | O que faz                 | Quem pode                     |
+| -------- | ------------ | ------------------------- | ----------------------------- |
+| `POST`   | `/apacs`     | Cria APAC (com PDF)       | Todos os cargos               |
+| `GET`    | `/apacs`     | Lista APACs               | Todos os cargos               |
+| `PATCH`  | `/apacs/:id` | Edita APAC                | Todos os cargos               |
+| `DELETE` | `/apacs/:id` | Exclui APAC e o PDF no R2 | Todos, exceto `RECEPCIONISTA` |
 
 ### Relatório de APACs: todos os cargos
 
@@ -51,7 +60,7 @@ Cada módulo dá acesso a todas as suas rotas. Não existe cargo que só lista e
 | ------ | ---------------- | ------------------------------------------- |
 | `POST` | `/reports/apacs` | Gera o relatório (ver `RELATORIO_APACS.md`) |
 
-### Usuários: todos os cargos
+### Usuários: todos, exceto `RECEPCIONISTA`
 
 | Método | Rota     | O que faz      |
 | ------ | -------- | -------------- |
@@ -70,14 +79,14 @@ Ainda não existe rota para excluir usuário.
 | `DELETE` | `/itens/:id`           | Exclui item e imagem. Responde `400` se o item já tiver histórico |
 | `POST`   | `/itens/:id/movements` | Registra entrada ou saída                                         |
 
-### Documentos: todos, exceto `RECEPCIONISTA`
+### Documentos (ofícios)
 
-| Método   | Rota             | O que faz                                                   |
-| -------- | ---------------- | ----------------------------------------------------------- |
-| `POST`   | `/documents`     | Cria documento (com PDF)                                    |
-| `GET`    | `/documents`     | Lista documentos                                            |
-| `PATCH`  | `/documents/:id` | Edita documento                                             |
-| `DELETE` | `/documents/:id` | Exclui documento e o PDF no R2 (ver `EXCLUIR_DOCUMENTO.md`) |
+| Método   | Rota             | O que faz                                                   | Quem pode                     |
+| -------- | ---------------- | ----------------------------------------------------------- | ----------------------------- |
+| `POST`   | `/documents`     | Cria documento (com PDF)                                    | Todos os cargos               |
+| `GET`    | `/documents`     | Lista documentos                                            | Todos, exceto `RECEPCIONISTA` |
+| `PATCH`  | `/documents/:id` | Edita documento                                             | Todos, exceto `RECEPCIONISTA` |
+| `DELETE` | `/documents/:id` | Exclui documento e o PDF no R2 (ver `EXCLUIR_DOCUMENTO.md`) | Todos, exceto `RECEPCIONISTA` |
 
 ### Autenticação
 
@@ -96,11 +105,11 @@ Ainda não existe rota para excluir usuário.
 
 ## Atenção: criação de usuários
 
-Qualquer cargo pode criar usuário de **qualquer** cargo, inclusive `DEV`. Por exemplo, uma recepcionista consegue criar um diretor. A API ainda não limita isso.
+Qualquer cargo com acesso a `POST /users` pode criar usuário de **qualquer** cargo, inclusive `DEV`. A API ainda não limita isso.
 
 ## Para o frontend
 
-- As listas de permissão do front (`front/src/lib/permissions.ts`) devem seguir esta tabela. Na prática, só o `RECEPCIONISTA` deixa de ver o almoxarifado e os documentos.
+- As listas de permissão do front (`front/src/lib/permissions.ts`) devem seguir esta tabela. Para o `RECEPCIONISTA`: sem menu de usuários e almoxarifado, sem botão de excluir APAC, e a tela de ofícios mostra só o formulário de criação (sem a lista, que daria `403`).
 - Esconder um menu ou botão no front não protege nada. Quem bloqueia o acesso é a API, que confere o cargo em toda requisição.
 - Trate o `403` mostrando uma mensagem de acesso negado, sem deslogar o usuário. Já o `401` pede um novo login.
 
