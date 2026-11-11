@@ -54,6 +54,23 @@ const REQUIRED_BY_STEP: Record<number, ApacFormTextField[]> = {
   2: ["procedure", "acs"],
 }
 
+/**
+ * Limites da data de nascimento. O `<input type="date">` aceita anos de até 6
+ * dígitos (ex.: `99999-03-22`) se nada o restringir — `min`/`max` limitam o
+ * seletor e `isValidBirthDate` barra o que for digitado à mão.
+ */
+export const BIRTH_DATE_MIN = "1900-01-01"
+export const BIRTH_DATE_MAX = "2030-12-31"
+
+/**
+ * Exige ano de 4 dígitos antes de comparar: com isso a comparação de string vale
+ * (sem ela, `"10000-01-01" < "2030-12-31"` passaria).
+ */
+export function isValidBirthDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  return value >= BIRTH_DATE_MIN && value <= BIRTH_DATE_MAX
+}
+
 export function getStepErrors(step: number, values: ApacFormValues) {
   const errors = new Set<string>()
 
@@ -61,6 +78,10 @@ export function getStepErrors(step: number, values: ApacFormValues) {
     if (values[field].trim() === "") {
       errors.add(field)
     }
+  }
+
+  if (step === 1 && values.birthDate !== "" && !isValidBirthDate(values.birthDate)) {
+    errors.add("birthDate")
   }
 
   return errors
