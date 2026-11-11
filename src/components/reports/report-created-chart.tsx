@@ -12,10 +12,11 @@ const CHART_MARGIN = { left: 0, right: 12, top: 8 }
 
 /**
  * Tamanho fixo da versão impressa (≈ largura útil de um A4 em retrato). O SVG tem
- * `viewBox`, então o CSS só escala para a largura real da folha.
+ * `viewBox`, então o CSS só escala para a largura real da folha. Como o gráfico
+ * tem uma página só dele no PDF, é mais alto que na tela (≈ 12 cm na folha).
  */
 const PRINT_WIDTH = 720
-const PRINT_HEIGHT = 288
+const PRINT_HEIGHT = 480
 
 const formatTick = (date: string) => formatPointDate(date)
 
