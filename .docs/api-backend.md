@@ -2,6 +2,8 @@
 
 Esta é a documentação de requisitos para a API da Secretária de Saúde. A API gerencia **usuários** e **APACs** (Autorização de Procedimento Ambulatorial de Alta Complexidade), com autenticação JWT e controle de acesso por papéis (`Roles`).
 
+> ⚠️ **Mudanças de contrato (segurança, paginação e multi-tenant):** as listagens (`GET /apacs`, `/documents`, `/itens`, `/users`) agora devolvem `{ data, pagination }`, com `page`/`pageSize`/`search`/`status` na query; os `500` não trazem mais `details`; `PATCH`/`DELETE` por id respondem `404`; há `429` (rate limit), `413` (body > 100 KB) e limites de tamanho por campo. Onde este documento divergir, vale [`.docs/temp/MUDANCAS_CONTRATO_SEGURANCA.md`](temp/MUDANCAS_CONTRATO_SEGURANCA.md).
+
 ## Funcionalidades
 
 A API expõe três módulos principais:
@@ -408,8 +410,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 
 ```json
 {
-  "error": "Erro ao criar Apac",
-  "details": {}
+  "error": "Erro ao criar Apac"
 }
 ```
 
@@ -487,8 +488,10 @@ Edita campos de uma APAC já cadastrada.
 **Resposta de erro (500):**
 
 ```json
-{ "error": "Erro ao editar Apac", "details": {} }
+{ "error": "Erro ao editar Apac" }
 ```
+
+`404` `{ "error": "APAC não encontrada." }` se o `id` não existir (ou for de outro município).
 
 ---
 
@@ -507,20 +510,24 @@ Exclui uma APAC.
 **Resposta de erro (500):**
 
 ```json
-{ "error": "Erro ao excluir Apac", "details": {} }
+{ "error": "Erro ao excluir Apac" }
 ```
 
-> Não há `404`: se o `id` não existir, a API responde `500`.
+> `404` `{ "error": "APAC não encontrada." }` se o `id` não existir (ou for de outro município).
 
 ---
 
 ## Códigos de erro comuns
 
-| Código | Situação                                                         |
-| ------ | ---------------------------------------------------------------- |
-| `401`  | Token ausente, mal formatado, inválido ou expirado               |
-| `403`  | Usuário autenticado, porém sem a role necessária para o endpoint |
-| `500`  | Erro interno no servidor                                         |
+| Código | Situação                                                            |
+| ------ | ------------------------------------------------------------------- |
+| `401`  | Token ausente, mal formatado, inválido ou expirado                  |
+| `403`  | Usuário autenticado, porém sem a role necessária para o endpoint    |
+| `404`  | `id` inexistente ou de outro município (`PATCH`/`DELETE`)           |
+| `409`  | CPF já cadastrado (`POST /users`)                                   |
+| `413`  | Body JSON maior que 100 KB                                          |
+| `429`  | Mais de 300 req/min por IP (login: 10/min por IP, 5/15 min por CPF) |
+| `500`  | Erro interno no servidor (sem detalhes no corpo)                    |
 
 **Exemplos de resposta 401:**
 

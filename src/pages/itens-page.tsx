@@ -1,13 +1,16 @@
+import { useState } from "react"
+
 import { useItens } from "@/hooks/use-itens"
 import { AppHeader } from "@/components/layout/app-header"
 import { ItemCreateDialog } from "@/components/itens/item-create-dialog"
 import { ItensTableCard } from "@/components/itens/itens-table-card"
 
 const NO_ITENS: never[] = []
+const PAGE_SIZE = 10
 
 export function ItensPage() {
-  const { data, isPending, error } = useItens()
-  const itens = data ?? NO_ITENS
+  const [page, setPage] = useState(1)
+  const { data, isPending, isFetching, refetch, error } = useItens({ page, pageSize: PAGE_SIZE })
 
   return (
     <>
@@ -22,7 +25,15 @@ export function ItensPage() {
           <ItemCreateDialog />
         </div>
 
-        <ItensTableCard itens={itens} isPending={isPending} error={error} />
+        <ItensTableCard
+          itens={data?.data ?? NO_ITENS}
+          pagination={data?.pagination}
+          onPageChange={setPage}
+          isPending={isPending}
+          isFetching={isFetching}
+          onRefresh={() => void refetch()}
+          error={error}
+        />
       </div>
     </>
   )

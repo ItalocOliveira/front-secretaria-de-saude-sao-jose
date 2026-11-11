@@ -34,8 +34,8 @@ const TIMEOUT_MS = 20_000
 export class ApiError extends Error {
   readonly status: number
   /**
-   * Corpo cru da resposta de erro. **Nunca renderize nem logue**: o `details` do
-   * `POST /apacs` pode conter os dados do paciente que falharam na validação.
+   * Corpo cru da resposta de erro. **Nunca renderize nem logue**: a API não manda mais
+   * `details` nos `500`, mas o corpo continua vindo de fora e pode ecoar o que foi enviado.
    */
   readonly details: unknown
 
@@ -54,15 +54,30 @@ const STATUS_MESSAGE: Record<number, string> = {
   403: "Acesso negado. Seu perfil não tem permissão para esta ação.",
   404: "Recurso não encontrado.",
   409: "Este registro já existe.",
+  413: "Os dados enviados são grandes demais. Reduza o texto e tente novamente.",
+  429: "Muitas requisições. Aguarde um pouco e tente novamente.",
+  500: "Erro interno do servidor. Tente novamente em instantes.",
 }
 
-/** A API mistura `{ message }` (auth/users) e `{ error, details }` (apacs). */
-function extractMessage(payload: unknown) {
+/**
+ * A API tem dois formatos de erro (`MUDANCAS_CONTRATO_SEGURANCA.md`, seção 2):
+ * - regra de negócio: `{ error: "Mensagem em português" }`;
+ * - framework (schema, rate limit, body grande, 500, login): `{ statusCode, error, message }`.
+ * A mensagem é `message ?? error`.
+ */
+function extractMessage(status: number, payload: unknown) {
   if (typeof payload !== "object" || payload === null) {
     return null
   }
 
-  const { message, error } = payload as Record<string, unknown>
+  const { message, error, statusCode } = payload as Record<string, unknown>
+
+  // `400`/`413` do validador de schema vêm em inglês ("body/name must be string",
+  // "Request body is too large") — os formulários já limitam os campos, então isso só
+  // aparece em caso de bug; a mensagem genérica em português serve melhor ao usuário.
+  if (typeof statusCode === "number" && (status === 400 || status === 413)) {
+    return null
+  }
 
   if (typeof message === "string" && message.length > 0) {
     return message
@@ -146,7 +161,8 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const payload = await readPayload(response)
 
   if (!response.ok) {
-    const message = extractMessage(payload) ?? STATUS_MESSAGE[response.status] ?? "Erro inesperado na API."
+    const message =
+      extractMessage(response.status, payload) ?? STATUS_MESSAGE[response.status] ?? "Erro inesperado na API."
     throw new ApiError(response.status, message, payload)
   }
 

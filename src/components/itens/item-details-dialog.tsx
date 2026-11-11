@@ -14,7 +14,7 @@ import {
   MOVEMENT_TYPE_LABEL,
   type MovementType,
 } from "@/lib/itens"
-import { useCreateItemMovement, useItens, useUploadItemImage } from "@/hooks/use-itens"
+import { useCreateItemMovement, useUploadItemImage } from "@/hooks/use-itens"
 import { formatFileSize } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -46,6 +46,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/field-limits"
 
 const MOVEMENT_FORM_ID = "item-movement-form"
 
@@ -67,11 +68,16 @@ export function ItemDetailsDialog({
   onOpenChange,
   onEdit,
   onDelete,
+  onRefresh,
+  isRefreshing,
 }: {
   item: ItemDto | null
   onOpenChange: (open: boolean) => void
   onEdit: (item: ItemDto) => void
   onDelete: (item: ItemDto) => void
+  /** Refetch da página de `GET /itens` aberta na tabela — é dela que vem o extrato. */
+  onRefresh: () => void
+  isRefreshing: boolean
 }) {
   const [movementType, setMovementType] = useState<MovementType | null>(null)
   const [amount, setAmount] = useState("")
@@ -90,8 +96,6 @@ export function ItemDetailsDialog({
     error: movementUploadError,
     reset: resetMovementUpload,
   } = useUploadItemImage()
-  // Reaproveita a query já ativa em `ItensTableCard` (mesma `queryKey`, sem requisição extra) só para expor o refetch manual do extrato.
-  const { refetch: refetchItens, isFetching: isRefetchingItens } = useItens()
 
   const isPending = creatingMovement || uploadingMovementImage
 
@@ -262,10 +266,10 @@ export function ItemDetailsDialog({
                           variant="ghost"
                           size="icon-sm"
                           aria-label="Atualizar extrato"
-                          disabled={isRefetchingItens}
-                          onClick={() => refetchItens()}
+                          disabled={isRefreshing}
+                          onClick={onRefresh}
                         >
-                          <RefreshCwIcon className={cn(isRefetchingItens && "animate-spin")} />
+                          <RefreshCwIcon className={cn(isRefreshing && "animate-spin")} />
                         </Button>
                       }
                     />
@@ -356,6 +360,7 @@ export function ItemDetailsDialog({
                   </FieldLabel>
                   <Input
                     id="movimento-destino"
+                    maxLength={MAX_NAME_LENGTH}
                     required
                     disabled={isPending}
                     value={destination}

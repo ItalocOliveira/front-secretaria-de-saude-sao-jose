@@ -92,11 +92,12 @@ Detalhes em `src/lib/session.ts`:
 
 - `cns` e `cpf` agora chegam em **texto puro** da API (deixaram de ser criptografados). Continuam dado pessoal de saúde: entram no view model `Apac` só para o `ApacDetailsDialog` exibi-los sob demanda — não vão para log, `localStorage`, query string, nem para o formulário de edição (`PATCH` não os altera).
 - A busca da listagem filtra por nome e município apenas — CNS/CPF não entram na busca, mesmo aparecendo no detalhe.
-- `ApiError.details` (o corpo cru do erro) nunca é exibido nem logado: o `500` de `POST/PATCH /apacs` pode devolver os dados do paciente que falharam na validação. As telas mostram só `error.message`, que é normalizado.
+- `ApiError.details` (o corpo cru do erro) nunca é exibido nem logado. A API deixou de mandar `details` nos `500`, mas o corpo continua vindo de fora. As telas mostram só `error.message`, normalizado em `src/api/client.ts` como `message ?? error`; os `400`/`413` do validador de schema (que vêm em inglês, ex.: `body/name must be string`) viram a mensagem genérica em português, e os campos já têm `maxLength` (`src/lib/field-limits.ts`) para o caso nem acontecer.
+- `429` (rate limit: 300 req/min por IP; login: 10/min por IP e 5 em 15 min por CPF) mostra a mensagem da API e **não** é repetido: o `retry` do React Query ignora todo `4xx`. A busca das listagens tem debounce (`useDebouncedValue`) para não gastar uma requisição por tecla.
 
 ### Edição e exclusão de APAC
 
-`PATCH /apacs/:id` aceita `name`, `acs`, `procedure`, `municipality` e `status` — todos opcionais, e o front (`ApacEditDialog` em `src/components/apacs/apac-edit-dialog.tsx`) só envia os campos que o usuário de fato alterou (`cns`, `priority`, `birth_date` e `cpf` não são editáveis por esse endpoint). É esse mesmo formulário que resolve a transição de status (aprovar/negar/etc.) — não existe um endpoint dedicado só pra isso. `DELETE /apacs/:id` (`ApacDeleteAlert`) não tem confirmação de existência prévia: a API não devolve `404`, um `id` inexistente cai em `500`. As duas ações ficam no diálogo de detalhes (`ApacDetailsDialog`, aberto pela tabela `ApacsTableCard`): editar para todas as roles de `/apacs` (`APAC_ROLES`), excluir só para `APAC_DELETE_ROLES` — o `RECEPCIONISTA` não vê o botão (`src/lib/permissions.ts`).
+`PATCH /apacs/:id` aceita `name`, `acs`, `procedure`, `municipality` e `status` — todos opcionais, e o front (`ApacEditDialog` em `src/components/apacs/apac-edit-dialog.tsx`) só envia os campos que o usuário de fato alterou (`cns`, `priority`, `birth_date` e `cpf` não são editáveis por esse endpoint). É esse mesmo formulário que resolve a transição de status (aprovar/negar/etc.) — não existe um endpoint dedicado só pra isso. `PATCH`/`DELETE` com `id` inexistente (ou de outro município) devolvem `404`; `ApacDeleteAlert`, `ItemDeleteAlert` e `DocumentDeleteAlert` tratam o `404` como "já não existe" (aviso leve + lista invalidada). As duas ações ficam no diálogo de detalhes (`ApacDetailsDialog`, aberto pela tabela `ApacsTableCard`): editar para todas as roles de `/apacs` (`APAC_ROLES`), excluir só para `APAC_DELETE_ROLES` — o `RECEPCIONISTA` não vê o botão (`src/lib/permissions.ts`).
 
 ### Anexo de PDF: upload direto pro R2
 
@@ -131,7 +132,19 @@ O que a UI precisaria e a API não oferece. Nada disso foi simulado com dado fal
 | `GET /auth/me` não devolve `name`                               | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                                  |
 | Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade | Campos removidos do formulário — `procedure` é texto livre, mas continua sem esses campos dedicados.                       |
 | Sem endpoint pra regerar `uploadUrl` isoladamente               | Se o `PUT` pro R2 falhar após os 15 min de validade, não há como recuperar o envio pela UI — só reenviar antes de expirar. |
-| Sem endpoint de agregação                                       | Os cards contam sobre a lista já carregada. Se a listagem ganhar paginação, será preciso um `GET /apacs/stats`.            |
-| Sem query params documentados                                   | Filtro e ordenação são client-side (`src/lib/apac-filters.ts` é o ponto de troca).                                         |
+| Listagens paginadas, sem agregação                              | Os cards de status da tela de APACs vêm de `countByStatus` do `POST /reports/apacs`, não do tamanho da página.             |
 
 Ainda mockada, por não existir no contrato: a lista de municípios (ver `src/data/apacs-mock.ts`).
+
+## Listagens paginadas
+
+`GET /apacs`, `/documents`, `/itens` e `/users` devolvem `{ data, pagination: { page, pageSize, total, totalPages } }` (até 100 por página; padrão 50). Contrato completo em [`.docs/temp/MUDANCAS_CONTRATO_SEGURANCA.md`](temp/MUDANCAS_CONTRATO_SEGURANCA.md).
+
+- `src/api/pagination.ts`: tipos (`ListParams`, `Paginated`) e `toListQuery()`, que monta `page`/`pageSize`/`search`/`status` omitindo o que está vazio. `search` filtra **só por nome** — CPF/CNS nunca vão para a URL.
+- Cada `use<Recurso>(params)` põe os parâmetros na `queryKey` e usa `keepPreviousData` (a página anterior fica na tela até a nova chegar). As mutações invalidam pelo prefixo (`["apacs"]` etc.), então qualquer página aberta é atualizada.
+- A tela é dona da página e dos filtros; as tabelas (`ApacsTableCard`, `DocumentsTableCard`, `ItensTableCard`, `UsersPage`) só exibem a página recebida e usam `ListPagination` (`src/components/list-pagination.tsx`). Trocar busca/status volta para a página 1.
+- Filtros extras de `GET /apacs` (todos na query string, combináveis, `total` considera todos): `priority`; `municipality` (nome inteiro, sem diferenciar maiúsculas, acentos contam — `NAO_INFORMADO` traz as APACs sem município); `startDate`/`endDate` em `YYYY-MM-DD` pela data de criação (a API usa o dia inteiro no horário da Paraíba, então o front não converte fuso; cada um vale sozinho). Formato inválido ou `startDate` depois de `endDate` → `400` em português. `toApacListFilters` (`src/lib/apac-filters.ts`) faz a conversão; o select de municípios usa a mesma lista do cadastro (`MUNICIPALITIES`) para a grafia bater.
+- Tamanhos de página: APACs 6, Pendências 10, ofícios 10, almoxarifado 10, usuários 20.
+- Ordem vem da API: mais recentes primeiro (APACs, ofícios, itens); usuários em ordem alfabética.
+- `POST /users`: só `DEV` cria `DEV` — o select de perfil esconde a opção para os demais (`creatableRolesFor` em `src/lib/permissions.ts`); CPF repetido devolve `409`.
+- Relatório: período personalizado limitado a 366 dias (`REPORT_MAX_DAYS`, aplicado no `DateRangePicker` via `maxDays`).

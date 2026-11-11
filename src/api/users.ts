@@ -1,5 +1,6 @@
 import type { UserRole } from "@/lib/apac"
 import { request } from "@/api/client"
+import { toListQuery, type ListParams, type Paginated } from "@/api/pagination"
 
 export type UserDto = {
   id: string
@@ -18,11 +19,15 @@ export type CreateUserPayload = {
   role: UserRole
 }
 
-export function listUsers(signal?: AbortSignal) {
-  return request<UserDto[]>("/users", { signal })
+/** `GET /users` paginado, em ordem alfabética. `status` aqui filtra pelo cargo (`?status=RECEPCIONISTA`). */
+export function listUsers(params: ListParams<UserRole>, signal?: AbortSignal) {
+  return request<Paginated<UserDto>>(`/users${toListQuery(params)}`, { signal })
 }
 
-/** `POST /users` exige autenticação e role `DEV`, `DIRETOR`, `SECRETARIO` ou `COORDENADOR`. */
+/**
+ * `POST /users` — todos os cargos menos `RECEPCIONISTA`. Só `DEV` cria `DEV` (`403` para os
+ * outros); CPF já cadastrado → `409`.
+ */
 export function createUser(payload: CreateUserPayload) {
   return request<UserDto>("/users", { method: "POST", body: payload })
 }

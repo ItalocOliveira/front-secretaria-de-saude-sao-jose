@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import { MAX_NAME_LENGTH, MAX_TEXT_LENGTH } from "@/lib/field-limits"
 
 const INITIAL_FORM = { name: "", description: "", type: null as ItemType | null, imageFile: null as File | null }
 
@@ -166,6 +167,7 @@ export function ItemCreateDialog() {
                 <FieldLabel htmlFor="item-nome">Nome</FieldLabel>
                 <Input
                   id="item-nome"
+                  maxLength={MAX_NAME_LENGTH}
                   required
                   disabled={isPending}
                   value={form.name}
@@ -200,6 +202,7 @@ export function ItemCreateDialog() {
                 <FieldLabel htmlFor="item-descricao">Descrição</FieldLabel>
                 <Textarea
                   id="item-descricao"
+                  maxLength={MAX_TEXT_LENGTH}
                   disabled={isPending}
                   value={form.description}
                   onChange={(event) => patch({ description: event.target.value })}

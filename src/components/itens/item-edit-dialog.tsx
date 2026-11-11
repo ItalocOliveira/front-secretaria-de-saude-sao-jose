@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import { MAX_NAME_LENGTH, MAX_TEXT_LENGTH } from "@/lib/field-limits"
 
 type FormValues = {
   name: string
@@ -121,6 +122,7 @@ export function ItemEditDialog({
               <FieldLabel htmlFor="editar-item-nome">Nome</FieldLabel>
               <Input
                 id="editar-item-nome"
+                maxLength={MAX_NAME_LENGTH}
                 value={current.name}
                 onChange={(event) => setValues({ ...current, name: event.target.value })}
               />
@@ -130,6 +132,7 @@ export function ItemEditDialog({
               <FieldLabel htmlFor="editar-item-descricao">Descrição</FieldLabel>
               <Textarea
                 id="editar-item-descricao"
+                maxLength={MAX_TEXT_LENGTH}
                 value={current.description}
                 onChange={(event) => setValues({ ...current, description: event.target.value })}
               />

@@ -2,10 +2,12 @@ import { useState } from "react"
 import { EyeIcon, PackageSearchIcon } from "lucide-react"
 
 import type { ItemDto } from "@/api/itens"
+import type { PaginationInfo } from "@/api/pagination"
 import { ITEM_STATUS_BADGE, ITEM_STATUS_LABEL, ITEM_TYPE_LABEL } from "@/lib/itens"
 import { ItemDeleteAlert } from "@/components/itens/item-delete-alert"
 import { ItemDetailsDialog } from "@/components/itens/item-details-dialog"
 import { ItemEditDialog } from "@/components/itens/item-edit-dialog"
+import { ListPagination } from "@/components/list-pagination"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -22,11 +24,20 @@ const SKELETON_ROWS = 5
 /** Parte A: visão geral do estoque — produtos únicos com saldo consolidado. Detalhe/extrato ficam em `ItemDetailsDialog`. */
 export function ItensTableCard({
   itens,
+  pagination,
+  onPageChange,
   isPending,
+  isFetching,
+  onRefresh,
   error,
 }: {
+  /** Uma página de `GET /itens`. */
   itens: ItemDto[]
+  pagination: PaginationInfo | undefined
+  onPageChange: (page: number) => void
   isPending: boolean
+  isFetching: boolean
+  onRefresh: () => void
   error: Error | null
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -46,7 +57,7 @@ export function ItensTableCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           Produtos cadastrados
-          {isPending ? null : <Badge variant="secondary">{itens.length}</Badge>}
+          {pagination === undefined ? null : <Badge variant="secondary">{pagination.total}</Badge>}
         </CardTitle>
       </CardHeader>
 
@@ -150,6 +161,10 @@ export function ItensTableCard({
             </Table>
           </div>
         ) : null}
+
+        {pagination !== undefined && pagination.total > 0 ? (
+          <ListPagination pagination={pagination} label="produtos" onPageChange={onPageChange} />
+        ) : null}
       </CardContent>
 
       <ItemDetailsDialog
@@ -163,6 +178,8 @@ export function ItensTableCard({
           setSelectedId(null)
           setDeletingId(item.id)
         }}
+        onRefresh={onRefresh}
+        isRefreshing={isFetching}
       />
       <ItemEditDialog item={editing} onOpenChange={(open) => (open ? null : setEditingId(null))} />
       <ItemDeleteAlert item={deleting} onOpenChange={(open) => (open ? null : setDeletingId(null))} />

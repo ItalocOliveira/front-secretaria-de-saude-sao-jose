@@ -2,9 +2,12 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { ArrowLeftIcon, UserPlusIcon } from "lucide-react"
 
-import { USER_ROLE_LABEL, USER_ROLE_LIST, type UserRole } from "@/lib/apac"
+import { USER_ROLE_LABEL, type UserRole } from "@/lib/apac"
+import { MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH } from "@/lib/field-limits"
+import { creatableRolesFor } from "@/lib/permissions"
 import { formatCpf, onlyDigits } from "@/lib/utils"
 import { useCreateUser } from "@/hooks/use-users"
+import { useSession } from "@/hooks/use-session"
 import { AppHeader } from "@/components/layout/app-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -21,6 +24,9 @@ export function NewUserPage() {
   const navigate = useNavigate()
   const { mutate: createUser, isPending, error } = useCreateUser()
   const [form, setForm] = useState(INITIAL_FORM)
+  const { claims } = useSession()
+  // A rota já exige sessão; `[]` só cobre o instante em que ela expira.
+  const roles = claims === null ? [] : creatableRolesFor(claims.role)
 
   // Derivado no render, sem `useEffect`.
   const passwordMismatch = form.confirmation !== "" && form.confirmation !== form.password
@@ -83,6 +89,7 @@ export function NewUserPage() {
                   <FieldLabel htmlFor="usuario-nome">Nome completo</FieldLabel>
                   <Input
                     id="usuario-nome"
+                    maxLength={MAX_NAME_LENGTH}
                     autoComplete="name"
                     required
                     disabled={isPending}
@@ -119,7 +126,7 @@ export function NewUserPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {USER_ROLE_LIST.map((role) => (
+                        {roles.map((role) => (
                           <SelectItem key={role} value={role}>
                             {USER_ROLE_LABEL[role]}
                           </SelectItem>
@@ -136,6 +143,7 @@ export function NewUserPage() {
                   <FieldLabel htmlFor="usuario-senha">Senha</FieldLabel>
                   <Input
                     id="usuario-senha"
+                    maxLength={MAX_PASSWORD_LENGTH}
                     type="password"
                     autoComplete="new-password"
                     required
@@ -149,6 +157,7 @@ export function NewUserPage() {
                   <FieldLabel htmlFor="usuario-confirmacao">Confirmar senha</FieldLabel>
                   <Input
                     id="usuario-confirmacao"
+                    maxLength={MAX_PASSWORD_LENGTH}
                     type="password"
                     autoComplete="new-password"
                     required

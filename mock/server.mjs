@@ -1,10 +1,10 @@
 /**
  * API mockada da Secretária de Saúde de São José dos Ramos.
  *
- * O json-server cuida da camada de dados (listagem, filtros, ordenação,
- * paginação, busca por id, PATCH/PUT/DELETE e persistência em db.json). Este
- * arquivo coloca na frente dele o que o json-server não sabe fazer: JWT,
- * controle de acesso por role e as validações documentadas em
+ * O json-server cuida da persistência em db.json e de PATCH/PUT/DELETE por id. Este
+ * arquivo coloca na frente dele o que o json-server não sabe fazer: JWT, controle de
+ * acesso por role, as listagens paginadas (`{ data, pagination }`, ver
+ * `.docs/temp/MUDANCAS_CONTRATO_SEGURANCA.md`) e as validações documentadas em
  * `.docs/api-backend.md`.
  *
  * IMPORTANTE: só para desenvolvimento. O "hash" e a "criptografia" aqui são
@@ -362,7 +362,7 @@ async function handleAuth(req, res, segments) {
 // POST /users
 // ---------------------------------------------------------------------------
 
-async function createUser(req, res) {
+async function createUser(req, res, creator) {
   const body = await readJsonBody(req)
   if (!body) return send(res, 400, { message: "Corpo da requisição deve ser um objeto JSON." })
 
@@ -375,9 +375,14 @@ async function createUser(req, res) {
     return send(res, 400, { message: `Role inválida. Valores aceitos: ${ROLES.join(", ")}.` })
   }
 
+  // Só `DEV` cria `DEV`, como na API real.
+  if (body.role === "DEV" && creator.role !== "DEV") {
+    return send(res, 403, { error: "Seu cargo não pode criar usuários com o cargo DEV." })
+  }
+
   const cpf = String(body.cpf)
   if (db.data._credentials.some((item) => item.cpf === cpf)) {
-    return send(res, 409, { message: "CPF já cadastrado." })
+    return send(res, 409, { error: "Já existe um usuário com este CPF." })
   }
 
   const now = new Date().toISOString()
@@ -411,7 +416,11 @@ async function createUser(req, res) {
 // ---------------------------------------------------------------------------
 
 async function createApac(req, res) {
-  const fail = (details) => send(res, 500, { error: "Erro ao criar Apac", details })
+  // Como a API real: o 500 não expõe detalhe nenhum (o motivo só aparece no log do servidor).
+  const fail = (details) => {
+    console.warn("POST /apacs inválido:", Object.keys(details).join(", "))
+    return send(res, 500, { error: "Erro ao criar Apac" })
+  }
 
   const body = await readJsonBody(req)
   if (!body) return fail({ message: "Corpo da requisição deve ser um objeto JSON." })
@@ -620,7 +629,7 @@ async function updateDocument(req, res, id) {
   if (!body) return send(res, 400, { message: "Corpo da requisição deve ser um objeto JSON." })
 
   const document = db.data.documents.find((entry) => entry.id === id)
-  if (!document) return send(res, 500, { message: "Documento não encontrado." })
+  if (!document) return send(res, 404, { error: "Documento não encontrado." })
 
   if (body.status !== undefined && !DOCUMENT_STATUSES.includes(body.status)) {
     return send(res, 400, { message: `status inválido. Valores aceitos: ${DOCUMENT_STATUSES.join(", ")}.` })
@@ -654,7 +663,10 @@ async function deleteDocument(res, id) {
 // ---------------------------------------------------------------------------
 
 async function createItem(req, res, user) {
-  const fail = (details) => send(res, 500, { error: "Erro ao criar item", details })
+  const fail = (details) => {
+    console.warn("POST /itens inválido:", Object.keys(details).join(", "))
+    return send(res, 500, { error: "Erro ao criar item" })
+  }
 
   const body = await readJsonBody(req)
   if (!body) return fail({ message: "Corpo da requisição deve ser um objeto JSON." })
@@ -715,29 +727,29 @@ async function createItem(req, res, user) {
 
 async function createItemMovement(req, res, itemId, user) {
   const body = await readJsonBody(req)
-  if (!body) return send(res, 500, { message: "Corpo da requisição deve ser um objeto JSON." })
+  if (!body) return send(res, 400, { error: "Corpo da requisição deve ser um objeto JSON." })
 
   if (!MOVEMENT_TYPES.includes(body.movementType)) {
-    return send(res, 500, { message: `movementType inválido. Valores aceitos: ${MOVEMENT_TYPES.join(", ")}.` })
+    return send(res, 400, { message: `movementType inválido. Valores aceitos: ${MOVEMENT_TYPES.join(", ")}.` })
   }
 
   const amount = Number(body.amount)
   if (!Number.isFinite(amount) || amount <= 0) {
-    return send(res, 500, { message: "amount deve ser um número maior que zero." })
+    return send(res, 400, { message: "amount deve ser um número maior que zero." })
   }
 
   if (!body.destination) {
-    return send(res, 500, { message: "destination é obrigatório." })
+    return send(res, 400, { message: "destination é obrigatório." })
   }
 
   const item = db.data.itens.find((entry) => entry.id === itemId)
-  if (!item) return send(res, 500, { message: "Item não encontrado." })
+  if (!item) return send(res, 404, { error: "Item não encontrado." })
 
   const author = db.data.users.find((entry) => entry.id === user.id)
   if (!author) return send(res, 500, { message: "Usuário não encontrado." })
 
   if (body.movementType === "SAIDA" && amount > item.amount) {
-    return send(res, 500, { message: "Estoque insuficiente para esta saída." })
+    return send(res, 400, { error: "Estoque insuficiente para esta saída." })
   }
 
   item.amount = body.movementType === "ENTRADA" ? item.amount + amount : item.amount - amount
@@ -923,6 +935,128 @@ function routeIndex() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// GET /apacs | /documents | /itens | /users — paginado (`{ data, pagination }`)
+// ---------------------------------------------------------------------------
+
+/** Valores aceitos em `?status=` por listagem. Em `/users` o parâmetro filtra o `role`. */
+const LIST_STATUS = {
+  apacs: { field: "status", values: ["PENDENTE", "AGUARDO", "APROVADO", "CANCELADO", "NEGADO", "ENTREGUE"] },
+  documents: { field: "status", values: DOCUMENT_STATUSES },
+  itens: { field: "status", values: ["DISPONIVEL", "EMPRESTADO"] },
+  users: { field: "role", values: ROLES },
+}
+
+const LIST_DECORATOR = { apacs: withPdfUrl, documents: withPdfUrl, itens: withImageUrl, users: (user) => user }
+
+const badRequest = (message) => ({ status: 400, body: { statusCode: 400, error: "Bad Request", message } })
+
+function parseIntParam(searchParams, name, fallback, min, max) {
+  const raw = searchParams.get(name)
+  if (raw === null) return { value: fallback }
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value < min || value > max) {
+    return { error: badRequest(`querystring/${name} must be >= ${min}${max === Infinity ? "" : ` and <= ${max}`}`) }
+  }
+  return { value }
+}
+
+/**
+ * Filtros extras de `GET /apacs`: `priority`, `municipality` (nome inteiro, sem caixa; `NAO_INFORMADO`
+ * = sem município) e `startDate`/`endDate` (`YYYY-MM-DD` = dia inteiro no horário de Brasília, ou ISO
+ * com hora; cada um vale sozinho). Formato ou ordem inválidos → 400 em português.
+ */
+function parseApacFilters(searchParams) {
+  const priority = searchParams.get("priority")
+  if (priority !== null && !PRIORITIES.includes(priority)) {
+    return { error: badRequest("querystring/priority must be equal to one of the allowed values") }
+  }
+
+  const parseDate = (name, endOfDay) => {
+    const raw = searchParams.get(name)
+    if (raw === null) return { value: null }
+    const dayOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    if (dayOnly) {
+      const [year, month, day] = raw.split("-").map(Number)
+      const probe = new Date(Date.UTC(year, month - 1, day))
+      if (probe.getUTCMonth() !== month - 1 || probe.getUTCDate() !== day) {
+        return { error: { status: 400, body: { error: `"${name}" não é uma data válida.` } } }
+      }
+      const ms = Date.UTC(year, month - 1, day) + BRT_OFFSET_MS + (endOfDay ? DAY_MS - 1 : 0)
+      return { value: ms }
+    }
+    const ms = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? Date.parse(raw) : Number.NaN
+    if (Number.isNaN(ms)) {
+      return { error: { status: 400, body: { error: `"${name}" deve estar no formato AAAA-MM-DD.` } } }
+    }
+    return { value: ms }
+  }
+
+  const start = parseDate("startDate", false)
+  if (start.error) return start
+  const end = parseDate("endDate", true)
+  if (end.error) return end
+  if (start.value !== null && end.value !== null && start.value > end.value) {
+    return { error: { status: 400, body: { error: '"startDate" deve ser anterior ou igual a "endDate".' } } }
+  }
+
+  const municipality = searchParams.get("municipality")?.toLowerCase() ?? null
+
+  return {
+    matches: (apac) => {
+      if (priority !== null && apac.priority !== priority) return false
+      if (municipality !== null) {
+        const value = apac.municipality ? String(apac.municipality).toLowerCase() : null
+        if (municipality === "nao_informado" ? value !== null : value !== municipality) return false
+      }
+      const created = createdAtMs(apac)
+      if (start.value !== null && created < start.value) return false
+      if (end.value !== null && created > end.value) return false
+      return true
+    },
+  }
+}
+
+const createdAtMs = (record) => new Date(record.createdAt ?? record.created_at ?? 0).getTime()
+
+/** Mesmas regras da API real: `page>=1`, `pageSize` 1–100 (padrão 50), `search` por nome, `status` exato. */
+function listCollection(res, collection, searchParams) {
+  const page = parseIntParam(searchParams, "page", 1, 1, Infinity)
+  if (page.error) return sendError(res, page.error)
+  const pageSize = parseIntParam(searchParams, "pageSize", 50, 1, 100)
+  if (pageSize.error) return sendError(res, pageSize.error)
+
+  const search = searchParams.get("search")
+  if (search !== null && search.length > 100) {
+    return sendError(res, badRequest("querystring/search must NOT have more than 100 characters"))
+  }
+
+  const status = searchParams.get("status")
+  const statusRule = LIST_STATUS[collection]
+  if (status !== null && !statusRule.values.includes(status)) {
+    return sendError(res, badRequest("querystring/status must be equal to one of the allowed values"))
+  }
+
+  const extra = collection === "apacs" ? parseApacFilters(searchParams) : { matches: () => true }
+  if (extra.error) return sendError(res, extra.error)
+
+  const term = search?.trim().toLowerCase() ?? ""
+  const filtered = (db.data[collection] ?? [])
+    .filter((record) => term === "" || String(record.name ?? "").toLowerCase().includes(term))
+    .filter((record) => status === null || record[statusRule.field] === status)
+    .filter((record) => extra.matches(record))
+    .sort((a, b) =>
+      collection === "users" ? String(a.name).localeCompare(String(b.name), "pt-BR") : createdAtMs(b) - createdAtMs(a)
+    )
+
+  const total = filtered.length
+  const start = (page.value - 1) * pageSize.value
+  return send(res, 200, {
+    data: filtered.slice(start, start + pageSize.value).map(LIST_DECORATOR[collection]),
+    pagination: { page: page.value, pageSize: pageSize.value, total, totalPages: Math.ceil(total / pageSize.value) },
+  })
+}
+
 const server = createServer(async (req, res) => {
   const method = req.method ?? "GET"
   const { pathname } = new URL(req.url ?? "/", `http://${HOST}:${PORT}`)
@@ -966,7 +1100,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (method === "POST" && rest.length === 0) {
-    if (collection === "users") return createUser(req, res)
+    if (collection === "users") return createUser(req, res, user)
     if (collection === "apacs") return createApac(req, res)
     if (collection === "itens") return createItem(req, res, user)
     if (collection === "documents") return createDocument(req, res)
@@ -986,16 +1120,16 @@ const server = createServer(async (req, res) => {
     return deleteDocument(res, rest[0])
   }
 
-  // `pdf_url`/`image_url` são gerados sob demanda a cada GET, como na API real —
-  // o json-server só serve o que está persistido em db.json, então essas rotas
-  // (sem query params) respondem aqui, direto do banco em memória, com o campo
-  // injetado. Com filtro/ordenação/paginação (`?status=...`, `?_sort=...`), cai
-  // no json-server abaixo e não vem `pdf_url`/`image_url` — só para desenvolvimento.
+  // Listagens paginadas, como na API real — não vão para o json-server (que
+  // devolveria um array e aceitaria `_sort`, `_page` etc., que a API não tem).
+  if (method === "GET" && rest.length === 0) {
+    return listCollection(res, collection, new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams)
+  }
+
+  // `pdf_url`/`image_url` são gerados sob demanda a cada GET, como na API real.
+  // GET por id é extra do mock (a API real não tem).
   if (method === "GET" && collection === "apacs") {
     const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
-    if (rest.length === 0 && searchParams.size === 0) {
-      return send(res, 200, db.data.apacs.map(withPdfUrl))
-    }
     if (rest.length === 1 && searchParams.size === 0) {
       const found = db.data.apacs.find((item) => item.id === rest[0])
       if (!found) return send(res, 404, { message: "APAC não encontrada." })
@@ -1003,20 +1137,8 @@ const server = createServer(async (req, res) => {
     }
   }
 
-  // Mesma lógica de `withPdfUrl` das APACs (reutilizada, já é genérica): `pdf_url`
-  // gerado sob demanda a cada GET, não persistido em db.json.
-  if (method === "GET" && collection === "documents") {
-    const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
-    if (rest.length === 0 && searchParams.size === 0) {
-      return send(res, 200, db.data.documents.map(withPdfUrl))
-    }
-  }
-
   if (method === "GET" && collection === "itens") {
     const searchParams = new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams
-    if (rest.length === 0 && searchParams.size === 0) {
-      return send(res, 200, db.data.itens.map(withImageUrl))
-    }
     if (rest.length === 1 && searchParams.size === 0) {
       const found = db.data.itens.find((item) => item.id === rest[0])
       if (!found) return send(res, 404, { message: "Item não encontrado." })

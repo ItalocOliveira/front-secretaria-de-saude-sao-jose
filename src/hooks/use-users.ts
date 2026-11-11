@@ -1,13 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import type { UserRole } from "@/lib/apac"
+import type { ListParams } from "@/api/pagination"
 import { createUser, listUsers } from "@/api/users"
 
 export const USERS_QUERY_KEY = ["users"] as const
 
-export function useUsers() {
+export function useUsers(params: ListParams<UserRole>) {
   return useQuery({
-    queryKey: USERS_QUERY_KEY,
-    queryFn: ({ signal }) => listUsers(signal),
+    queryKey: [...USERS_QUERY_KEY, params],
+    queryFn: ({ signal }) => listUsers(params, signal),
+    placeholderData: keepPreviousData,
   })
 }
 

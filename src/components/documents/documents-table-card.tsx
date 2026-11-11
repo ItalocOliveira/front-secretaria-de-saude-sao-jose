@@ -2,13 +2,14 @@ import { useState } from "react"
 import { FileIcon, FileTextIcon, PencilIcon, RefreshCwIcon, Trash2Icon } from "lucide-react"
 
 import type { Document } from "@/api/documents"
+import type { PaginationInfo } from "@/api/pagination"
 import { DOCUMENT_DESTINATION_LABEL, DOCUMENT_STATUS_BADGE, DOCUMENT_STATUS_LABEL } from "@/lib/document"
 import { canDeleteDocuments } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
-import { useDocuments } from "@/hooks/use-documents"
 import { useSession } from "@/hooks/use-session"
 import { DocumentDeleteAlert } from "@/components/documents/document-delete-alert"
 import { DocumentEditDialog } from "@/components/documents/document-edit-dialog"
+import { ListPagination } from "@/components/list-pagination"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
-const PREVIEW_SIZE = 5
+const SKELETON_ROWS = 5
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" })
 
@@ -33,38 +34,37 @@ function destinationLabel(document: Document) {
     : DOCUMENT_DESTINATION_LABEL[document.destination]
 }
 
+/** Uma página de `GET /documents` — a tela busca, a tabela exibe e avisa a troca de página. */
 export function DocumentsTableCard({
   documents,
+  pagination,
+  onPageChange,
   isPending,
+  isFetching,
+  onRefresh,
   error,
 }: {
   documents: Document[]
+  pagination: PaginationInfo | undefined
+  onPageChange: (page: number) => void
   isPending: boolean
+  isFetching: boolean
+  onRefresh: () => void
   error: Error | null
 }) {
-  const [showAll, setShowAll] = useState(false)
   const [editing, setEditing] = useState<Document | null>(null)
   const [deleting, setDeleting] = useState<Document | null>(null)
-  const { refetch, isFetching } = useDocuments()
   const { claims } = useSession()
   const canDelete = claims !== null && canDeleteDocuments(claims.role)
-
-  const visible = showAll ? documents : documents.slice(0, PREVIEW_SIZE)
-  const hasMore = documents.length > PREVIEW_SIZE
 
   return (
     <Card className="h-fit">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           Ofícios cadastrados
-          {isPending ? null : <Badge variant="secondary">{documents.length}</Badge>}
+          {pagination === undefined ? null : <Badge variant="secondary">{pagination.total}</Badge>}
         </CardTitle>
         <CardAction className="flex items-center gap-1">
-          {hasMore ? (
-            <Button variant="ghost" size="sm" onClick={() => setShowAll((current) => !current)}>
-              {showAll ? "Ver menos" : "Ver todos"}
-            </Button>
-          ) : null}
           <Tooltip>
             <TooltipTrigger
               render={
@@ -73,7 +73,7 @@ export function DocumentsTableCard({
                   size="icon-sm"
                   aria-label="Atualizar ofícios"
                   disabled={isFetching}
-                  onClick={() => refetch()}
+                  onClick={onRefresh}
                 >
                   <RefreshCwIcon className={cn(isFetching && "animate-spin")} />
                 </Button>
@@ -96,13 +96,13 @@ export function DocumentsTableCard({
 
         {isPending ? (
           <div className="flex flex-col gap-2 px-4">
-            {Array.from({ length: PREVIEW_SIZE }, (_, index) => (
+            {Array.from({ length: SKELETON_ROWS }, (_, index) => (
               <Skeleton key={index} className="h-10 w-full" />
             ))}
           </div>
         ) : null}
 
-        {!isPending && error === null && visible.length === 0 ? (
+        {!isPending && error === null && documents.length === 0 ? (
           <div className="px-4">
             <Empty className="border">
               <EmptyHeader>
@@ -116,7 +116,7 @@ export function DocumentsTableCard({
           </div>
         ) : null}
 
-        {visible.length > 0 ? (
+        {documents.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -130,7 +130,7 @@ export function DocumentsTableCard({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visible.map((document) => (
+                {documents.map((document) => (
                   <TableRow key={document.id}>
                     <TableCell className="pl-4 font-medium tabular-nums">{document.protocolNumber}</TableCell>
                     <TableCell>{document.name}</TableCell>
@@ -201,6 +201,10 @@ export function DocumentsTableCard({
               </TableBody>
             </Table>
           </div>
+        ) : null}
+
+        {pagination !== undefined && pagination.total > 0 ? (
+          <ListPagination pagination={pagination} label="ofícios" onPageChange={onPageChange} />
         ) : null}
       </CardContent>
 

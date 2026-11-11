@@ -1,16 +1,21 @@
-import { useMemo } from "react"
+import { useState } from "react"
 
+import { APAC_STATUS } from "@/lib/apac"
 import { useApacs } from "@/hooks/use-apacs"
 import { AppHeader } from "@/components/layout/app-header"
 import { ApacsTableCard } from "@/components/apacs/apacs-table-card"
 
 const NO_APACS: never[] = []
+const PAGE_SIZE = 10
 
 export function PendenciasPage() {
-  const { data, isPending, error } = useApacs()
-  const apacs = data ?? NO_APACS
-
-  const pendentes = useMemo(() => apacs.filter((apac) => apac.status === "PENDENTE"), [apacs])
+  const [page, setPage] = useState(1)
+  // O filtro de status vai para a API: a listagem é paginada, filtrar a página carregada perderia APACs.
+  const { data, isPending, isFetching, refetch, error } = useApacs({
+    page,
+    pageSize: PAGE_SIZE,
+    status: APAC_STATUS.PENDENTE,
+  })
 
   return (
     <>
@@ -22,7 +27,16 @@ export function PendenciasPage() {
           <p className="text-sm text-muted-foreground">APACs aguardando análise.</p>
         </div>
 
-        <ApacsTableCard apacs={pendentes} isPending={isPending} error={error} />
+        <ApacsTableCard
+          apacs={data?.data ?? NO_APACS}
+          pagination={data?.pagination}
+          onPageChange={setPage}
+          isPending={isPending}
+          isFetching={isFetching}
+          onRefresh={() => void refetch()}
+          error={error}
+          emptyDescription="Nenhuma APAC pendente no momento."
+        />
       </div>
     </>
   )

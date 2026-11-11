@@ -1,9 +1,11 @@
+import { useState } from "react"
 import { Link } from "react-router"
 import { UserPlusIcon, UsersIcon } from "lucide-react"
 
 import { USER_ROLE_LABEL } from "@/lib/apac"
 import { useUsers } from "@/hooks/use-users"
 import { AppHeader } from "@/components/layout/app-header"
+import { ListPagination } from "@/components/list-pagination"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+
+const PAGE_SIZE = 20
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" })
 
@@ -24,7 +28,10 @@ function formatDate(value: string | undefined) {
 }
 
 export function UsersPage() {
-  const { data: users, isPending, error } = useUsers()
+  const [page, setPage] = useState(1)
+  // Ordem alfabética, vinda da API.
+  const { data, isPending, error } = useUsers({ page, pageSize: PAGE_SIZE })
+  const users = data?.data
 
   return (
     <>
@@ -103,6 +110,10 @@ export function UsersPage() {
               </div>
             ) : null}
           </CardContent>
+
+          {data !== undefined && data.pagination.total > 0 ? (
+            <ListPagination pagination={data.pagination} label="usuários" onPageChange={setPage} />
+          ) : null}
         </Card>
       </div>
     </>

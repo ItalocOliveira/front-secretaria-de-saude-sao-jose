@@ -1,5 +1,6 @@
 import type { ItemStatus, ItemType, MovementType } from "@/lib/itens"
 import { request } from "@/api/client"
+import { toListQuery, type ListParams, type Paginated } from "@/api/pagination"
 
 export type ItemMovementDto = {
   id: string
@@ -74,8 +75,9 @@ export type CreateItemMovementPayload = {
   destination: string
 }
 
-export function listItens(signal?: AbortSignal) {
-  return request<ItemDto[]>("/itens", { signal })
+/** `GET /itens` paginado, mais recentes primeiro. */
+export function listItens(params: ListParams<ItemStatus>, signal?: AbortSignal) {
+  return request<Paginated<ItemDto>>(`/itens${toListQuery(params)}`, { signal })
 }
 
 export function createItem(payload: CreateItemPayload) {
@@ -86,7 +88,7 @@ export function updateItem(id: string, payload: UpdateItemPayload) {
   return request<ItemDto>(`/itens/${id}`, { method: "PATCH", body: payload })
 }
 
-/** Sem 404 documentado no contrato — mesmo padrão de `deleteApac`. A imagem no bucket é apagada junto (idempotente). */
+/** `404` se o `id` não existir (ou for de outro município). A imagem no bucket é apagada junto (idempotente). */
 export async function deleteItem(id: string): Promise<void> {
   await request<undefined>(`/itens/${id}`, { method: "DELETE" })
 }
@@ -124,11 +126,7 @@ export type CreateItemMovementResult = {
   uploadUrl: string
 }
 
-/**
- * Erros ainda não diferenciam status HTTP (tudo cai em 500) — trate por
- * `error.message`: `"Item não encontrado."` ou `"Estoque insuficiente para
- * esta saída."`.
- */
+/** `404` `"Item não encontrado."` · `400` `"Estoque insuficiente para esta saída."`. */
 export function createItemMovement(id: string, payload: CreateItemMovementPayload) {
   return request<CreateItemMovementResult>(`/itens/${id}/movements`, { method: "POST", body: payload })
 }

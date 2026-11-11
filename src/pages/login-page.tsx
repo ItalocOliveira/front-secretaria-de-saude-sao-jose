@@ -14,6 +14,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
+import { MAX_PASSWORD_LENGTH } from "@/lib/field-limits"
 
 const MODULES = [
   { title: "APACs", description: "Registro e acompanhamento por status" },
@@ -170,6 +171,7 @@ export function LoginPage() {
                 <InputGroup className="h-12">
                   <InputGroupInput
                     id="login-senha"
+                    maxLength={MAX_PASSWORD_LENGTH}
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     placeholder="Sua senha"

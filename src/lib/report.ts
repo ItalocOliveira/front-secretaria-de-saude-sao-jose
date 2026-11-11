@@ -13,6 +13,9 @@ import {
   type ApacStatus,
 } from "@/lib/apac"
 
+/** Maior período personalizado aceito por `POST /reports/apacs` — acima disso, `400`. */
+export const REPORT_MAX_DAYS = 366
+
 /** Fuso usado pela API para decidir o dia de cada APAC. */
 export const REPORT_TIME_ZONE = "America/Fortaleza"
 

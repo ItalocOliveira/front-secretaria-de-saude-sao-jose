@@ -1,5 +1,6 @@
 import type { DocumentDestination, DocumentStatus } from "@/lib/document"
 import { request } from "@/api/client"
+import { mapPage, toListQuery, type ListParams, type Paginated } from "@/api/pagination"
 
 /** Objeto devolvido por `GET /documents`, `POST /documents` e `PATCH /documents/:id` (`DocumentDomain` no backend). */
 export type DocumentDto = {
@@ -71,9 +72,10 @@ export type CreateDocumentResult = {
   uploadUrl: string
 }
 
-export async function listDocuments(signal?: AbortSignal) {
-  const data = await request<DocumentDto[]>("/documents", { signal })
-  return data.map(toDocument)
+/** `GET /documents` paginado, mais recentes primeiro. */
+export async function listDocuments(params: ListParams<DocumentStatus>, signal?: AbortSignal) {
+  const page = await request<Paginated<DocumentDto>>(`/documents${toListQuery(params)}`, { signal })
+  return mapPage(page, toDocument)
 }
 
 export async function createDocument(payload: CreateDocumentPayload): Promise<CreateDocumentResult> {
