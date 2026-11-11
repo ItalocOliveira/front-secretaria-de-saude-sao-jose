@@ -61,6 +61,7 @@ export function ApacsPage() {
           title="APACs"
           toolbar={<ApacFilters value={filters} onValueChange={setFilters} />}
           onCreate={openForm}
+          pageResetKey={JSON.stringify(deferredFilters)}
         />
 
         <ApacFlow />

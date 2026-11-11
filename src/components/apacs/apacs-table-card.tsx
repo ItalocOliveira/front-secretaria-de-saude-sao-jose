@@ -27,12 +27,120 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const SKELETON_ROWS = 5
+const PAGE_SIZE = 6
+
+type PageItem = number | "ellipsis-start" | "ellipsis-end"
+
+/** Primeira, última e vizinhas da atual; o resto vira reticências. */
+function getPageItems(current: number, total: number): PageItem[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1)
+  }
+
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  const middle = Array.from({ length: end - start + 1 }, (_, index) => start + index)
+
+  return [
+    1,
+    ...(start > 2 ? (["ellipsis-start"] as const) : []),
+    ...middle,
+    ...(end < total - 1 ? (["ellipsis-end"] as const) : []),
+    total,
+  ]
+}
+
+function TablePagination({
+  page,
+  pageCount,
+  total,
+  onPageChange,
+}: {
+  page: number
+  pageCount: number
+  total: number
+  onPageChange: (page: number) => void
+}) {
+  const first = (page - 1) * PAGE_SIZE + 1
+  const last = Math.min(page * PAGE_SIZE, total)
+
+  // Links sem navegação real: a página vive no estado, não na URL.
+  const go = (target: number) => (event: React.MouseEvent) => {
+    event.preventDefault()
+    if (target >= 1 && target <= pageCount && target !== page) {
+      onPageChange(target)
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3">
+      <span className="text-sm text-muted-foreground tabular-nums">
+        Mostrando {first}–{last} de {total}
+      </span>
+
+      {pageCount > 1 ? (
+        <Pagination aria-label="Paginação das APACs" className="mx-0 w-auto">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                text="Anterior"
+                aria-label="Página anterior"
+                aria-disabled={page === 1}
+                className={cn(page === 1 && "pointer-events-none opacity-50")}
+                onClick={go(page - 1)}
+              />
+            </PaginationItem>
+            {getPageItems(page, pageCount).map((item) =>
+              typeof item === "number" ? (
+                <PaginationItem key={item}>
+                  <PaginationLink
+                    href="#"
+                    isActive={item === page}
+                    aria-label={`Página ${item}`}
+                    className="tabular-nums"
+                    onClick={go(item)}
+                  >
+                    {item}
+                  </PaginationLink>
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={item}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                text="Próxima"
+                aria-label="Próxima página"
+                aria-disabled={page === pageCount}
+                className={cn(page === pageCount && "pointer-events-none opacity-50")}
+                onClick={go(page + 1)}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      ) : null}
+    </div>
+  )
+}
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" })
 
@@ -70,6 +178,7 @@ export function ApacsTableCard({
   title = "APACs cadastradas",
   toolbar,
   onCreate,
+  pageResetKey,
 }: {
   apacs: Apac[]
   isPending: boolean
@@ -79,11 +188,26 @@ export function ApacsTableCard({
   toolbar?: React.ReactNode
   /** Quando presente, o estado vazio oferece o atalho de cadastro. */
   onCreate?: () => void
+  /** Quando muda (ex.: filtros), a paginação volta para a primeira página. */
+  pageResetKey?: string
 }) {
   const [selected, setSelected] = useState<Apac | null>(null)
   const [editing, setEditing] = useState<Apac | null>(null)
   const [deleting, setDeleting] = useState<Apac | null>(null)
   const { refetch, isFetching } = useApacs()
+  const [page, setPage] = useState(1)
+  const [lastResetKey, setLastResetKey] = useState(pageResetKey)
+
+  // Ajuste durante o render (sem `useEffect`): filtro novo volta para a página 1.
+  if (pageResetKey !== lastResetKey) {
+    setLastResetKey(pageResetKey)
+    setPage(1)
+  }
+
+  const pageCount = Math.max(1, Math.ceil(apacs.length / PAGE_SIZE))
+  // Se a lista encolher (exclusão, filtro), não fica numa página que não existe mais.
+  const currentPage = Math.min(page, pageCount)
+  const pageApacs = apacs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   return (
     <Card className="gap-0 pb-0">
@@ -174,7 +298,7 @@ export function ApacsTableCard({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {apacs.map((apac) => (
+                {pageApacs.map((apac) => (
                   // A linha inteira abre o detalhe; os botões de ação continuam acessíveis pelo teclado.
                   <TableRow key={apac.id} className="cursor-pointer" onClick={() => setSelected(apac)}>
                     <TableCell className="py-3 pl-5">
@@ -251,6 +375,10 @@ export function ApacsTableCard({
               </TableBody>
             </Table>
           </div>
+        ) : null}
+
+        {apacs.length > 0 ? (
+          <TablePagination page={currentPage} pageCount={pageCount} total={apacs.length} onPageChange={setPage} />
         ) : null}
       </CardContent>
 
