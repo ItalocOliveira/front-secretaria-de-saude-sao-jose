@@ -33,3 +33,6 @@ mock/uploads/
 .env
 .env.*
 !.env.example
+
+# Documentos temporários (contratos repassados pelo backend)
+.docs/temp/
