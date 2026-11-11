@@ -6,6 +6,7 @@ import type { ReportInterval } from "@/api/reports"
 import { useApacsReport } from "@/hooks/use-reports"
 import { printPage } from "@/lib/print"
 import {
+  REPORT_MAX_DAYS,
   acsLabel,
   buildReportRequest,
   formatReportDate,
@@ -22,7 +23,7 @@ import { ReportSummaryCards } from "@/components/reports/report-summary-cards"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -94,7 +95,13 @@ export function ReportsPage() {
             <FieldGroup className="grid gap-4 sm:grid-cols-[minmax(0,20rem)_auto]">
               <Field>
                 <FieldLabel htmlFor="report-period">Período</FieldLabel>
-                <DateRangePicker id="report-period" value={period} onValueChange={setPeriod} />
+                <DateRangePicker
+                  id="report-period"
+                  value={period}
+                  onValueChange={setPeriod}
+                  maxDays={REPORT_MAX_DAYS}
+                />
+                <FieldDescription>Até {REPORT_MAX_DAYS} dias.</FieldDescription>
               </Field>
 
               <Field>

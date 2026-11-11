@@ -125,3 +125,11 @@ export function resolveDestination(from: string | undefined, role: UserRole) {
 
   return home
 }
+
+/**
+ * Cargos que o perfil pode atribuir em `POST /users`. Hoje só `DEV` cria `DEV` — para os
+ * demais a API responde `403` ("Seu cargo não pode criar usuários com o cargo DEV.").
+ */
+export function creatableRolesFor(role: UserRole): readonly UserRole[] {
+  return role === "DEV" ? ALL_ROLES : ALL_ROLES.filter((candidate) => candidate !== "DEV")
+}

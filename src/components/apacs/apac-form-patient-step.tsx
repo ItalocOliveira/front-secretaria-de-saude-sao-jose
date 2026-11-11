@@ -4,6 +4,7 @@ import { formatCpf, onlyDigits } from "@/lib/utils"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { MAX_NAME_LENGTH } from "@/lib/field-limits"
 
 export function ApacFormPatientStep({
   values,
@@ -22,6 +23,7 @@ export function ApacFormPatientStep({
         </FieldLabel>
         <Input
           id="paciente-nome"
+          maxLength={MAX_NAME_LENGTH}
           autoComplete="name"
           placeholder="Digite o nome do paciente"
           aria-invalid={errors.has("name")}

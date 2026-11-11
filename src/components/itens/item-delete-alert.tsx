@@ -1,4 +1,5 @@
 import type { ItemDto } from "@/api/itens"
+import { ApiError } from "@/api/client"
 import { useDeleteItem } from "@/hooks/use-itens"
 import {
   AlertDialog,
@@ -38,6 +39,13 @@ export function ItemDeleteAlert({
         toast.add({ title: "Item excluído", description: `${item.name} foi removido do almoxarifado.` })
         close()
       },
+      onError: (deleteError) => {
+        // 404 = já não existe (excluído em outra aba, por ex.): aviso leve, a lista já foi invalidada.
+        if (deleteError instanceof ApiError && deleteError.status === 404) {
+          toast.add({ title: "Item já não existe", description: `${item.name} já havia sido excluído.` })
+          close()
+        }
+      },
     })
   }
 
@@ -48,7 +56,7 @@ export function ItemDeleteAlert({
           <AlertDialogTitle>{item === null ? "Excluir item?" : `Excluir "${item.name}"?`}</AlertDialogTitle>
           <AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription>
         </AlertDialogHeader>
-        {error === null ? null : (
+        {error === null || (error instanceof ApiError && error.status === 404) ? null : (
           <Alert variant="destructive">
             <AlertTitle>Não foi possível excluir</AlertTitle>
             <AlertDescription>{error.message}</AlertDescription>

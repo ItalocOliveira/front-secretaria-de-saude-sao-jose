@@ -1,5 +1,6 @@
 import type { ApacAcs, ApacPriority, ApacProcedure, ApacStatus } from "@/lib/apac"
 import { request } from "@/api/client"
+import { mapPage, toListQuery, type ListParams, type Paginated } from "@/api/pagination"
 
 /**
  * Objeto devolvido por `GET /apacs`, `POST /apacs` e `PATCH /apacs/:id`
@@ -92,9 +93,34 @@ export type CreateApacResult = {
   uploadUrl: string
 }
 
-export async function listApacs(signal?: AbortSignal) {
-  const data = await request<ApacDto[]>("/apacs", { signal })
-  return data.map(toApac)
+/** Valor de `municipality` que traz as APACs sem município (mesma chave do relatório). */
+export const MUNICIPALITY_NOT_INFORMED = "NAO_INFORMADO"
+
+/**
+ * Filtros extras de `GET /apacs`, além de `search`/`status`. Combinam entre si e o `total` da
+ * paginação considera todos.
+ */
+export type ApacListParams = ListParams<ApacStatus> & {
+  priority?: ApacPriority
+  /** Nome inteiro, sem diferenciar maiúsculas (acentos contam). `NAO_INFORMADO` = sem município. */
+  municipality?: string
+  /**
+   * `YYYY-MM-DD`, pela data de criação, no dia inteiro do horário da Paraíba (a API converte o
+   * fuso). Cada um funciona sozinho ("a partir de" / "até"); `startDate` depois de `endDate` → 400.
+   */
+  startDate?: string
+  endDate?: string
+}
+
+/**
+ * `GET /apacs` paginado, mais recentes primeiro. `search` filtra só pelo nome do paciente
+ * (CPF/CNS não são pesquisáveis — e nem devem ir para a URL).
+ */
+export async function listApacs(params: ApacListParams, signal?: AbortSignal) {
+  const { priority, municipality, startDate, endDate, ...list } = params
+  const query = toListQuery(list, { priority, municipality, startDate, endDate })
+  const page = await request<Paginated<ApacDto>>(`/apacs${query}`, { signal })
+  return mapPage(page, toApac)
 }
 
 export async function createApac(payload: CreateApacPayload): Promise<CreateApacResult> {
@@ -119,7 +145,7 @@ export async function updateApac(id: string, payload: UpdateApacPayload): Promis
   return toApac(data)
 }
 
-/** Sem 404 no contrato: se o `id` não existir, a API responde `500`. */
+/** `404` se o `id` não existir (ou for de outro município). */
 export async function deleteApac(id: string): Promise<void> {
   await request<undefined>(`/apacs/${id}`, { method: "DELETE" })
 }

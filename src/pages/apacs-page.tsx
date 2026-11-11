@@ -1,8 +1,10 @@
-import { useDeferredValue, useMemo, useState } from "react"
+import { useState } from "react"
 import { PlusIcon } from "lucide-react"
 
-import { EMPTY_FILTERS, matchesFilters, type ApacFiltersValue } from "@/lib/apac-filters"
+import { EMPTY_FILTERS, toApacListFilters, type ApacFiltersValue } from "@/lib/apac-filters"
 import { useApacs } from "@/hooks/use-apacs"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { useApacsReport } from "@/hooks/use-reports"
 import { AppHeader } from "@/components/layout/app-header"
 import { ApacFilters } from "@/components/apacs/apac-filters"
 import { ApacFlow } from "@/components/apacs/apac-flow"
@@ -12,20 +14,30 @@ import { ApacStats } from "@/components/apacs/apac-stats"
 import { Button } from "@/components/ui/button"
 
 const NO_APACS: never[] = []
+const PAGE_SIZE = 6
+/** Corpo vazio = mês atual; aqui só interessa o `countByStatus`, que ignora o período. */
+const STATS_REPORT_REQUEST = {}
 
 export function ApacsPage() {
-  const { data, isPending, error } = useApacs()
   const [filters, setFilters] = useState<ApacFiltersValue>(EMPTY_FILTERS)
+  const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
 
-  const apacs = data ?? NO_APACS
+  // Cada tecla viraria um `GET /apacs`: a busca só vai para a API depois de uma pausa.
+  const search = useDebouncedValue(filters.search)
+  const { data, isPending, isFetching, refetch, error } = useApacs({
+    page,
+    pageSize: PAGE_SIZE,
+    search,
+    ...toApacListFilters(filters),
+  })
+  const report = useApacsReport(STATS_REPORT_REQUEST)
 
-  // Filtrar não é urgente: mantém a digitação fluida quando a lista cresce.
-  const deferredFilters = useDeferredValue(filters)
-  const visibleApacs = useMemo(
-    () => apacs.filter((apac) => matchesFilters(apac, deferredFilters)),
-    [apacs, deferredFilters]
-  )
+  // Filtro novo sempre volta para a página 1 (a atual pode nem existir no resultado novo).
+  const changeFilters = (next: ApacFiltersValue) => {
+    setFilters(next)
+    setPage(1)
+  }
 
   const openForm = () => setFormOpen(true)
 
@@ -45,23 +57,29 @@ export function ApacsPage() {
           </Button>
         </div>
 
-        {/* Contagens sobre a lista completa, não sobre a filtrada: o card resume a
-            base, enquanto a tabela responde aos filtros. */}
+        {/* Contagens da base inteira (relatório), não da página: o card resume a base,
+            enquanto a tabela responde à busca. */}
         <ApacStats
-          apacs={apacs}
-          isPending={isPending}
+          countByStatus={report.data?.countByStatus}
+          isPending={report.isPending}
           activeStatus={filters.status}
-          onStatusChange={(status) => setFilters((current) => ({ ...current, status }))}
+          onStatusChange={(status) => changeFilters({ ...filters, status })}
         />
 
         <ApacsTableCard
-          apacs={visibleApacs}
+          apacs={data?.data ?? NO_APACS}
+          pagination={data?.pagination}
+          onPageChange={setPage}
           isPending={isPending}
+          isFetching={isFetching}
+          onRefresh={() => {
+            void refetch()
+            void report.refetch()
+          }}
           error={error}
           title="APACs"
-          toolbar={<ApacFilters value={filters} onValueChange={setFilters} />}
+          toolbar={<ApacFilters value={filters} onValueChange={changeFilters} />}
           onCreate={openForm}
-          pageResetKey={JSON.stringify(deferredFilters)}
         />
 
         <ApacFlow />

@@ -54,18 +54,16 @@ Elas usam as mesmas roles da coleção. Atenção: `PATCH /apacs/:id` aceita qua
 
 ### Query params
 
-As listagens são servidas pelo json-server, então aceitam filtro, ordenação e paginação:
+As listagens (`GET /apacs`, `/documents`, `/itens`, `/users`) seguem o contrato paginado da API real (`.docs/temp/MUDANCAS_CONTRATO_SEGURANCA.md`): respondem `{ data, pagination }` e aceitam só `page`, `pageSize` (1–100, padrão 50), `search` (nome) e `status` (em `/users`, filtra o `role`). `GET /apacs` aceita também `priority`, `municipality` (`NAO_INFORMADO` = sem município) e `startDate`/`endDate` (`YYYY-MM-DD`). Valor fora da regra → `400`.
 
 ```
-GET /apacs?status=PENDENTE
-GET /apacs?procedure=CONSULTA_EM_PEDIATRIA&priority=URGENTE
-GET /apacs?_sort=-created_at
-GET /apacs?_page=1&_per_page=10
+GET /apacs?page=2&pageSize=20
+GET /apacs?search=maria&status=PENDENTE
+GET /apacs?priority=URGENTE&municipality=Sapé&startDate=2026-11-01
+GET /users?status=RECEPCIONISTA
 ```
 
-Com `_page`, a resposta vem envelopada em `{ first, prev, next, last, pages, items, data }`.
-
-> `pdf_url` (ver seção abaixo) só aparece em `GET /apacs` e `GET /apacs/:id` **sem** query params — com filtro/ordenação/paginação a resposta vem do json-server puro, sem o campo injetado. Suficiente pra testar a tela, mas não é 100% fiel à API real nesse ponto.
+Ordem: mais recentes primeiro; usuários em ordem alfabética. `pdf_url`/`image_url` vêm em todos os itens.
 
 ### Upload e download de PDF
 

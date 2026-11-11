@@ -1,4 +1,3 @@
-import type { Apac } from "@/api/apacs"
 import { APAC_STATUS, type ApacStatus } from "@/lib/apac"
 import { ALL } from "@/lib/apac-filters"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -10,9 +9,8 @@ type Stat = {
 }
 
 /**
- * A API não tem endpoint de agregação, então os números são contados sobre a
- * lista já carregada. Se a listagem ganhar paginação no servidor, estes cards
- * passam a mostrar só a página atual — aí será preciso um `GET /apacs/stats`.
+ * Os números vêm de `countByStatus` do `POST /reports/apacs` (toda a base do município, sem
+ * filtro de data) — a listagem é paginada, então contar a página carregada estaria errado.
  */
 const STATS: Stat[] = [
   { label: "Total", status: ALL },
@@ -25,12 +23,13 @@ const STATS: Stat[] = [
 
 /** Cada card é também o filtro de status da tabela: um clique em vez de abrir um select. */
 export function ApacStats({
-  apacs,
+  countByStatus,
   isPending,
   activeStatus,
   onStatusChange,
 }: {
-  apacs: Apac[]
+  /** Chaves com 0 não vêm da API — ausência conta como 0. */
+  countByStatus: Record<string, number> | undefined
   isPending: boolean
   activeStatus: ApacStatus | typeof ALL
   onStatusChange: (status: ApacStatus | typeof ALL) => void
@@ -38,7 +37,10 @@ export function ApacStats({
   return (
     <section aria-label="Resumo por status" className="grid grid-cols-2 gap-3 *:min-w-0 sm:grid-cols-3 xl:grid-cols-6">
       {STATS.map((stat) => {
-        const value = stat.status === ALL ? apacs.length : apacs.filter((apac) => apac.status === stat.status).length
+        const value =
+          stat.status === ALL
+            ? Object.values(countByStatus ?? {}).reduce((sum, count) => sum + count, 0)
+            : (countByStatus?.[stat.status] ?? 0)
         const pressed = activeStatus === stat.status
 
         return (

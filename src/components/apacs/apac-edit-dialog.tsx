@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
+import { MAX_NAME_LENGTH } from "@/lib/field-limits"
 
 type FormValues = {
   name: string
@@ -127,6 +128,7 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
               <FieldLabel htmlFor="editar-nome">Nome completo</FieldLabel>
               <Input
                 id="editar-nome"
+                maxLength={MAX_NAME_LENGTH}
                 autoComplete="name"
                 value={current.name}
                 onChange={(event) => setValues({ ...current, name: event.target.value })}

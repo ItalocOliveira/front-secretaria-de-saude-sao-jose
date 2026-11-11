@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import { MAX_NAME_LENGTH, MAX_TEXT_LENGTH } from "@/lib/field-limits"
 
 const INITIAL_FORM = {
   name: "",
@@ -168,6 +169,7 @@ export function DocumentFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
                 <FieldLabel htmlFor="oficio-nome">Nome</FieldLabel>
                 <Input
                   id="oficio-nome"
+                  maxLength={MAX_NAME_LENGTH}
                   required
                   disabled={isPending}
                   aria-invalid={validating && nameMissing}
@@ -180,6 +182,7 @@ export function DocumentFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
                 <FieldLabel htmlFor="oficio-observacao">Observação</FieldLabel>
                 <Textarea
                   id="oficio-observacao"
+                  maxLength={MAX_TEXT_LENGTH}
                   disabled={isPending}
                   value={form.note}
                   onChange={(event) => patch({ note: event.target.value })}
@@ -224,6 +227,7 @@ export function DocumentFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
                   <FieldLabel htmlFor="oficio-outro-destino">Qual destino?</FieldLabel>
                   <Input
                     id="oficio-outro-destino"
+                    maxLength={MAX_NAME_LENGTH}
                     required
                     disabled={isPending}
                     aria-invalid={validating && otherDestinationMissing}

@@ -1,5 +1,7 @@
 import { SearchIcon, XIcon } from "lucide-react"
 
+import { MUNICIPALITY_NOT_INFORMED } from "@/api/apacs"
+import { MAX_SEARCH_LENGTH } from "@/api/pagination"
 import { MUNICIPALITIES } from "@/data/apacs-mock"
 import { APAC_PRIORITY_LABEL, APAC_PRIORITY_LIST, type ApacPriority } from "@/lib/apac"
 import { ALL, EMPTY_FILTERS, isFiltersDirty, type ApacFiltersValue } from "@/lib/apac-filters"
@@ -11,7 +13,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 /**
  * Barra de filtros em uma linha, dentro do bloco da tabela. Sem rótulos visíveis:
  * cada controle diz o que é pelo próprio valor ("Todas as prioridades"), e o rótulo
- * fica no `aria-label`. O status é filtrado pelos cards de indicador, não aqui.
+ * fica no `aria-label`. O status é filtrado pelos cards de indicador, não aqui. Tudo vai para
+ * a query string de `GET /apacs`; a busca é só pelo nome do paciente (CPF/CNS não são pesquisáveis).
  */
 export function ApacFilters({
   value,
@@ -32,8 +35,9 @@ export function ApacFilters({
         </InputGroupAddon>
         <InputGroupInput
           type="search"
-          aria-label="Buscar APAC"
-          placeholder="Buscar por paciente ou município"
+          aria-label="Buscar APAC pelo nome do paciente"
+          placeholder="Buscar pelo nome do paciente"
+          maxLength={MAX_SEARCH_LENGTH}
           value={value.search}
           onChange={(event) => patch({ search: event.target.value })}
         />
@@ -75,7 +79,13 @@ export function ApacFilters({
       >
         <SelectTrigger aria-label="Município" className="w-full sm:w-48">
           <SelectValue>
-            {(municipality: string) => (municipality === ALL ? "Todos os municípios" : municipality)}
+            {(municipality: string) =>
+              municipality === ALL
+                ? "Todos os municípios"
+                : municipality === MUNICIPALITY_NOT_INFORMED
+                  ? "Sem município"
+                  : municipality
+            }
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -86,6 +96,7 @@ export function ApacFilters({
                 {municipality}
               </SelectItem>
             ))}
+            <SelectItem value={MUNICIPALITY_NOT_INFORMED}>Sem município</SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>

@@ -29,10 +29,13 @@ export function DateRangePicker({
   id,
   value,
   onValueChange,
+  maxDays,
 }: {
   id?: string
   value: DateRange | undefined
   onValueChange: (range: DateRange | undefined) => void
+  /** Maior período aceito, contando o primeiro e o último dia. Escolher além disso recomeça a seleção. */
+  maxDays?: number
 }) {
   return (
     <Popover>
@@ -46,7 +49,16 @@ export function DateRangePicker({
       />
       <PopoverContent align="start" className="w-auto p-0">
         <Suspense fallback={<Skeleton className="h-72 w-64" />}>
-          <Calendar mode="range" locale={ptBR} numberOfMonths={1} selected={value} onSelect={onValueChange} autoFocus />
+          <Calendar
+            mode="range"
+            locale={ptBR}
+            numberOfMonths={1}
+            selected={value}
+            onSelect={onValueChange}
+            // `max` do react-day-picker conta a diferença entre as datas, não os dias incluídos.
+            max={maxDays === undefined ? undefined : maxDays - 1}
+            autoFocus
+          />
         </Suspense>
       </PopoverContent>
     </Popover>

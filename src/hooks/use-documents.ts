@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
   createDocument,
@@ -9,15 +9,18 @@ import {
   type UpdateDocumentPayload,
 } from "@/api/documents"
 import { ApiError } from "@/api/client"
+import type { ListParams } from "@/api/pagination"
+import type { DocumentStatus } from "@/lib/document"
 
 export const DOCUMENTS_QUERY_KEY = ["documents"] as const
 
 /** `enabled: false` para perfis sem `GET /documents` (`RECEPCIONISTA` só cria) — a API devolveria 403. */
-export function useDocuments({ enabled = true }: { enabled?: boolean } = {}) {
+export function useDocuments(params: ListParams<DocumentStatus>, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
-    queryKey: DOCUMENTS_QUERY_KEY,
-    queryFn: ({ signal }) => listDocuments(signal),
+    queryKey: [...DOCUMENTS_QUERY_KEY, params],
+    queryFn: ({ signal }) => listDocuments(params, signal),
     enabled,
+    placeholderData: keepPreviousData,
   })
 }
 

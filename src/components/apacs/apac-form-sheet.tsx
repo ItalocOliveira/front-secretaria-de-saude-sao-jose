@@ -205,7 +205,7 @@ export function ApacFormSheet({ open, onOpenChange }: { open: boolean; onOpenCha
               {createError === null ? null : (
                 <Alert variant="destructive">
                   <AlertTitle>Não foi possível cadastrar a APAC</AlertTitle>
-                  {/* Só a mensagem: o `details` do 500 pode trazer os dados do paciente. */}
+                  {/* Só a mensagem, nunca o corpo cru do erro (`ApiError.details`). */}
                   <AlertDescription>{createError.message}</AlertDescription>
                 </Alert>
               )}

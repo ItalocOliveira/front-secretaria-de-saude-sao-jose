@@ -1,3 +1,5 @@
+import { useState } from "react"
+
 import { canManageDocuments } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import { useDocuments } from "@/hooks/use-documents"
@@ -7,13 +9,17 @@ import { DocumentFormCard } from "@/components/documents/document-form-card"
 import { DocumentsTableCard } from "@/components/documents/documents-table-card"
 
 const NO_DOCUMENTS: never[] = []
+const PAGE_SIZE = 10
 
 export function DocumentsPage() {
   const { claims } = useSession()
   // `RECEPCIONISTA` só tem `POST /documents`: vê o formulário, mas não a lista (GET daria 403).
   const canManage = claims !== null && canManageDocuments(claims.role)
-  const { data, isPending, error } = useDocuments({ enabled: canManage })
-  const documents = data ?? NO_DOCUMENTS
+  const [page, setPage] = useState(1)
+  const { data, isPending, isFetching, refetch, error } = useDocuments(
+    { page, pageSize: PAGE_SIZE },
+    { enabled: canManage }
+  )
 
   return (
     <>
@@ -31,7 +37,17 @@ export function DocumentsPage() {
 
         <div className={cn("grid gap-4 *:min-w-0", canManage ? "xl:grid-cols-2" : "max-w-2xl")}>
           <DocumentFormCard />
-          {canManage ? <DocumentsTableCard documents={documents} isPending={isPending} error={error} /> : null}
+          {canManage ? (
+            <DocumentsTableCard
+              documents={data?.data ?? NO_DOCUMENTS}
+              pagination={data?.pagination}
+              onPageChange={setPage}
+              isPending={isPending}
+              isFetching={isFetching}
+              onRefresh={() => void refetch()}
+              error={error}
+            />
+          ) : null}
         </div>
       </div>
     </>

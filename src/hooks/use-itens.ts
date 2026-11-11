@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
   createItem,
@@ -10,13 +10,17 @@ import {
   type CreateItemMovementPayload,
   type UpdateItemPayload,
 } from "@/api/itens"
+import { ApiError } from "@/api/client"
+import type { ListParams } from "@/api/pagination"
+import type { ItemStatus } from "@/lib/itens"
 
 export const ITENS_QUERY_KEY = ["itens"] as const
 
-export function useItens() {
+export function useItens(params: ListParams<ItemStatus>) {
   return useQuery({
-    queryKey: ITENS_QUERY_KEY,
-    queryFn: ({ signal }) => listItens(signal),
+    queryKey: [...ITENS_QUERY_KEY, params],
+    queryFn: ({ signal }) => listItens(params, signal),
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -43,7 +47,11 @@ export function useDeleteItem() {
 
   return useMutation({
     mutationFn: (id: string) => deleteItem(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY }),
+    // `404`: o item já não existe — some da tabela do mesmo jeito.
+    onSettled: (_data, error) =>
+      error === null || (error instanceof ApiError && error.status === 404)
+        ? queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY })
+        : undefined,
   })
 }
 
