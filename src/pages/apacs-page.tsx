@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useRef, useState } from "react"
+import { useDeferredValue, useMemo, useState } from "react"
 import { PlusIcon } from "lucide-react"
 
 import { EMPTY_FILTERS, matchesFilters, type ApacFiltersValue } from "@/lib/apac-filters"
@@ -6,7 +6,7 @@ import { useApacs } from "@/hooks/use-apacs"
 import { AppHeader } from "@/components/layout/app-header"
 import { ApacFilters } from "@/components/apacs/apac-filters"
 import { ApacFlow } from "@/components/apacs/apac-flow"
-import { ApacFormCard } from "@/components/apacs/apac-form-card"
+import { ApacFormSheet } from "@/components/apacs/apac-form-sheet"
 import { ApacsTableCard } from "@/components/apacs/apacs-table-card"
 import { ApacStats } from "@/components/apacs/apac-stats"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ const NO_APACS: never[] = []
 export function ApacsPage() {
   const { data, isPending, error } = useApacs()
   const [filters, setFilters] = useState<ApacFiltersValue>(EMPTY_FILTERS)
-  const formRef = useRef<HTMLDivElement>(null)
+  const [formOpen, setFormOpen] = useState(false)
 
   const apacs = data ?? NO_APACS
 
@@ -27,23 +27,19 @@ export function ApacsPage() {
     [apacs, deferredFilters]
   )
 
-  const scrollToForm = () => {
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }
+  const openForm = () => setFormOpen(true)
 
   return (
     <>
       <AppHeader section="APACs" />
 
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-1 flex-col gap-6 p-4 md:p-7">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="font-heading text-xl font-medium">APACs</h1>
-            <p className="text-sm text-muted-foreground">
-              Autorizações de procedimentos ambulatoriais de alta complexidade.
-            </p>
+            <h1 className="font-heading text-[1.625rem] leading-tight font-bold tracking-tight">APACs</h1>
+            <p className="text-muted-foreground">Autorizações de procedimentos ambulatoriais de alta complexidade.</p>
           </div>
-          <Button className="hidden md:inline-flex" onClick={scrollToForm}>
+          <Button size="lg" className="hidden md:inline-flex" onClick={openForm}>
             <PlusIcon data-icon="inline-start" />
             Nova APAC
           </Button>
@@ -51,22 +47,31 @@ export function ApacsPage() {
 
         {/* Contagens sobre a lista completa, não sobre a filtrada: o card resume a
             base, enquanto a tabela responde aos filtros. */}
-        <ApacStats apacs={apacs} isPending={isPending} />
+        <ApacStats
+          apacs={apacs}
+          isPending={isPending}
+          activeStatus={filters.status}
+          onStatusChange={(status) => setFilters((current) => ({ ...current, status }))}
+        />
 
-        <ApacFilters value={filters} onValueChange={setFilters} resultCount={visibleApacs.length} />
-
-        <div className="grid gap-4 *:min-w-0 xl:grid-cols-2">
-          <ApacFormCard ref={formRef} />
-          <ApacsTableCard apacs={visibleApacs} isPending={isPending} error={error} />
-        </div>
+        <ApacsTableCard
+          apacs={visibleApacs}
+          isPending={isPending}
+          error={error}
+          title="APACs"
+          toolbar={<ApacFilters value={filters} onValueChange={setFilters} />}
+          onCreate={openForm}
+        />
 
         <ApacFlow />
       </div>
 
+      <ApacFormSheet open={formOpen} onOpenChange={setFormOpen} />
+
       <Button
         size="lg"
         className="fixed right-4 bottom-4 rounded-full shadow-lg md:hidden"
-        onClick={scrollToForm}
+        onClick={openForm}
         aria-label="Nova APAC"
       >
         <PlusIcon data-icon="inline-start" />

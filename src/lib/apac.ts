@@ -123,11 +123,11 @@ export const APAC_STATUS_LABEL: Record<ApacStatus, string> = {
 }
 
 /** Variante de `Badge` usada para cada status — só tokens semânticos. */
-export const APAC_STATUS_BADGE: Record<ApacStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  PENDENTE: "outline",
-  AGUARDO: "secondary",
-  APROVADO: "default",
-  CANCELADO: "outline",
+export const APAC_STATUS_BADGE: Record<ApacStatus, "default" | "success" | "warning" | "destructive"> = {
+  PENDENTE: "warning",
+  AGUARDO: "warning",
+  APROVADO: "success",
+  CANCELADO: "destructive",
   NEGADO: "destructive",
   ENTREGUE: "default",
 }

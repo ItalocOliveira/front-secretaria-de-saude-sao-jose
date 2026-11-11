@@ -1,3 +1,5 @@
+import { SignalHighIcon, SignalLowIcon } from "lucide-react"
+
 import {
   APAC_ACS_LABEL,
   APAC_ACS_LIST,
@@ -18,8 +20,8 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 export function ApacFormRequestStep({
   values,
@@ -33,7 +35,9 @@ export function ApacFormRequestStep({
   return (
     <FieldGroup>
       <Field data-invalid={errors.has("procedure")}>
-        <FieldLabel htmlFor="solicitacao-procedimento">Tipo de procedimento *</FieldLabel>
+        <FieldLabel htmlFor="solicitacao-procedimento">
+          Tipo de procedimento <span className="text-destructive">*</span>
+        </FieldLabel>
         <Combobox
           items={APAC_PROCEDURE_OPTIONS}
           value={APAC_PROCEDURE_OPTIONS.find((option) => option.value === values.procedure) ?? null}
@@ -58,7 +62,9 @@ export function ApacFormRequestStep({
       </Field>
 
       <Field data-invalid={errors.has("acs")}>
-        <FieldLabel htmlFor="solicitacao-acs">ACS responsável *</FieldLabel>
+        <FieldLabel htmlFor="solicitacao-acs">
+          ACS responsável <span className="text-destructive">*</span>
+        </FieldLabel>
         <Select
           value={values.acs || null}
           onValueChange={(acs: string | null) => onChange({ acs: (acs ?? "") as ApacAcs })}
@@ -82,21 +88,36 @@ export function ApacFormRequestStep({
       </Field>
 
       <FieldSet>
-        <FieldLegend variant="label">Prioridade *</FieldLegend>
-        <RadioGroup
-          className="grid-cols-2"
-          value={values.priority}
-          onValueChange={(priority) => onChange({ priority: priority as ApacPriority })}
+        <FieldLegend variant="label">
+          Prioridade <span className="text-destructive">*</span>
+        </FieldLegend>
+        {/* Só duas opções: lado a lado é mais rápido que abrir uma lista. */}
+        <ToggleGroup
+          variant="outline"
+          spacing={2}
+          className="grid w-full grid-cols-2"
+          value={[values.priority]}
+          onValueChange={(next: string[]) => {
+            const priority = next.at(0)
+            if (priority) {
+              onChange({ priority: priority as ApacPriority })
+            }
+          }}
         >
-          {APAC_PRIORITY_LIST.map((priority) => (
-            <FieldLabel key={priority} htmlFor={`prioridade-${priority}`}>
-              <Field orientation="horizontal">
-                <RadioGroupItem id={`prioridade-${priority}`} value={priority} />
+          {APAC_PRIORITY_LIST.map((priority) => {
+            const Icon = priority === "URGENTE" ? SignalHighIcon : SignalLowIcon
+            return (
+              <ToggleGroupItem
+                key={priority}
+                value={priority}
+                className="h-11 gap-2 aria-pressed:border-primary aria-pressed:bg-primary/15 aria-pressed:font-semibold aria-pressed:text-foreground"
+              >
+                <Icon />
                 {APAC_PRIORITY_LABEL[priority]}
-              </Field>
-            </FieldLabel>
-          ))}
-        </RadioGroup>
+              </ToggleGroupItem>
+            )
+          })}
+        </ToggleGroup>
       </FieldSet>
     </FieldGroup>
   )

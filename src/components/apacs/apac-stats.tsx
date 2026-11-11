@@ -1,16 +1,12 @@
-import { CheckCircle2Icon, ClockIcon, FileTextIcon, PackageCheckIcon, SearchCheckIcon, XCircleIcon } from "lucide-react"
-
 import type { Apac } from "@/api/apacs"
 import { APAC_STATUS, type ApacStatus } from "@/lib/apac"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ALL } from "@/lib/apac-filters"
 import { Skeleton } from "@/components/ui/skeleton"
 
 type Stat = {
   label: string
-  hint: string
-  icon: typeof FileTextIcon
-  /** Ausente = total geral. */
-  status?: ApacStatus
+  /** `ALL` = total geral (e limpa o filtro de status). */
+  status: ApacStatus | typeof ALL
 }
 
 /**
@@ -19,40 +15,49 @@ type Stat = {
  * passam a mostrar só a página atual — aí será preciso um `GET /apacs/stats`.
  */
 const STATS: Stat[] = [
-  { label: "Total de APACs", hint: "Cadastradas na base", icon: FileTextIcon },
-  { label: "Pendentes", hint: "Aguardando ação", icon: ClockIcon, status: APAC_STATUS.PENDENTE },
-  { label: "Em análise", hint: "Com a regulação", icon: SearchCheckIcon, status: APAC_STATUS.AGUARDO },
-  { label: "Aprovadas", hint: "Liberadas", icon: CheckCircle2Icon, status: APAC_STATUS.APROVADO },
-  { label: "Negadas", hint: "Recusadas", icon: XCircleIcon, status: APAC_STATUS.NEGADO },
-  { label: "Entregues", hint: "Procedimento realizado", icon: PackageCheckIcon, status: APAC_STATUS.ENTREGUE },
+  { label: "Total", status: ALL },
+  { label: "Pendentes", status: APAC_STATUS.PENDENTE },
+  { label: "Em análise", status: APAC_STATUS.AGUARDO },
+  { label: "Aprovadas", status: APAC_STATUS.APROVADO },
+  { label: "Negadas", status: APAC_STATUS.NEGADO },
+  { label: "Entregues", status: APAC_STATUS.ENTREGUE },
 ]
 
-export function ApacStats({ apacs, isPending }: { apacs: Apac[]; isPending: boolean }) {
+/** Cada card é também o filtro de status da tabela: um clique em vez de abrir um select. */
+export function ApacStats({
+  apacs,
+  isPending,
+  activeStatus,
+  onStatusChange,
+}: {
+  apacs: Apac[]
+  isPending: boolean
+  activeStatus: ApacStatus | typeof ALL
+  onStatusChange: (status: ApacStatus | typeof ALL) => void
+}) {
   return (
-    <div className="grid gap-4 *:min-w-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <section aria-label="Resumo por status" className="grid grid-cols-2 gap-3 *:min-w-0 sm:grid-cols-3 xl:grid-cols-6">
       {STATS.map((stat) => {
-        const value =
-          stat.status === undefined ? apacs.length : apacs.filter((apac) => apac.status === stat.status).length
+        const value = stat.status === ALL ? apacs.length : apacs.filter((apac) => apac.status === stat.status).length
+        const pressed = activeStatus === stat.status
 
         return (
-          <Card key={stat.label} size="sm">
-            <CardHeader>
-              <CardDescription>{stat.label}</CardDescription>
-              <CardTitle className="text-2xl tabular-nums">
-                {isPending ? <Skeleton className="h-7 w-10" /> : value.toString().padStart(2, "0")}
-              </CardTitle>
-              <CardAction>
-                <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <stat.icon className="size-4" />
-                </div>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <span className="text-xs text-muted-foreground">{stat.hint}</span>
-            </CardContent>
-          </Card>
+          <button
+            key={stat.label}
+            type="button"
+            aria-pressed={pressed}
+            onClick={() => onStatusChange(pressed ? ALL : stat.status)}
+            className="flex flex-col gap-1.5 rounded-xl bg-card px-4 pt-3.5 pb-4 text-left text-card-foreground ring-1 ring-foreground/10 transition-colors outline-none hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-pressed:bg-primary/10 aria-pressed:ring-2 aria-pressed:ring-primary"
+          >
+            <span className="text-[0.8125rem] font-medium text-muted-foreground">{stat.label}</span>
+            {isPending ? (
+              <Skeleton className="h-7.5 w-10" />
+            ) : (
+              <span className="text-3xl leading-none font-bold tracking-tight tabular-nums">{value}</span>
+            )}
+          </button>
         )
       })}
-    </div>
+    </section>
   )
 }
