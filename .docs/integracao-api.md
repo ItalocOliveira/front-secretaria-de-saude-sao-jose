@@ -103,11 +103,13 @@ Detalhes em `src/lib/session.ts`:
 
 `POST /apacs` devolve `{ apac, uploadUrl }`. O backend nunca recebe o PDF — o front faz um `PUT` direto para `uploadUrl` (presigned do Cloudflare R2, válida por **15 min**) com o binário do arquivo, sem `Authorization` e sem passar por `request()` (`uploadApacPdf` em `src/api/apacs.ts` usa `fetch` cru de propósito). O objeto é salvo no bucket como `apacs/<id>.pdf`.
 
-Se o `PUT` falhar (link expirado, rede caiu), a APAC **já existe** — o form (`ApacFormCard`) não repete o `POST`, só oferece reenviar o mesmo arquivo pra mesma `uploadUrl`. Não há endpoint pra regerar a URL isoladamente; se ela já expirou, o reenvio falha de novo e hoje não há recuperação pela UI.
+O `PUT` leva `Content-Type: application/pdf` (obrigatório: a URL é assinada com ele) e, depois dele, o front **sempre** chama `POST /apacs/:id/pdf/confirm` — a API confere o arquivo no bucket e marca `has_pdf: true` (`409` se não chegou). Fluxo inteiro em `attachApacPdf` / `useAttachApacPdf`. Contrato em [temp/CONTRATO_PDF_APACS.md](temp/CONTRATO_PDF_APACS.md).
+
+Se o envio falhar (link expirado, rede caiu), a APAC **já existe** — o form (`ApacFormSheet`) não repete o `POST`; o reenvio pede uma URL nova (`POST /apacs/:id/pdf/upload-url`), então nem um link expirado trava. A mesma rota permite anexar ou substituir o PDF de uma APAC já cadastrada, pelo botão "Anexar PDF" / "Substituir PDF" do `ApacEditDialog`.
 
 **CORS do bucket**: o `PUT` sai do navegador direto pro R2, então o bucket precisa de uma CORS Policy própria (separada da API) liberando a origem do front, método `PUT` (e `GET`, pro download) e o header `content-type` — sem isso o preflight falha com `blocked by CORS policy` e o front cai no mesmo tratamento de erro de rede (não dá pra distinguir os dois no `catch`). Configuração é no painel do bucket (R2 → bucket → Settings → CORS Policy), não no código.
 
-`GET /apacs` também devolve um `pdf_url` (presigned de download, válido por 1h, gerado a cada chamada, mesmo que nenhum PDF tenha sido enviado ainda) em cada item — tipado como opcional em `ApacDto`/`Apac`. `ApacsTableCard` e `ApacDetailsDialog` mostram um botão "Ver PDF" que abre `pdfUrl` em nova aba (`target="_blank"`) sempre que o campo vier preenchido; o navegador renderiza o PDF nativamente, então o front não precisa de viewer, download ou impressão próprios.
+`GET /apacs` também devolve um `pdf_url` (presigned de download, válido por 1h, gerado a cada chamada, mesmo que nenhum PDF tenha sido enviado ainda) em cada item — sem PDF o link dá 404, então quem decide é `has_pdf`: `toApac` só preenche `pdfUrl` quando `has_pdf` é `true`. `ApacsTableCard` e `ApacDetailsDialog` mostram um botão "Ver PDF" que abre `pdfUrl` em nova aba (`target="_blank"`) quando há PDF; o navegador renderiza o PDF nativamente, então o front não precisa de viewer, download ou impressão próprios.
 
 ## O que está integrado
 
@@ -127,12 +129,11 @@ Rotas são guardadas por autenticação (`RequireAuth`) e por perfil (`RequireRo
 
 O que a UI precisaria e a API não oferece. Nada disso foi simulado com dado falso — os campos foram **removidos** da tela em vez de coletados e descartados em silêncio.
 
-| Lacuna                                                          | Impacto                                                                                                                    |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `GET /auth/me` não devolve `name`                               | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                                  |
-| Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade | Campos removidos do formulário — `procedure` é texto livre, mas continua sem esses campos dedicados.                       |
-| Sem endpoint pra regerar `uploadUrl` isoladamente               | Se o `PUT` pro R2 falhar após os 15 min de validade, não há como recuperar o envio pela UI — só reenviar antes de expirar. |
-| Listagens paginadas, sem agregação                              | Os cards de status da tela de APACs vêm de `countByStatus` do `POST /reports/apacs`, não do tamanho da página.             |
+| Lacuna                                                          | Impacto                                                                                                        |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `GET /auth/me` não devolve `name`                               | O menu do usuário mostra o perfil (Regulador, Diretor…) no lugar do nome.                                      |
+| Sem nº da APAC, código SIGTAP, CID, médico solicitante, unidade | Campos removidos do formulário — `procedure` é texto livre, mas continua sem esses campos dedicados.           |
+| Listagens paginadas, sem agregação                              | Os cards de status da tela de APACs vêm de `countByStatus` do `POST /reports/apacs`, não do tamanho da página. |
 
 Ainda mockada, por não existir no contrato: a lista de municípios (ver `src/data/apacs-mock.ts`).
 

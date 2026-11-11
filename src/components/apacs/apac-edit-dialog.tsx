@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { CheckIcon } from "lucide-react"
+import { useRef, useState, type ChangeEvent } from "react"
+import { CheckIcon, ExternalLinkIcon, FileTextIcon, FileUpIcon } from "lucide-react"
 
 import type { Apac, UpdateApacPayload } from "@/api/apacs"
 import { MUNICIPALITIES } from "@/data/apacs-mock"
@@ -12,9 +12,18 @@ import {
   type ApacProcedure,
   type ApacStatus,
 } from "@/lib/apac"
-import { useUpdateApac } from "@/hooks/use-apacs"
+import { APAC_PDF_MIME } from "@/lib/apac-form"
+import { useAttachApacPdf, useUpdateApac } from "@/hooks/use-apacs"
 import { ApacProcedureCombobox } from "@/components/apacs/apac-procedure-combobox"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Attachment,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -25,7 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
@@ -64,15 +73,55 @@ function diffPayload(apac: Apac, values: FormValues): UpdateApacPayload {
 
 export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOpenChange: (open: boolean) => void }) {
   const [values, setValues] = useState<FormValues | null>(null)
-  const { mutate: updateApac, isPending, error, reset } = useUpdateApac()
+  const pdfInputRef = useRef<HTMLInputElement>(null)
+  const { mutate: updateApac, isPending: saving, error, reset } = useUpdateApac()
+  const {
+    mutate: attachPdf,
+    isPending: uploadingPdf,
+    error: pdfError,
+    data: attachedApac,
+    reset: resetAttachPdf,
+  } = useAttachApacPdf()
+
+  const isPending = saving || uploadingPdf
 
   // Deriva do `apac` recebido, mas permite o usuário digitar por cima — sem `useEffect`.
   const current = values ?? (apac === null ? null : toFormValues(apac))
 
+  // O `apac` recebido é um retrato de quando o diálogo abriu; depois do `confirm`, vale a resposta dele.
+  const pdfSource = attachedApac !== undefined && attachedApac.id === apac?.id ? attachedApac : apac
+  const hasPdf = pdfSource?.hasPdf === true
+
   const close = () => {
     reset()
+    resetAttachPdf()
     setValues(null)
     onOpenChange(false)
+  }
+
+  // O PDF é enviado assim que escolhido (`upload-url` → `PUT` no R2 → `confirm`), independente do "Salvar".
+  const handlePdfChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null
+    event.target.value = ""
+    if (apac === null || file === null) {
+      return
+    }
+    if (file.type !== APAC_PDF_MIME) {
+      toast.add({ title: "Arquivo inválido", description: "Selecione um arquivo PDF." })
+      return
+    }
+
+    const replacing = hasPdf
+    attachPdf(
+      { id: apac.id, file },
+      {
+        onSuccess: () =>
+          toast.add({
+            title: replacing ? "PDF substituído" : "PDF anexado",
+            description: `Documento da APAC de ${apac.name} enviado com sucesso.`,
+          }),
+      }
+    )
   }
 
   const submit = () => {
@@ -103,7 +152,7 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
         <DialogHeader>
           <DialogTitle>Editar APAC</DialogTitle>
           <DialogDescription>
-            Só nome, ACS, procedimento, município e situação podem ser alterados por aqui.
+            Só nome, ACS, procedimento, município, situação e o PDF podem ser alterados por aqui.
           </DialogDescription>
         </DialogHeader>
 
@@ -207,6 +256,54 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
                   </SelectGroup>
                 </SelectContent>
               </Select>
+            </Field>
+
+            <Field data-disabled={isPending || undefined}>
+              <FieldLabel htmlFor="editar-pdf">Documento (PDF)</FieldLabel>
+              {pdfError === null ? null : (
+                <Alert variant="destructive">
+                  <AlertTitle>Não foi possível enviar o PDF</AlertTitle>
+                  <AlertDescription>{pdfError.message}</AlertDescription>
+                </Alert>
+              )}
+              <Attachment className="w-full" state={uploadingPdf ? "uploading" : hasPdf ? "done" : "idle"}>
+                <AttachmentMedia>{uploadingPdf ? <Spinner /> : <FileTextIcon />}</AttachmentMedia>
+                <AttachmentContent>
+                  <AttachmentTitle>
+                    {uploadingPdf ? "Enviando PDF…" : hasPdf ? "PDF anexado" : "Sem PDF"}
+                  </AttachmentTitle>
+                  <AttachmentDescription>
+                    {hasPdf ? "Enviar outro arquivo substitui o atual." : "Esta APAC ainda não tem documento."}
+                  </AttachmentDescription>
+                </AttachmentContent>
+                <AttachmentActions className="gap-1">
+                  {hasPdf && pdfSource?.pdfUrl ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      render={<a href={pdfSource.pdfUrl} target="_blank" rel="noopener noreferrer" />}
+                    >
+                      <ExternalLinkIcon data-icon="inline-start" />
+                      Ver
+                    </Button>
+                  ) : null}
+                  <Button variant="outline" size="sm" disabled={isPending} onClick={() => pdfInputRef.current?.click()}>
+                    <FileUpIcon data-icon="inline-start" />
+                    {hasPdf ? "Substituir PDF" : "Anexar PDF"}
+                  </Button>
+                </AttachmentActions>
+              </Attachment>
+              <input
+                ref={pdfInputRef}
+                id="editar-pdf"
+                type="file"
+                accept={APAC_PDF_MIME}
+                className="sr-only"
+                tabIndex={-1}
+                disabled={isPending}
+                onChange={handlePdfChange}
+              />
+              <FieldDescription>Enviado na hora, sem precisar clicar em Salvar.</FieldDescription>
             </Field>
           </FieldGroup>
         )}

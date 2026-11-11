@@ -3,7 +3,7 @@ import { CheckIcon } from "lucide-react"
 
 import { getStepErrors, INITIAL_APAC_FORM, toCreateApacPayload, type ApacFormValues } from "@/lib/apac-form"
 import { cn } from "@/lib/utils"
-import { useCreateApac, useUploadApacPdf } from "@/hooks/use-apacs"
+import { useAttachApacPdf, useCreateApac } from "@/hooks/use-apacs"
 import { ApacFormPatientStep } from "@/components/apacs/apac-form-patient-step"
 import { ApacFormRequestStep } from "@/components/apacs/apac-form-request-step"
 import { ApacFormReviewStep } from "@/components/apacs/apac-form-review-step"
@@ -23,11 +23,11 @@ const LAST_STEP = STEPS.length
 const NO_ERRORS: Set<string> = new Set()
 
 /**
- * APAC já criada, mas o `PUT` pro R2 falhou (link expirado, rede caiu no meio do
- * envio...). Guarda só o necessário pra reenviar sem recriar o registro — não há
- * endpoint pra regerar a `uploadUrl` isoladamente.
+ * APAC já criada, mas o envio do PDF falhou (`PUT` no R2 ou `confirm`). Guarda só o
+ * necessário pra reenviar sem recriar o registro — o reenvio pede uma `uploadUrl` nova
+ * (`POST /apacs/:id/pdf/upload-url`), então nem um link expirado trava.
  */
-type PendingUpload = { uploadUrl: string; file: File; apacName: string }
+type PendingUpload = { apacId: string; file: File; apacName: string }
 
 /**
  * Indicador único de etapas (concluída / atual / pendente). Não é clicável: o
@@ -76,7 +76,7 @@ export function ApacFormSheet({ open, onOpenChange }: { open: boolean; onOpenCha
   const [validating, setValidating] = useState(false)
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null)
   const { mutate: createApac, isPending: creating, error: createError, reset: resetCreateMutation } = useCreateApac()
-  const { mutate: uploadPdf, isPending: uploading, error: uploadError, reset: resetUploadMutation } = useUploadApacPdf()
+  const { mutate: uploadPdf, isPending: uploading, error: uploadError, reset: resetUploadMutation } = useAttachApacPdf()
 
   const isPending = creating || uploading
 
@@ -133,8 +133,9 @@ export function ApacFormSheet({ open, onOpenChange }: { open: boolean; onOpenCha
           return
         }
 
+        const file = values.pdfFile
         uploadPdf(
-          { uploadUrl, file: values.pdfFile },
+          { id: apac.id, file, uploadUrl },
           {
             onSuccess: () => {
               toast.add({
@@ -144,7 +145,7 @@ export function ApacFormSheet({ open, onOpenChange }: { open: boolean; onOpenCha
               finish()
             },
             // APAC já existe — não recriar. Guarda o arquivo pra permitir só o reenvio do PUT.
-            onError: () => setPendingUpload({ uploadUrl, file: values.pdfFile as File, apacName: apac.name }),
+            onError: () => setPendingUpload({ apacId: apac.id, file, apacName: apac.name }),
           }
         )
       },
@@ -155,7 +156,7 @@ export function ApacFormSheet({ open, onOpenChange }: { open: boolean; onOpenCha
     if (pendingUpload === null) return
 
     uploadPdf(
-      { uploadUrl: pendingUpload.uploadUrl, file: pendingUpload.file },
+      { id: pendingUpload.apacId, file: pendingUpload.file },
       {
         onSuccess: () => {
           toast.add({
@@ -171,7 +172,7 @@ export function ApacFormSheet({ open, onOpenChange }: { open: boolean; onOpenCha
   const dismissPendingUpload = () => {
     toast.add({
       title: "APAC cadastrada sem o PDF",
-      description: "Você pode anexar o documento depois, quando o reenvio estiver disponível.",
+      description: "Você pode anexar o documento depois, pelo Editar da APAC.",
     })
     finish()
   }
