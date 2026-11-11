@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/layout/app-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -45,7 +45,6 @@ export function UsersPage() {
         <Card>
           <CardHeader>
             <CardTitle>Contas cadastradas</CardTitle>
-            <CardDescription>Dados vindos de GET /users.</CardDescription>
           </CardHeader>
 
           <CardContent>

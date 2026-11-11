@@ -94,7 +94,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 
 ## Poderes — Roles de usuários
 
-> Matriz completa (inclui almoxarifado, documentos e relatório): [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md). `DEV`, `DIRETOR`, `SECRETARIO`, `REGULADOR` e `COORDENADOR` acessam tudo; `RECEPCIONISTA` não acessa almoxarifado, documentos nem `/auth/admin`.
+> Matriz completa (inclui almoxarifado, documentos e relatório): [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md). `DEV`, `DIRETOR`, `SECRETARIO`, `REGULADOR` e `COORDENADOR` acessam tudo; `RECEPCIONISTA` só acessa `POST /documents`, `POST`/`GET /apacs`, `PATCH /apacs/:id` e `POST /reports/apacs`.
 
 ### Usuários (`/users`)
 
@@ -105,7 +105,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 | `SECRETARIO`    |  ✅   |   ✅   |   —    |    —    |
 | `REGULADOR`     |  ✅   |   ✅   |   —    |    —    |
 | `COORDENADOR`   |  ✅   |   ✅   |   —    |    —    |
-| `RECEPCIONISTA` |  ✅   |   ✅   |   —    |    —    |
+| `RECEPCIONISTA` |  ❌   |   ❌   |   —    |    —    |
 
 ### APACs (`/apacs`)
 
@@ -116,7 +116,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 | `SECRETARIO`    |  ✅   |   ✅   |   ✅   |   ✅    |
 | `REGULADOR`     |  ✅   |   ✅   |   ✅   |   ✅    |
 | `COORDENADOR`   |  ✅   |   ✅   |   ✅   |   ✅    |
-| `RECEPCIONISTA` |  ✅   |   ✅   |   ✅   |   ✅    |
+| `RECEPCIONISTA` |  ✅   |   ✅   |   ✅   |   ❌    |
 
 > ✅ = implementado · ❌ = sem permissão · — = requisito previsto, ainda não implementado
 
@@ -153,22 +153,23 @@ O token JWT é obtido em `POST /auth/login` e expira em **1 hora**.
 
 ## Resumo de permissões
 
-| Endpoint                                       | Método | Autenticação | Roles permitidas              |
-| ---------------------------------------------- | ------ | ------------ | ----------------------------- |
-| `/auth/login`                                  | POST   | Não          | Público                       |
-| `/auth/me`                                     | GET    | Sim          | Qualquer role autenticada     |
-| `/auth/admin`                                  | GET    | Sim          | Todos, exceto `RECEPCIONISTA` |
-| `/users`                                       | POST   | Sim          | Todos os cargos               |
-| `/users`                                       | GET    | Sim          | Todos os cargos               |
-| `/apacs`                                       | POST   | Sim          | Todos os cargos               |
-| `/apacs`                                       | GET    | Sim          | Todos os cargos               |
-| `/apacs/:id`                                   | PATCH  | Sim          | Todos os cargos               |
-| `/apacs/:id`                                   | DELETE | Sim          | Todos os cargos               |
-| `/reports/apacs`                               | POST   | Sim          | Todos os cargos               |
-| `/itens`, `/itens/:id`, `/itens/:id/movements` | todos  | Sim          | Todos, exceto `RECEPCIONISTA` |
-| `/documents`, `/documents/:id`                 | todos  | Sim          | Todos, exceto `RECEPCIONISTA` |
+| Endpoint                                       | Método             | Autenticação | Roles permitidas              |
+| ---------------------------------------------- | ------------------ | ------------ | ----------------------------- |
+| `/auth/login`                                  | POST               | Não          | Público                       |
+| `/auth/me`                                     | GET                | Sim          | Qualquer role autenticada     |
+| `/auth/admin`                                  | GET                | Sim          | Todos, exceto `RECEPCIONISTA` |
+| `/users`                                       | POST               | Sim          | Todos, exceto `RECEPCIONISTA` |
+| `/users`                                       | GET                | Sim          | Todos, exceto `RECEPCIONISTA` |
+| `/apacs`                                       | POST               | Sim          | Todos os cargos               |
+| `/apacs`                                       | GET                | Sim          | Todos os cargos               |
+| `/apacs/:id`                                   | PATCH              | Sim          | Todos os cargos               |
+| `/apacs/:id`                                   | DELETE             | Sim          | Todos, exceto `RECEPCIONISTA` |
+| `/reports/apacs`                               | POST               | Sim          | Todos os cargos               |
+| `/itens`, `/itens/:id`, `/itens/:id/movements` | todos              | Sim          | Todos, exceto `RECEPCIONISTA` |
+| `/documents`                                   | POST               | Sim          | Todos os cargos               |
+| `/documents`, `/documents/:id`                 | GET, PATCH, DELETE | Sim          | Todos, exceto `RECEPCIONISTA` |
 
-> **Nota:** cada módulo libera todas as suas rotas — não existe cargo que só lista. Qualquer cargo com acesso a `POST /users` pode criar usuário de **qualquer** cargo, inclusive `DEV` (a API ainda não limita). Detalhes em [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md).
+> **Nota:** o `RECEPCIONISTA` tem acesso por rota (cria/lista/edita APAC, cria ofício, gera relatório); os demais cargos acessam todas. Qualquer cargo com acesso a `POST /users` pode criar usuário de **qualquer** cargo, inclusive `DEV` (a API ainda não limita). Detalhes em [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md).
 
 ---
 
@@ -553,4 +554,4 @@ Exclui uma APAC.
 | `SECRETARIO`        |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
 | `REGULADOR`         |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
 | `COORDENADOR`       |  ✅   |           ✅            |          ✅           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
-| `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ✅       |       ✅        |     ✅     |      ✅      |     ✅      |      ✅      |
+| `RECEPCIONISTA`     |  ✅   |           ✅            |          ❌           |      ❌       |       ❌        |     ✅     |      ✅      |     ✅      |      ❌      |

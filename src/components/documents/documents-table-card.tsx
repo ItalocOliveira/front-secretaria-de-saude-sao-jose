@@ -12,7 +12,7 @@ import { DocumentEditDialog } from "@/components/documents/document-edit-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -59,7 +59,6 @@ export function DocumentsTableCard({
           Ofícios cadastrados
           {isPending ? null : <Badge variant="secondary">{documents.length}</Badge>}
         </CardTitle>
-        <CardDescription>Documentos retornados por GET /documents.</CardDescription>
         <CardAction className="flex items-center gap-1">
           {hasMore ? (
             <Button variant="ghost" size="sm" onClick={() => setShowAll((current) => !current)}>

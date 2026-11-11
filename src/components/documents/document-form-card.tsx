@@ -153,7 +153,6 @@ export function DocumentFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-(--card-spacing)">
           <CardHeader>
             <CardTitle>Cadastro de novo ofício</CardTitle>
-            <CardDescription>Cria um documento via POST /documents.</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -175,7 +174,6 @@ export function DocumentFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
                   value={form.name}
                   onChange={(event) => patch({ name: event.target.value })}
                 />
-                <FieldDescription>Salvo em maiúsculas pela API.</FieldDescription>
               </Field>
 
               <Field>
@@ -273,10 +271,7 @@ export function DocumentFormCard({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
                     </AttachmentActions>
                   </Attachment>
                 )}
-                <FieldDescription>
-                  Opcional. Enviado direto para o armazenamento depois que o ofício for cadastrado — não passa pelo
-                  backend.
-                </FieldDescription>
+                <FieldDescription>Opcional.</FieldDescription>
               </Field>
             </FieldGroup>
           </CardContent>

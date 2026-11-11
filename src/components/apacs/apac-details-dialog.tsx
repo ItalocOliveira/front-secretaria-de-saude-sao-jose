@@ -54,7 +54,8 @@ export function ApacDetailsDialog({
   apac: Apac | null
   onOpenChange: (open: boolean) => void
   onEdit: (apac: Apac) => void
-  onDelete: (apac: Apac) => void
+  /** Omitido quando o perfil não pode excluir (`canDeleteApacs`) — o botão some. */
+  onDelete?: (apac: Apac) => void
 }) {
   return (
     <Dialog open={apac !== null} onOpenChange={onOpenChange}>
@@ -87,7 +88,7 @@ export function ApacDetailsDialog({
 
         <DialogFooter>
           <DialogClose render={<Button variant="outline">Fechar</Button>} />
-          {apac === null ? null : (
+          {apac === null || onDelete === undefined ? null : (
             <Button variant="destructive" onClick={() => onDelete(apac)}>
               <Trash2Icon data-icon="inline-start" />
               Excluir

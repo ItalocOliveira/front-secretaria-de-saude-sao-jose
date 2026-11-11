@@ -18,8 +18,10 @@ import {
   APAC_STATUS_LABEL,
   type ApacPriority,
 } from "@/lib/apac"
+import { canDeleteApacs } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import { useApacs } from "@/hooks/use-apacs"
+import { useSession } from "@/hooks/use-session"
 import { ApacDeleteAlert } from "@/components/apacs/apac-delete-alert"
 import { ApacDetailsDialog } from "@/components/apacs/apac-details-dialog"
 import { ApacEditDialog } from "@/components/apacs/apac-edit-dialog"
@@ -194,6 +196,8 @@ export function ApacsTableCard({
   const [selected, setSelected] = useState<Apac | null>(null)
   const [editing, setEditing] = useState<Apac | null>(null)
   const [deleting, setDeleting] = useState<Apac | null>(null)
+  const { claims } = useSession()
+  const canDelete = claims !== null && canDeleteApacs(claims.role)
   const { refetch, isFetching } = useApacs()
   const [page, setPage] = useState(1)
   const [lastResetKey, setLastResetKey] = useState(pageResetKey)
@@ -389,13 +393,19 @@ export function ApacsTableCard({
           setSelected(null)
           setEditing(apac)
         }}
-        onDelete={(apac) => {
-          setSelected(null)
-          setDeleting(apac)
-        }}
+        onDelete={
+          canDelete
+            ? (apac) => {
+                setSelected(null)
+                setDeleting(apac)
+              }
+            : undefined
+        }
       />
       <ApacEditDialog apac={editing} onOpenChange={(open) => (open ? null : setEditing(null))} />
-      <ApacDeleteAlert apac={deleting} onOpenChange={(open) => (open ? null : setDeleting(null))} />
+      {canDelete ? (
+        <ApacDeleteAlert apac={deleting} onOpenChange={(open) => (open ? null : setDeleting(null))} />
+      ) : null}
     </Card>
   )
 }
