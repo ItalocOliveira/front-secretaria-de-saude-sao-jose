@@ -148,7 +148,8 @@ export function ReportsPage() {
 
         <ReportSummaryCards report={report} isPending={isPending} />
 
-        <Card className="print:break-inside-avoid">
+        {/* No PDF o gráfico ocupa uma folha só dele: nunca é cortado entre páginas. */}
+        <Card className="print:break-before-page print:break-inside-avoid print:break-after-page">
           <CardHeader>
             <CardTitle>APACs criadas ao longo do tempo</CardTitle>
             <CardDescription>
