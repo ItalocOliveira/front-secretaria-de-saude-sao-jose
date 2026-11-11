@@ -5,20 +5,11 @@ import {
   APAC_ACS_LIST,
   APAC_PRIORITY_LABEL,
   APAC_PRIORITY_LIST,
-  APAC_PROCEDURE_OPTIONS,
   type ApacAcs,
   type ApacPriority,
-  type ApacProcedure,
 } from "@/lib/apac"
 import type { ApacFormValues } from "@/lib/apac-form"
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox"
+import { ApacProcedureCombobox } from "@/components/apacs/apac-procedure-combobox"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -38,27 +29,12 @@ export function ApacFormRequestStep({
         <FieldLabel htmlFor="solicitacao-procedimento">
           Tipo de procedimento <span className="text-destructive">*</span>
         </FieldLabel>
-        <Combobox
-          items={APAC_PROCEDURE_OPTIONS}
-          value={APAC_PROCEDURE_OPTIONS.find((option) => option.value === values.procedure) ?? null}
-          onValueChange={(option) => onChange({ procedure: (option?.value ?? "") as ApacProcedure })}
-        >
-          <ComboboxInput
-            id="solicitacao-procedimento"
-            placeholder="Busque o procedimento"
-            aria-invalid={errors.has("procedure")}
-          />
-          <ComboboxContent>
-            <ComboboxEmpty>Nenhum procedimento encontrado.</ComboboxEmpty>
-            <ComboboxList>
-              {(option) => (
-                <ComboboxItem key={option.value} value={option}>
-                  {option.label}
-                </ComboboxItem>
-              )}
-            </ComboboxList>
-          </ComboboxContent>
-        </Combobox>
+        <ApacProcedureCombobox
+          id="solicitacao-procedimento"
+          value={values.procedure}
+          invalid={errors.has("procedure")}
+          onValueChange={(procedure) => onChange({ procedure: procedure ?? "" })}
+        />
       </Field>
 
       <Field data-invalid={errors.has("acs")}>

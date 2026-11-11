@@ -6,7 +6,6 @@ import { MUNICIPALITIES } from "@/data/apacs-mock"
 import {
   APAC_ACS_LABEL,
   APAC_ACS_LIST,
-  APAC_PROCEDURE_OPTIONS,
   APAC_STATUS_LABEL,
   APAC_STATUS_LIST,
   type ApacAcs,
@@ -14,16 +13,9 @@ import {
   type ApacStatus,
 } from "@/lib/apac"
 import { useUpdateApac } from "@/hooks/use-apacs"
+import { ApacProcedureCombobox } from "@/components/apacs/apac-procedure-combobox"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox"
 import {
   Dialog,
   DialogClose,
@@ -160,25 +152,11 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
 
             <Field>
               <FieldLabel htmlFor="editar-procedimento">Tipo de procedimento</FieldLabel>
-              <Combobox
-                items={APAC_PROCEDURE_OPTIONS}
-                value={APAC_PROCEDURE_OPTIONS.find((option) => option.value === current.procedure) ?? null}
-                onValueChange={(option) =>
-                  setValues({ ...current, procedure: (option?.value ?? current.procedure) as ApacProcedure })
-                }
-              >
-                <ComboboxInput id="editar-procedimento" placeholder="Busque o procedimento" />
-                <ComboboxContent>
-                  <ComboboxEmpty>Nenhum procedimento encontrado.</ComboboxEmpty>
-                  <ComboboxList>
-                    {(option) => (
-                      <ComboboxItem key={option.value} value={option}>
-                        {option.label}
-                      </ComboboxItem>
-                    )}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
+              <ApacProcedureCombobox
+                id="editar-procedimento"
+                value={current.procedure}
+                onValueChange={(procedure) => setValues({ ...current, procedure: procedure ?? current.procedure })}
+              />
             </Field>
 
             <Field>
