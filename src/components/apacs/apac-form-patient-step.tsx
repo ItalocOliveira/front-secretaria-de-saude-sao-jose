@@ -17,7 +17,9 @@ export function ApacFormPatientStep({
   return (
     <FieldGroup className="grid gap-4 sm:grid-cols-2">
       <Field className="sm:col-span-2" data-invalid={errors.has("name")}>
-        <FieldLabel htmlFor="paciente-nome">Nome completo *</FieldLabel>
+        <FieldLabel htmlFor="paciente-nome">
+          Nome completo <span className="text-destructive">*</span>
+        </FieldLabel>
         <Input
           id="paciente-nome"
           autoComplete="name"
@@ -29,7 +31,9 @@ export function ApacFormPatientStep({
       </Field>
 
       <Field data-invalid={errors.has("cns")}>
-        <FieldLabel htmlFor="paciente-cns">CNS *</FieldLabel>
+        <FieldLabel htmlFor="paciente-cns">
+          CNS <span className="text-destructive">*</span>
+        </FieldLabel>
         <Input
           id="paciente-cns"
           inputMode="numeric"
@@ -52,7 +56,7 @@ export function ApacFormPatientStep({
           value={formatCpf(values.cpf)}
           onChange={(event) => onChange({ cpf: onlyDigits(event.target.value, 11) })}
         />
-        <FieldDescription>Opcional no cadastro.</FieldDescription>
+        <FieldDescription>Opcional.</FieldDescription>
       </Field>
 
       <Field>
