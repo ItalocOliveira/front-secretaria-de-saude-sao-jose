@@ -449,6 +449,7 @@ async function createApac(req, res) {
     procedure: body.procedure,
     priority: body.priority,
     acs: body.acs,
+    has_pdf: false, // só vira `true` no `POST /apacs/:id/pdf/confirm`
     created_at: now,
     updated_at: now,
   }
@@ -795,9 +796,32 @@ function mockPdfUrl(id, ttlMs) {
   return `http://${HOST}:${PORT}/mock-uploads/${id}.pdf?exp=${Date.now() + ttlMs}`
 }
 
-/** Injeta `pdf_url` em cada item de uma listagem/objeto de APAC, como a API real faz. */
+/** Injeta `pdf_url` (e `has_pdf`, `false` em registros antigos) em cada APAC, como a API real faz. */
 function withPdfUrl(apac) {
-  return apac?.id ? { ...apac, pdf_url: mockPdfUrl(apac.id, DOWNLOAD_TTL_MS) } : apac
+  return apac?.id ? { ...apac, has_pdf: apac.has_pdf ?? false, pdf_url: mockPdfUrl(apac.id, DOWNLOAD_TTL_MS) } : apac
+}
+
+/**
+ * `POST /apacs/:id/pdf/upload-url` e `POST /apacs/:id/pdf/confirm` — espelham
+ * `.docs/temp/CONTRATO_PDF_APACS.md`. O `confirm` confere se o arquivo chegou em
+ * `uploads/` antes de marcar `has_pdf` (409 se não chegou).
+ */
+async function handleApacPdf(res, id, action) {
+  const apac = db.data.apacs.find((item) => item.id === id)
+  if (!apac) return send(res, 404, { error: "APAC não encontrada." })
+
+  if (action === "upload-url") return send(res, 200, { uploadUrl: mockPdfUrl(id, UPLOAD_TTL_MS) })
+
+  if (!existsSync(join(UPLOADS_DIR, `${id}.pdf`))) {
+    return send(res, 409, {
+      error: "O PDF ainda não foi recebido. Envie o arquivo pela uploadUrl e confirme de novo.",
+    })
+  }
+
+  apac.has_pdf = true
+  apac.updated_at = new Date().toISOString()
+  await db.write()
+  return send(res, 200, withPdfUrl(apac))
 }
 
 // Nome do arquivo em disco não usa `/` — só a chave lógica (`itens/<id>`, sem
@@ -912,6 +936,8 @@ function routeIndex() {
       { method: "GET", path: "/apacs", roles: ACCESS.apacs.join(", ") },
       { method: "GET", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
       { method: "PATCH", path: "/apacs/:id", roles: ACCESS.apacs.join(", ") },
+      { method: "POST", path: "/apacs/:id/pdf/upload-url", roles: ACCESS.apacs.join(", ") },
+      { method: "POST", path: "/apacs/:id/pdf/confirm", roles: ACCESS.apacs.join(", ") },
       { method: "PUT", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
       { method: "DELETE", path: "/apacs/:id", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "POST", path: "/itens", roles: ACCESS.itens.join(", ") },
@@ -1084,17 +1110,24 @@ const server = createServer(async (req, res) => {
 
   // `/itens/:id/movements` é a única rota aninhada — todo o resto continua limitado a `/:collection[/:id]`.
   const isItemMovementsRoute = collection === "itens" && rest.length === 2 && rest[1] === "movements"
+  const isApacPdfRoute =
+    collection === "apacs" && rest.length === 3 && rest[1] === "pdf" && ["upload-url", "confirm"].includes(rest[2])
 
   // Whitelist: o json-server exporia qualquer chave do db.json como endpoint,
   // inclusive `_credentials`.
   const roles = ACCESS[collection]
-  if (!roles || (rest.length > 1 && !isItemMovementsRoute)) return send(res, 404, { message: "Rota não encontrada." })
+  if (!roles || (rest.length > 1 && !isItemMovementsRoute && !isApacPdfRoute)) return send(res, 404, { message: "Rota não encontrada." })
 
   const { user, error } = authenticate(req)
   if (error) return sendError(res, error)
 
   const denied = authorize(user, rolesFor(collection, method, rest)).error
   if (denied) return sendError(res, denied)
+
+  if (isApacPdfRoute) {
+    if (method !== "POST") return send(res, 404, { message: "Rota não encontrada." })
+    return handleApacPdf(res, rest[0], rest[2])
+  }
 
   if (method === "POST" && isItemMovementsRoute) {
     return createItemMovement(req, res, rest[0], user)

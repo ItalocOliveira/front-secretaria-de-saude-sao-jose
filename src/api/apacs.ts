@@ -25,10 +25,12 @@ export type ApacDto = {
   /**
    * Presigned URL de **download**, válida por 1h, gerada a cada `GET /apacs`.
    * Não vem tipada no `ApacDomain` do backend (injetada via spread) — presente
-   * mesmo quando nenhum PDF foi enviado ainda, então não use como indicador de
-   * "tem PDF".
+   * mesmo quando nenhum PDF foi enviado ainda (o link dá 404), então não use como
+   * indicador de "tem PDF" — para isso existe `has_pdf`.
    */
   pdf_url?: string | null
+  /** `true` só depois de `POST /apacs/:id/pdf/confirm` (a API confere o arquivo no bucket). */
+  has_pdf?: boolean
 }
 
 /**
@@ -52,8 +54,13 @@ export type Apac = {
   birthDate: string | null
   createdAt: string
   updatedAt: string
-  /** Presigned URL de download do PDF, válida por 1h. `null` se a API não mandar. */
+  /**
+   * Presigned URL de download do PDF, válida por 1h, **só quando `has_pdf`** — sem PDF
+   * confirmado o link da API dá 404, então aqui vira `null`.
+   */
   pdfUrl: string | null
+  /** PDF enviado e confirmado (`has_pdf`). `false` → oferecer "Anexar PDF". */
+  hasPdf: boolean
 }
 
 export function toApac(dto: ApacDto): Apac {
@@ -70,7 +77,8 @@ export function toApac(dto: ApacDto): Apac {
     birthDate: dto.birth_date ?? null,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
-    pdfUrl: dto.pdf_url ?? null,
+    pdfUrl: dto.has_pdf === true ? (dto.pdf_url ?? null) : null,
+    hasPdf: dto.has_pdf === true,
   }
 }
 
@@ -89,7 +97,7 @@ export type CreateApacPayload = {
 
 export type CreateApacResult = {
   apac: Apac
-  /** Presigned PUT do Cloudflare R2, válida por 15 min. Usar com `uploadApacPdf`. */
+  /** Presigned PUT do Cloudflare R2, válida por 15 min. Usar com `attachApacPdf`. */
   uploadUrl: string
 }
 
@@ -151,14 +159,38 @@ export async function deleteApac(id: string): Promise<void> {
 }
 
 /**
- * PUT direto pro bucket com a presigned URL devolvida por `createApac`. O backend
- * nunca vê o arquivo, então isso **não** passa por `request()`: sem `Bearer`, sem
- * `Content-Type: application/json`. Se a URL expirou (>15 min), o `PUT` volta 403.
+ * `POST /apacs/:id/pdf/upload-url` — presigned PUT (15 min) para anexar ou **substituir** o PDF
+ * de uma APAC já cadastrada. Sem body.
+ */
+export async function requestApacPdfUploadUrl(id: string): Promise<string> {
+  const data = await request<{ uploadUrl: string }>(`/apacs/${id}/pdf/upload-url`, { method: "POST" })
+  return data.uploadUrl
+}
+
+/**
+ * `POST /apacs/:id/pdf/confirm` — chamar depois do `PUT` no R2. A API confere o arquivo no
+ * bucket e marca `has_pdf`; `409` se ele não chegou. Idempotente.
+ */
+export async function confirmApacPdf(id: string): Promise<Apac> {
+  const data = await request<ApacDto>(`/apacs/${id}/pdf/confirm`, { method: "POST" })
+  return toApac(data)
+}
+
+/**
+ * PUT direto pro bucket com uma presigned URL (`createApac` ou `requestApacPdfUploadUrl`). O
+ * backend nunca vê o arquivo, então isso **não** passa por `request()`: sem `Bearer`. O
+ * `Content-Type: application/pdf` é obrigatório — a URL foi assinada com ele. Se a URL expirou
+ * (>15 min), o `PUT` volta 403.
  */
 export async function uploadApacPdf(uploadUrl: string, file: File, signal?: AbortSignal) {
   let response: Response
   try {
-    response = await fetch(uploadUrl, { method: "PUT", body: file, signal })
+    response = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "application/pdf" },
+      body: file,
+      signal,
+    })
   } catch (error) {
     if (signal?.aborted === true) {
       throw error
@@ -169,8 +201,18 @@ export async function uploadApacPdf(uploadUrl: string, file: File, signal?: Abor
   if (!response.ok) {
     throw new Error(
       response.status === 403
-        ? "O link de envio expirou (validade de 15 minutos). A APAC já foi cadastrada; tente reenviar o PDF."
+        ? "O link de envio expirou (validade de 15 minutos). Tente enviar o PDF de novo."
         : "Não foi possível enviar o PDF."
     )
   }
+}
+
+/**
+ * Fluxo completo de anexo: `upload-url` (se não vier uma URL pronta, como a do `POST /apacs`)
+ * → `PUT` no R2 → `confirm`. Sem o `confirm`, a APAC fica com `has_pdf: false` mesmo com o
+ * arquivo no bucket. Repetir tudo é seguro: gera outra URL e substitui o arquivo.
+ */
+export async function attachApacPdf(id: string, file: File, uploadUrl?: string): Promise<Apac> {
+  await uploadApacPdf(uploadUrl ?? (await requestApacPdfUploadUrl(id)), file)
+  return confirmApacPdf(id)
 }

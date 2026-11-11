@@ -71,6 +71,8 @@ Ordem: mais recentes primeiro; usuários em ordem alfabética. `pdf_url`/`image_
 
 `GET /apacs` devolve um `pdf_url` em cada item — `GET /mock-uploads/:id.pdf?exp=...`, mesma lógica de validade (1h) e mesmo `403` se expirado. Se o PDF ainda não foi enviado (nenhum arquivo em `mock/uploads/` com esse id), devolve `404`, igual a um objeto inexistente no R2.
 
+Anexar/substituir o PDF de uma APAC já cadastrada (`.docs/temp/CONTRATO_PDF_APACS.md`): `POST /apacs/:id/pdf/upload-url` devolve `{ uploadUrl }` (mesmo esquema acima) e, depois do `PUT`, `POST /apacs/:id/pdf/confirm` confere se o arquivo está em `mock/uploads/` e marca `has_pdf: true` (`409` se não chegou). Toda APAC sai com `has_pdf` (`false` em registros antigos do seed).
+
 ## Limites
 
 Só para desenvolvimento local:

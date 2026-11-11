@@ -4,8 +4,8 @@ import {
   createApac,
   deleteApac,
   listApacs,
+  attachApacPdf,
   updateApac,
-  uploadApacPdf,
   type ApacListParams,
   type UpdateApacPayload,
 } from "@/api/apacs"
@@ -54,9 +54,17 @@ export function useDeleteApac() {
   })
 }
 
-/** PUT direto pro bucket — não invalida a query: `GET /apacs` não devolve o PDF em si. */
-export function useUploadApacPdf() {
+/**
+ * Anexa/substitui o PDF de uma APAC (`upload-url` → `PUT` no R2 → `confirm`). Passe `uploadUrl`
+ * para reaproveitar a URL devolvida pelo `POST /apacs`; sem ela, gera uma nova. Invalida a
+ * listagem porque `has_pdf` muda.
+ */
+export function useAttachApacPdf() {
+  const queryClient = useQueryClient()
+
   return useMutation({
-    mutationFn: ({ uploadUrl, file }: { uploadUrl: string; file: File }) => uploadApacPdf(uploadUrl, file),
+    mutationFn: ({ id, file, uploadUrl }: { id: string; file: File; uploadUrl?: string }) =>
+      attachApacPdf(id, file, uploadUrl),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: APACS_QUERY_KEY }),
   })
 }
