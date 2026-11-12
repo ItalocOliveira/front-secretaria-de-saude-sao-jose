@@ -18,6 +18,10 @@ pnpm api:mock --reset      # descarta os dados e recomeça do seed
 
 Escritas (`POST`, `PATCH`, `PUT`, `DELETE`) persistem em `db.json` e sobrevivem a reinicializações. Para voltar ao estado inicial, `pnpm api:mock --reset`.
 
+## Município (`X-Tenant`)
+
+`GET /auth/tenant` conhece `saojosedosramos.pb` (padrão, também sem header) e `salgadodesaofelix.pb`; outro slug dá `404 "Município não encontrado."`. Só isso é simulado: contas e dados **não** são separados por município. Para testar a tela de erro, abra `http://naoexiste.pb.localhost:3001`.
+
 ## Credenciais
 
 Uma conta por role, para exercitar a matriz de permissões:

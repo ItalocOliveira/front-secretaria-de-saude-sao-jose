@@ -6,6 +6,7 @@
  */
 
 import { clearToken, getToken } from "@/lib/session"
+import { TENANT_SLUG } from "@/lib/tenant"
 
 /** Base das chamadas — ver `.env.example`. Embutida no bundle em build time. */
 const API_URL = import.meta.env.VITE_API_URL ?? "/api"
@@ -124,6 +125,12 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     headers.set("Content-Type", "application/json")
   }
 
+  // Município do endereço, em toda rota da API (inclusive as públicas). Sem município,
+  // nada de header vazio. As URLs do R2 não passam por aqui — e não podem levá-lo.
+  if (TENANT_SLUG !== undefined) {
+    headers.set("X-Tenant", TENANT_SLUG)
+  }
+
   if (auth) {
     const token = getToken()
     if (token !== null) {
@@ -153,7 +160,8 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   if (response.status === 401) {
-    // Não existe refresh token no contrato: 401 é fim de sessão, sem recuperação.
+    // Não existe refresh token no contrato: 401 é fim de sessão, sem recuperação —
+    // inclusive "Sessão de outro município" (token de outra prefeitura).
     // Limpar aqui faz as guardas de rota reagirem sozinhas.
     clearToken()
   }

@@ -23,8 +23,19 @@ export type AuthenticatedUser = {
   role: UserRole
 }
 
+/** Resposta de `GET /auth/tenant`. `slug` serve só para exibir — o header usa o do endereço. */
+export type TenantInfo = {
+  name: string
+  slug: string
+}
+
 export function login(payload: LoginPayload) {
   return request<LoginResponse>("/auth/login", { method: "POST", body: payload, auth: false })
+}
+
+/** Público. Valida o município do endereço: `404` = slug inexistente. */
+export function getTenant(signal?: AbortSignal) {
+  return request<TenantInfo>("/auth/tenant", { signal, auth: false })
 }
 
 export function getAuthenticatedUser(signal?: AbortSignal) {
