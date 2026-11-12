@@ -27,6 +27,11 @@ export type AuthenticatedUser = {
 export type TenantInfo = {
   name: string
   slug: string
+  /**
+   * `false` = município suspenso pelo painel admin: login dá `403` e as rotas autenticadas
+   * dão `401` (`.docs/att-backend/2026-11-13-municipio-suspenso.md`).
+   */
+  active: boolean
 }
 
 export function login(payload: LoginPayload) {

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { MapPinOffIcon } from "lucide-react"
+import { MapPinOffIcon, PauseCircleIcon } from "lucide-react"
 
 import { ApiError } from "@/api/client"
 import { TENANT_SLUG } from "@/lib/tenant"
@@ -26,9 +26,27 @@ function TenantNotFound() {
   )
 }
 
+/** Município suspenso pelo painel admin: o login daria `403`, então nem mostramos o formulário. */
+function TenantSuspended({ name }: { name: string }) {
+  return (
+    <main className="flex min-h-svh items-center justify-center bg-background p-6">
+      <Empty className="max-w-md border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <PauseCircleIcon />
+          </EmptyMedia>
+          <EmptyTitle>Acesso suspenso</EmptyTitle>
+          <EmptyDescription>O acesso de {name} está suspenso. Procure o suporte do ICOS.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    </main>
+  )
+}
+
 /**
  * Valida o município do endereço (`GET /auth/tenant`) antes de qualquer tela.
  * `404` = slug inexistente: o login também daria `404`, então nem mostramos o formulário.
+ * `active: false` = município suspenso (`.docs/att-backend/2026-11-13-municipio-suspenso.md`).
  * Outras falhas (rede, cold start) não bloqueiam: o app segue e cada tela trata o próprio erro.
  */
 function TenantGateWithTenant({ children }: { children: ReactNode }) {
@@ -51,7 +69,8 @@ function TenantGateWithTenant({ children }: { children: ReactNode }) {
     <>
       {/* React 19 sobe o <title> para o <head>: o nome do município fica visível na aba. */}
       {data === undefined ? null : <title>{`ICOS — Secretaria de Saúde de ${data.name}`}</title>}
-      {children}
+      {/* Só `false` explícito suspende: API sem o campo (deploy antigo) não deve trancar ninguém. */}
+      {data?.active === false ? <TenantSuspended name={data.name} /> : children}
     </>
   )
 }
