@@ -294,6 +294,7 @@ function authenticate(req) {
 
   const payload = verifyToken(parts[1])
   if (!payload) return { error: unauthorized("Token inválido ou expirado.") }
+  if (isSuspendedTenant(req)) return { error: unauthorized(SUSPENDED_MESSAGE) }
 
   return { user: { id: payload.id, cpf: payload.cpf, role: payload.role } }
 }
@@ -334,6 +335,7 @@ async function login(req, res) {
   const invalid = () => send(res, 401, { message: "Credenciais inválidas." })
 
   if (!body?.cpf || !body?.password) return invalid()
+  if (isSuspendedTenant(req)) return send(res, 403, { statusCode: 403, error: "Forbidden", message: SUSPENDED_MESSAGE })
 
   const credential = db.data._credentials.find(
     (item) => item.cpf === String(body.cpf) && item.password === String(body.password)
@@ -357,11 +359,20 @@ async function login(req, res) {
 
 // Municípios do `GET /auth/tenant` (`.docs/att-backend/2026-11-12-subdominio-por-municipio.md`).
 // Só a validação do endereço é simulada: o mock não separa dados nem contas por município.
+// `mari.pb` está suspenso (`.docs/att-backend/2026-11-13-municipio-suspenso.md`).
 const TENANTS = [
-  { name: "São José dos Ramos", slug: "saojosedosramos.pb" },
-  { name: "Salgado de São Félix", slug: "salgadodesaofelix.pb" },
+  { name: "São José dos Ramos", slug: "saojosedosramos.pb", active: true },
+  { name: "Salgado de São Félix", slug: "salgadodesaofelix.pb", active: true },
+  { name: "Mari", slug: "mari.pb", active: false },
 ]
 const DEFAULT_TENANT = TENANTS[0]
+const SUSPENDED_MESSAGE = "Acesso deste município suspenso. Procure o suporte do ICOS."
+
+function isSuspendedTenant(req) {
+  const slug = req.headers["x-tenant"]
+  if (!slug) return false
+  return TENANTS.some((item) => item.slug === String(slug).toLowerCase() && !item.active)
+}
 
 function getTenant(req, res) {
   const slug = req.headers["x-tenant"]
