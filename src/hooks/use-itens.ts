@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 
 import {
+  attachItemImage,
   createItem,
   createItemMovement,
   deleteItem,
@@ -72,9 +73,27 @@ export function useCreateItemMovement() {
   })
 }
 
-/** PUT direto pro bucket — não invalida a query: `image_url` já vem em `item`/`GET /itens` assim que o item é criado. */
+/**
+ * Só o PUT direto pro bucket — usado na foto comprovante das movimentações, que não tem
+ * `confirm` nem `has_image`. Para a foto do item, use `useAttachItemImage`.
+ */
 export function useUploadItemImage() {
   return useMutation({
     mutationFn: ({ uploadUrl, file }: { uploadUrl: string; file: File }) => uploadItemImage(uploadUrl, file),
+  })
+}
+
+/**
+ * Adiciona/substitui a foto de um item (`upload-url` → `PUT` no R2 → `confirm`). Passe
+ * `uploadUrl` para reaproveitar a URL devolvida pelo `POST /itens`; sem ela, gera uma nova.
+ * Invalida a listagem porque `has_image` muda e só o `GET /itens` traz o `image_url` novo.
+ */
+export function useAttachItemImage() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, file, uploadUrl }: { id: string; file: File; uploadUrl?: string }) =>
+      attachItemImage(id, file, uploadUrl),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY }),
   })
 }

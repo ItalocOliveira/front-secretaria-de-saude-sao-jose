@@ -123,6 +123,8 @@ Se o envio falhar (link expirado, rede caiu), a APAC **já existe** — o form (
 | `/usuarios`                          | `GET /users`        |
 | `/usuarios/novo`                     | `POST /users`       |
 
+Foto dos itens do almoxarifado ([comunicado 2026-11-12](att-backend/2026-11-12-imagem-itens-almoxarifado.md)): mesmo fluxo do PDF das APACs — `POST /itens/:id/image/upload-url` → `PUT` direto no R2 (com `Content-Type: file.type`) → `POST /itens/:id/image/confirm`. O cadastro (`POST /itens`) reaproveita a `uploadUrl` da resposta, mas também precisa do `confirm`. Quem diz se há foto é `has_image`, não `image_url`. Tudo em `attachItemImage` (`src/api/itens.ts`) / `useAttachItemImage`; o botão "Adicionar/Trocar imagem" é `ItemImageUploadButton`, nos detalhes e na edição do produto.
+
 Rotas são guardadas por autenticação (`RequireAuth`) e por perfil (`RequireRole`), e a sidebar esconde o que o perfil não alcança. A matriz segue [`.docs/temp/PERMISSOES.md`](temp/PERMISSOES.md) (todos acessam tudo, exceto `RECEPCIONISTA`: sem usuários, almoxarifado e exclusão de APAC; em ofícios só cria — a tela mostra o formulário e não chama `GET /documents`). Hoje todos veem APACs e caem em `/apacs`, mas `homeRouteFor()` continua decidindo o destino pós-login, para o caso de a matriz voltar a ter cargos sem APACs.
 
 ## Lacunas do contrato

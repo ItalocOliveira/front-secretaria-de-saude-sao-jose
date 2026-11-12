@@ -812,6 +812,7 @@ async function createItem(req, res, user) {
     status: "DISPONIVEL", // definido no backend, não vem do cliente
     amount,
     min_amount: minAmount,
+    has_image: false, // só vira `true` no `POST /itens/:id/image/confirm`
     type: body.type,
     ...(body.description ? { description: String(body.description) } : {}),
     // `amount: 0` representa "produto sem estoque ainda" — sem movimento no histórico.
@@ -956,6 +957,30 @@ function mockItemImageUrl(id, ttlMs) {
   return `http://${HOST}:${PORT}/mock-uploads/${itemImageFilename(id)}?exp=${Date.now() + ttlMs}`
 }
 
+/**
+ * `POST /itens/:id/image/upload-url` e `POST /itens/:id/image/confirm` — espelham
+ * `.docs/att-backend/2026-11-12-imagem-itens-almoxarifado.md`. O `confirm` confere se o
+ * arquivo chegou em `uploads/` antes de marcar `has_image` (409 se não chegou) e devolve
+ * o item **sem** `image_url`, como o `PATCH` da API real.
+ */
+async function handleItemImage(res, id, action) {
+  const item = db.data.itens.find((entry) => entry.id === id)
+  if (!item) return send(res, 404, { error: "Item não encontrado." })
+
+  if (action === "upload-url") return send(res, 200, { uploadUrl: mockItemImageUrl(id, UPLOAD_TTL_MS) })
+
+  if (!existsSync(join(UPLOADS_DIR, itemImageFilename(id)))) {
+    return send(res, 409, {
+      error: "A imagem ainda não foi recebida. Envie o arquivo pela uploadUrl e confirme de novo.",
+    })
+  }
+
+  item.has_image = true
+  await db.write()
+  const { image_url: _imageUrl, ...withoutImageUrl } = withImageUrl(item)
+  return send(res, 200, withoutImageUrl)
+}
+
 // Mesma lógica de `itemImageFilename`, mas para a foto comprovante de um movimento.
 function movementImageFilename(id) {
   return `movements-${id}`
@@ -975,6 +1000,8 @@ function withImageUrl(item) {
     ...item,
     // Itens anteriores ao campo ficam com `0` (sem alerta), como na API real.
     min_amount: item.min_amount ?? 0,
+    // Só vira `true` no `POST /itens/:id/image/confirm` — itens antigos do seed começam `false`.
+    has_image: item.has_image ?? false,
     image_url: mockItemImageUrl(item.id, DOWNLOAD_TTL_MS),
     movements: (item.movements ?? []).map((movement) => ({
       ...movement,
@@ -1068,6 +1095,8 @@ function routeIndex() {
       { method: "GET", path: "/itens", roles: ACCESS.itens.join(", ") },
       { method: "PATCH | DELETE", path: "/itens/:id", roles: ACCESS.itens.join(", ") },
       { method: "POST", path: "/itens/:id/movements", roles: ACCESS.itens.join(", ") },
+      { method: "POST", path: "/itens/:id/image/upload-url", roles: ACCESS.itens.join(", ") },
+      { method: "POST", path: "/itens/:id/image/confirm", roles: ACCESS.itens.join(", ") },
       { method: "POST", path: "/documents", roles: ACCESS.documents.join(", ") },
       { method: "GET", path: "/documents", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "PATCH | DELETE", path: "/documents/:id", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
@@ -1237,11 +1266,14 @@ const server = createServer(async (req, res) => {
   const isItemMovementsRoute = collection === "itens" && rest.length === 2 && rest[1] === "movements"
   const isApacPdfRoute =
     collection === "apacs" && rest.length === 3 && rest[1] === "pdf" && ["upload-url", "confirm"].includes(rest[2])
+  const isItemImageRoute =
+    collection === "itens" && rest.length === 3 && rest[1] === "image" && ["upload-url", "confirm"].includes(rest[2])
 
   // Whitelist: o json-server exporia qualquer chave do db.json como endpoint,
   // inclusive `_credentials`.
   const roles = ACCESS[collection]
-  if (!roles || (rest.length > 1 && !isItemMovementsRoute && !isApacPdfRoute)) return send(res, 404, { message: "Rota não encontrada." })
+  if (!roles || (rest.length > 1 && !isItemMovementsRoute && !isApacPdfRoute && !isItemImageRoute))
+    return send(res, 404, { message: "Rota não encontrada." })
 
   const { user, error } = authenticate(req)
   if (error) return sendError(res, error)
@@ -1252,6 +1284,11 @@ const server = createServer(async (req, res) => {
   if (isApacPdfRoute) {
     if (method !== "POST") return send(res, 404, { message: "Rota não encontrada." })
     return handleApacPdf(res, rest[0], rest[2])
+  }
+
+  if (isItemImageRoute) {
+    if (method !== "POST") return send(res, 404, { message: "Rota não encontrada." })
+    return handleItemImage(res, rest[0], rest[2])
   }
 
   if (method === "POST" && isItemMovementsRoute) {

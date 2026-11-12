@@ -77,6 +77,8 @@ Ordem: mais recentes primeiro; usuários em ordem alfabética. `pdf_url`/`image_
 
 Anexar/substituir o PDF de uma APAC já cadastrada (`.docs/temp/CONTRATO_PDF_APACS.md`): `POST /apacs/:id/pdf/upload-url` devolve `{ uploadUrl }` (mesmo esquema acima) e, depois do `PUT`, `POST /apacs/:id/pdf/confirm` confere se o arquivo está em `mock/uploads/` e marca `has_pdf: true` (`409` se não chegou). Toda APAC sai com `has_pdf` (`false` em registros antigos do seed).
 
+Foto de item já cadastrado (`.docs/att-backend/2026-11-12-imagem-itens-almoxarifado.md`): `POST /itens/:id/image/upload-url` devolve `{ uploadUrl }` e `POST /itens/:id/image/confirm` confere o arquivo em `mock/uploads/` e marca `has_image: true` (`409` se não chegou; a resposta vem sem `image_url`, como na API real). Todo item sai com `has_image` (`false` em registros antigos do seed — use "Adicionar imagem").
+
 ## Limites
 
 Só para desenvolvimento local:

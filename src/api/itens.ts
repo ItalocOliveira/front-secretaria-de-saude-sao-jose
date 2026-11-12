@@ -39,10 +39,15 @@ export type ItemDto = {
   type: ItemType
   movements: ItemMovementDto[]
   /**
+   * `true` só depois do `POST /itens/:id/image/confirm` — é **isto** que diz se o item tem
+   * foto, não o `image_url`. Itens antigos podem vir `false` até o backfill do backend; o
+   * "Adicionar imagem" resolve.
+   */
+  has_image: boolean
+  /**
    * Presigned URL de download, válida por 1h, gerada a cada `GET /itens` —
-   * presente mesmo que nenhuma foto tenha sido enviada ainda (mesmo
-   * comportamento do `pdf_url` das APACs), então não usar como indicador de
-   * "tem foto". Não vem tipado no `ItemDomain` do backend (injetado via spread).
+   * presente mesmo que nenhuma foto tenha sido enviada ainda (aí dá 404), então
+   * use `has_image` para decidir se renderiza. Não vem no `PATCH` nem no `confirm`.
    */
   image_url?: string
 }
@@ -65,7 +70,7 @@ export type CreateItemPayload = {
 
 export type CreateItemResult = {
   item: ItemDto
-  /** Presigned PUT do Cloudflare R2, válida por 15 min, sempre devolvida. Usar com `uploadItemImage`. */
+  /** Presigned PUT do Cloudflare R2, válida por 15 min, sempre devolvida. Usar com `attachItemImage`. */
   uploadUrl: string
 }
 
@@ -115,16 +120,20 @@ export async function deleteItem(id: string): Promise<void> {
 }
 
 /**
- * PUT direto pro bucket com a presigned URL devolvida por `createItem`. O backend nunca
- * vê o arquivo, então isso **não** passa por `request()`: sem `Bearer`. Não há edição de
- * foto depois de criado o item (mesma lacuna do PDF nas APACs — `PATCH` não mexe nisso).
- * `fetch` usa o `Content-Type` do próprio `File` automaticamente; a assinatura não
- * restringe o mime. Se a URL expirou (>15 min), o `PUT` volta 403.
+ * PUT direto pro bucket com uma presigned URL (`createItem`, `requestItemImageUploadUrl` ou a
+ * foto comprovante de `createItemMovement`). O backend nunca vê o arquivo, então isso **não**
+ * passa por `request()`: sem `Bearer`. A URL não é assinada com um mime fixo — mandamos o tipo
+ * real do arquivo para o navegador exibir certo depois. Se a URL expirou (>15 min), volta 403.
  */
 export async function uploadItemImage(uploadUrl: string, file: File, signal?: AbortSignal) {
   let response: Response
   try {
-    response = await fetch(uploadUrl, { method: "PUT", body: file, signal })
+    response = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: file.type === "" ? undefined : { "Content-Type": file.type },
+      body: file,
+      signal,
+    })
   } catch (error) {
     if (signal?.aborted === true) {
       throw error
@@ -135,10 +144,39 @@ export async function uploadItemImage(uploadUrl: string, file: File, signal?: Ab
   if (!response.ok) {
     throw new Error(
       response.status === 403
-        ? "O link de envio expirou (validade de 15 minutos). O produto já foi salvo; tente reenviar a imagem."
+        ? "O link de envio expirou (validade de 15 minutos). Tente enviar a imagem de novo."
         : "Não foi possível enviar a imagem."
     )
   }
+}
+
+/**
+ * `POST /itens/:id/image/upload-url` — presigned PUT (15 min) para adicionar ou **substituir**
+ * a foto de um item já cadastrado. Sem body.
+ */
+export async function requestItemImageUploadUrl(id: string): Promise<string> {
+  const data = await request<{ uploadUrl: string }>(`/itens/${id}/image/upload-url`, { method: "POST" })
+  return data.uploadUrl
+}
+
+/**
+ * `POST /itens/:id/image/confirm` — chamar depois do `PUT` no R2. A API confere o arquivo no
+ * bucket e marca `has_image`; `409` se ele não chegou. Idempotente. A resposta **não** traz
+ * `image_url` — a foto nova aparece quando a listagem é recarregada.
+ */
+export function confirmItemImage(id: string) {
+  return request<ItemDto>(`/itens/${id}/image/confirm`, { method: "POST" })
+}
+
+/**
+ * Fluxo completo da foto do item: `upload-url` (se não vier uma URL pronta, como a do
+ * `POST /itens`) → `PUT` no R2 → `confirm`. Sem o `confirm`, o item fica com
+ * `has_image: false` mesmo com o arquivo no bucket. Repetir tudo é seguro: gera outra URL e
+ * substitui o arquivo.
+ */
+export async function attachItemImage(id: string, file: File, uploadUrl?: string): Promise<ItemDto> {
+  await uploadItemImage(uploadUrl ?? (await requestItemImageUploadUrl(id)), file)
+  return confirmItemImage(id)
 }
 
 export type CreateItemMovementResult = {

@@ -11,6 +11,7 @@ import {
   type ItemType,
 } from "@/lib/itens"
 import { useUpdateItem } from "@/hooks/use-itens"
+import { ItemImageUploadButton } from "@/components/itens/item-image-upload-button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -243,6 +244,19 @@ export function ItemEditDialog({
               />
               <FieldDescription>
                 Com o estoque abaixo deste número, o produto aparece nas notificações. Zero desliga o alerta.
+              </FieldDescription>
+            </Field>
+
+            <Field>
+              <FieldLabel>Foto</FieldLabel>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">
+                  {item.has_image ? "Produto com foto." : "Produto sem foto."}
+                </span>
+                <ItemImageUploadButton item={item} disabled={isPending} />
+              </div>
+              <FieldDescription>
+                Enviada na hora, sem precisar clicar em Salvar. Enviar outra substitui a atual.
               </FieldDescription>
             </Field>
           </FieldGroup>

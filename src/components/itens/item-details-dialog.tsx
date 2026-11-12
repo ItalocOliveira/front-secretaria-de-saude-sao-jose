@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ArrowDownIcon, ArrowUpIcon, HistoryIcon, PencilIcon, RefreshCwIcon, Trash2Icon, XIcon } from "lucide-react"
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  HistoryIcon,
+  ImageIcon,
+  PencilIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react"
 
 import type { ItemDto } from "@/api/itens"
 import {
@@ -16,6 +25,7 @@ import {
   type MovementType,
 } from "@/lib/itens"
 import { useCreateItemMovement, useUploadItemImage } from "@/hooks/use-itens"
+import { ItemImageUploadButton } from "@/components/itens/item-image-upload-button"
 import { formatFileSize } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -86,9 +96,10 @@ export function ItemDetailsDialog({
   const [movementImageFile, setMovementImageFile] = useState<File | null>(null)
   const [pendingMovementUpload, setPendingMovementUpload] = useState<PendingMovementUpload | null>(null)
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null)
-  // `image_url` vem preenchida mesmo sem foto enviada (presigned pra uma key que pode não
-  // existir no bucket) — guarda o id do item/movimento cuja imagem falhou pra não tentar de novo.
-  const [failedImageItemId, setFailedImageItemId] = useState<string | null>(null)
+  // Mesmo com `has_image`, a presigned URL pode falhar (expirada, CORS) — guarda a URL que falhou
+  // pra cair no placeholder. Depois de trocar a foto, a listagem traz outra URL e ela é tentada de novo.
+  // Movimentos não têm `has_image`: `image_url` vem sempre e dá 404 sem foto, daí guardar os ids.
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const [failedMovementImageIds, setFailedMovementImageIds] = useState<ReadonlySet<string>>(new Set())
   const { mutate: createMovement, isPending: creatingMovement, error, reset } = useCreateItemMovement()
   const {
@@ -214,21 +225,29 @@ export function ItemDetailsDialog({
 
         {item === null || pendingMovementUpload !== null ? null : (
           <div className="flex flex-col gap-4">
-            {item.image_url === undefined || failedImageItemId === item.id ? null : (
-              <button
-                type="button"
-                onClick={() => setZoomedImageUrl(item.image_url ?? null)}
-                className="mx-auto cursor-zoom-in rounded-lg"
-                aria-label={`Ampliar foto de ${item.name}`}
-              >
-                <img
-                  src={item.image_url}
-                  alt={item.name}
-                  className="h-40 w-40 rounded-lg border object-cover"
-                  onError={() => setFailedImageItemId(item.id)}
-                />
-              </button>
-            )}
+            <div className="flex flex-col items-center gap-2">
+              {item.has_image && item.image_url !== undefined && failedImageUrl !== item.image_url ? (
+                <button
+                  type="button"
+                  onClick={() => setZoomedImageUrl(item.image_url ?? null)}
+                  className="cursor-zoom-in rounded-lg"
+                  aria-label={`Ampliar foto de ${item.name}`}
+                >
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="size-40 rounded-lg border object-cover"
+                    onError={() => setFailedImageUrl(item.image_url ?? null)}
+                  />
+                </button>
+              ) : (
+                <div className="flex size-40 items-center justify-center rounded-lg border bg-muted/50 text-muted-foreground">
+                  <ImageIcon className="size-10" />
+                  <span className="sr-only">Produto sem foto</span>
+                </div>
+              )}
+              <ItemImageUploadButton item={item} variant="ghost" disabled={isPending} />
+            </div>
 
             <div className="flex flex-col items-center gap-3 rounded-lg border bg-muted/50 py-4">
               <span className="text-sm text-muted-foreground">Saldo atual</span>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { PlusIcon, XIcon } from "lucide-react"
 
 import { ITEM_IMAGE_MIME_ACCEPT, ITEM_TYPE_LABEL, ITEM_TYPE_LIST, isImageFile, type ItemType } from "@/lib/itens"
-import { useCreateItem, useUploadItemImage } from "@/hooks/use-itens"
+import { useAttachItemImage, useCreateItem } from "@/hooks/use-itens"
 import { formatFileSize } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -42,8 +42,11 @@ const INITIAL_FORM = {
   imageFile: null as File | null,
 }
 
-/** Produto já criado, mas o `PUT` da foto pro R2 falhou — guarda o necessário pra reenviar sem recriar o registro. */
-type PendingUpload = { uploadUrl: string; file: File; itemName: string }
+/**
+ * Produto já criado, mas o envio da foto (`PUT` no R2 ou `confirm`) falhou — guarda o necessário
+ * pra reenviar pelo fluxo de anexar (URL nova), sem recriar o registro.
+ */
+type PendingUpload = { itemId: string; file: File; itemName: string }
 
 /**
  * Cadastro de produto no catálogo. A quantidade inicial é opcional: vazia/`0`
@@ -56,7 +59,7 @@ export function ItemCreateDialog() {
   const [form, setForm] = useState(INITIAL_FORM)
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null)
   const { mutate: createItem, isPending: creating, error: createError, reset: resetCreate } = useCreateItem()
-  const { mutate: uploadImage, isPending: uploading, error: uploadError, reset: resetUpload } = useUploadItemImage()
+  const { mutate: attachImage, isPending: uploading, error: uploadError, reset: resetUpload } = useAttachItemImage()
 
   const isPending = creating || uploading
 
@@ -105,8 +108,10 @@ export function ItemCreateDialog() {
             return
           }
 
-          uploadImage(
-            { uploadUrl, file: form.imageFile },
+          const file = form.imageFile
+          // `PUT` com a URL do `POST /itens` + `confirm` — sem o `confirm`, o item fica `has_image: false`.
+          attachImage(
+            { id: item.id, file, uploadUrl },
             {
               onSuccess: () => {
                 toast.add({
@@ -115,8 +120,8 @@ export function ItemCreateDialog() {
                 })
                 close()
               },
-              // O produto já existe — não recriar. Guarda o arquivo pra permitir só o reenvio do PUT.
-              onError: () => setPendingUpload({ uploadUrl, file: form.imageFile as File, itemName: item.name }),
+              // O produto já existe — não recriar. Guarda o arquivo pra reenviar só a foto.
+              onError: () => setPendingUpload({ itemId: item.id, file, itemName: item.name }),
             }
           )
         },
@@ -127,8 +132,9 @@ export function ItemCreateDialog() {
   const retryUpload = () => {
     if (pendingUpload === null) return
 
-    uploadImage(
-      { uploadUrl: pendingUpload.uploadUrl, file: pendingUpload.file },
+    // Sem `uploadUrl`: gera uma nova (a do cadastro pode ter vencido) e substitui o que tiver chegado.
+    attachImage(
+      { id: pendingUpload.itemId, file: pendingUpload.file },
       {
         onSuccess: () => {
           toast.add({ title: "Foto enviada", description: `Foto de ${pendingUpload.itemName} enviada com sucesso.` })
@@ -141,7 +147,7 @@ export function ItemCreateDialog() {
   const dismissPendingUpload = () => {
     toast.add({
       title: "Produto cadastrado sem foto",
-      description: "Você pode anexar a foto depois, quando o reenvio estiver disponível.",
+      description: 'Você pode adicionar a foto depois, em "Adicionar imagem" nos detalhes do produto.',
     })
     close()
   }
