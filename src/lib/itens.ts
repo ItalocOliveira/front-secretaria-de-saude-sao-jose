@@ -25,6 +25,12 @@ export const ITEM_STATUS_BADGE: Record<ItemStatus, "default" | "secondary" | "de
 
 export const ITEM_STATUS_LIST = Object.values(ITEM_STATUS)
 
+/** Mesma regra do `GET /notifications`: `min_amount` `0` desliga o alerta. */
+export function isLowStock(item: { amount: number; min_amount?: number | null }) {
+  const min = item.min_amount ?? 0
+  return min > 0 && item.amount < min
+}
+
 export const ITEM_TYPE = {
   MEDICAMENTO: "MEDICAMENTO",
   ODONTOLOGICO: "ODONTOLOGICO",
@@ -81,4 +87,19 @@ export const ITEM_IMAGE_MIME_ACCEPT = "image/*"
 
 export function isImageFile(file: File): boolean {
   return file.type.startsWith("image/")
+}
+
+/** `location.state` aceito por `/almoxarifado` — o sino abre a listagem buscando o item e já mostra o detalhe. */
+export type ItensLocationState = {
+  search?: string
+  itemId?: string
+}
+
+export function readItensLocationState(state: unknown): { search: string; itemId: string | null } {
+  if (typeof state !== "object" || state === null) {
+    return { search: "", itemId: null }
+  }
+
+  const { search, itemId } = state as Record<string, unknown>
+  return { search: typeof search === "string" ? search : "", itemId: typeof itemId === "string" ? itemId : null }
 }

@@ -44,6 +44,9 @@ export const DOCUMENT_DELETE_ROLES = FULL_ACCESS_ROLES
 /** Roles com acesso a `POST /reports/apacs` (relatórios). */
 export const REPORT_ROLES = ALL_ROLES
 
+/** Roles com acesso a `GET /notifications` (sino do header). `RECEPCIONISTA` recebe `403`. */
+export const NOTIFICATION_ROLES = FULL_ACCESS_ROLES
+
 export function canAccessApacs(role: UserRole) {
   return APAC_ROLES.includes(role)
 }
@@ -74,6 +77,10 @@ export function canDeleteDocuments(role: UserRole) {
 
 export function canAccessReports(role: UserRole) {
   return REPORT_ROLES.includes(role)
+}
+
+export function canSeeNotifications(role: UserRole) {
+  return NOTIFICATION_ROLES.includes(role)
 }
 
 /**

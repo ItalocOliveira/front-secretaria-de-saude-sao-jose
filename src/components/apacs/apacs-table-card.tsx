@@ -80,6 +80,7 @@ export function ApacsTableCard({
   title = "APACs cadastradas",
   toolbar,
   onCreate,
+  defaultSelectedId = null,
   emptyDescription = "Nenhuma APAC corresponde à busca. Ajuste o nome, limpe o filtro de status ou cadastre uma nova.",
 }: {
   apacs: Apac[]
@@ -95,9 +96,21 @@ export function ApacsTableCard({
   toolbar?: React.ReactNode
   /** Quando presente, o estado vazio oferece o atalho de cadastro. */
   onCreate?: () => void
+  /** APAC cujo detalhe abre assim que aparecer na página (vindo do sino). Lido só na montagem. */
+  defaultSelectedId?: string | null
   emptyDescription?: string
 }) {
   const [selected, setSelected] = useState<Apac | null>(null)
+  const [pendingOpenId, setPendingOpenId] = useState(defaultSelectedId)
+
+  // Abre o detalhe pedido uma única vez, quando a APAC chega na página — ajuste durante o render.
+  if (pendingOpenId !== null) {
+    const match = apacs.find((apac) => apac.id === pendingOpenId)
+    if (match !== undefined) {
+      setPendingOpenId(null)
+      setSelected(match)
+    }
+  }
   const [editing, setEditing] = useState<Apac | null>(null)
   const [deleting, setDeleting] = useState<Apac | null>(null)
   const { claims } = useSession()

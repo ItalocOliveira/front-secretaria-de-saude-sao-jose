@@ -2,7 +2,7 @@ import type { DateRange } from "react-day-picker"
 import { format } from "date-fns"
 
 import type { ApacListParams } from "@/api/apacs"
-import type { ApacPriority, ApacStatus } from "@/lib/apac"
+import { APAC_PRIORITY, APAC_STATUS, type ApacPriority, type ApacStatus } from "@/lib/apac"
 
 /** Sentinela de "sem filtro" — `Select` do Base UI trata `""` como valor. */
 export const ALL = "__all__"
@@ -53,5 +53,38 @@ export function toApacListFilters(value: ApacFiltersValue): Omit<ApacListParams,
     municipality: value.municipality === ALL ? undefined : value.municipality,
     startDate: toApiDate(value.period?.from),
     endDate: toApiDate(value.period?.to),
+  }
+}
+
+/**
+ * `location.state` aceito por `/apacs` — usado pelo sino para abrir a listagem já filtrada (e,
+ * com `apacId`, o detalhe da APAC). Vai no `state` do `navigate`, **não** na query string: o nome
+ * do paciente é dado pessoal e não deve parar na URL/histórico.
+ */
+export type ApacsLocationState = {
+  search?: string
+  priority?: ApacPriority
+  status?: ApacStatus
+  apacId?: string
+}
+
+const isOneOf = <T extends string>(values: Record<string, T>, value: unknown): value is T =>
+  typeof value === "string" && Object.values(values).includes(value as T)
+
+/** Lê o `location.state` com cuidado: pode vir de qualquer lugar (histórico, outra versão do app). */
+export function readApacsLocationState(state: unknown): { filters: ApacFiltersValue; apacId: string | null } {
+  if (typeof state !== "object" || state === null) {
+    return { filters: EMPTY_FILTERS, apacId: null }
+  }
+
+  const { search, priority, status, apacId } = state as Record<string, unknown>
+  return {
+    filters: {
+      ...EMPTY_FILTERS,
+      search: typeof search === "string" ? search : "",
+      priority: isOneOf(APAC_PRIORITY, priority) ? priority : ALL,
+      status: isOneOf(APAC_STATUS, status) ? status : ALL,
+    },
+    apacId: typeof apacId === "string" ? apacId : null,
   }
 }

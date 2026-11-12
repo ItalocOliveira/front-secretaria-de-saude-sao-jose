@@ -14,7 +14,7 @@ export const MAX_TEXT_LENGTH = 2000
 export const MAX_PASSWORD_LENGTH = 128
 
 /**
- * `amount` de item (`POST /itens`, 0 a este valor) e de movimentação (`POST /itens/:id/movements`,
+ * `amount` de item (`POST /itens`, 0 a este valor), `min_amount` (`POST`/`PATCH /itens`, 0 a este valor) e de movimentação (`POST /itens/:id/movements`,
  * 1 a este valor) — sempre inteiro. Fracionado, negativo ou acima disso → `400`.
  */
 export const MAX_ITEM_AMOUNT = 1_000_000

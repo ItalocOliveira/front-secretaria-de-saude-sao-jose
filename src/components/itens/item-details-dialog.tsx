@@ -10,6 +10,7 @@ import {
   ITEM_STATUS_LABEL,
   ITEM_TYPE_LABEL,
   isImageFile,
+  isLowStock,
   MOVEMENT_TYPE_BADGE,
   MOVEMENT_TYPE_LABEL,
   type MovementType,
@@ -232,6 +233,11 @@ export function ItemDetailsDialog({
             <div className="flex flex-col items-center gap-3 rounded-lg border bg-muted/50 py-4">
               <span className="text-sm text-muted-foreground">Saldo atual</span>
               <span className="font-heading text-4xl font-medium tabular-nums">{item.amount}</span>
+              {(item.min_amount ?? 0) > 0 ? (
+                <Badge variant={isLowStock(item) ? "destructive" : "outline"} className="tabular-nums">
+                  {isLowStock(item) ? "Abaixo do mínimo" : "Mínimo"} · {item.min_amount}
+                </Badge>
+              ) : null}
               <div className="flex gap-2">
                 <Button
                   variant={movementType === "ENTRADA" ? "default" : "outline"}

@@ -28,13 +28,15 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
-import { MAX_NAME_LENGTH, MAX_TEXT_LENGTH } from "@/lib/field-limits"
+import { MAX_ITEM_AMOUNT, MAX_NAME_LENGTH, MAX_TEXT_LENGTH, parseItemAmount } from "@/lib/field-limits"
 
 type FormValues = {
   name: string
   description: string
   status: ItemStatus
   type: ItemType
+  /** Texto cru do `<input type="number">` — validado com `parseItemAmount` no envio. */
+  minAmount: string
 }
 
 function toFormValues(item: ItemDto): FormValues {
@@ -43,22 +45,25 @@ function toFormValues(item: ItemDto): FormValues {
     description: item.description ?? "",
     status: item.status,
     type: item.type,
+    minAmount: String(item.min_amount ?? 0),
   }
 }
 
-function diffPayload(item: ItemDto, values: FormValues): UpdateItemPayload {
+/** `minAmount` já validado (vazio = `0`). */
+function diffPayload(item: ItemDto, values: FormValues, minAmount: number): UpdateItemPayload {
   const payload: UpdateItemPayload = {}
 
   if (values.name !== item.name) payload.name = values.name
   if (values.description !== (item.description ?? "")) payload.description = values.description
   if (values.status !== item.status) payload.status = values.status
   if (values.type !== item.type) payload.type = values.type
+  if (minAmount !== (item.min_amount ?? 0)) payload.min_amount = minAmount
 
   return payload
 }
 
 /**
- * Edita nome, descrição, tipo e situação. A quantidade **não** é editável aqui: a API ignora
+ * Edita nome, descrição, tipo, situação e quantidade mínima (limite do alerta de estoque baixo). A quantidade **não** é editável aqui: a API ignora
  * `amount` no `PATCH` — o estoque só muda por entrada/saída (`onMoveStock` abre os detalhes).
  */
 export function ItemEditDialog({
@@ -75,6 +80,8 @@ export function ItemEditDialog({
 
   // Deriva do `item` recebido, mas permite o usuário digitar por cima — sem `useEffect`.
   const current = values ?? (item === null ? null : toFormValues(item))
+  const minAmountInvalid =
+    current !== null && current.minAmount.trim() !== "" && parseItemAmount(current.minAmount, 0) === null
 
   const close = () => {
     reset()
@@ -87,7 +94,12 @@ export function ItemEditDialog({
       return
     }
 
-    const payload = diffPayload(item, current)
+    const minAmount = current.minAmount.trim() === "" ? 0 : parseItemAmount(current.minAmount, 0)
+    if (minAmount === null) {
+      return
+    }
+
+    const payload = diffPayload(item, current, minAmount)
     if (Object.keys(payload).length === 0) {
       close()
       return
@@ -214,6 +226,25 @@ export function ItemEditDialog({
                 Para alterar o estoque, registre uma entrada ou saída — assim o extrato sempre fecha com o saldo.
               </FieldDescription>
             </Field>
+
+            <Field data-invalid={minAmountInvalid || undefined}>
+              <FieldLabel htmlFor="editar-item-quantidade-minima">Quantidade mínima</FieldLabel>
+              <Input
+                id="editar-item-quantidade-minima"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={MAX_ITEM_AMOUNT}
+                step={1}
+                placeholder="0"
+                aria-invalid={minAmountInvalid || undefined}
+                value={current.minAmount}
+                onChange={(event) => setValues({ ...current, minAmount: event.target.value })}
+              />
+              <FieldDescription>
+                Com o estoque abaixo deste número, o produto aparece nas notificações. Zero desliga o alerta.
+              </FieldDescription>
+            </Field>
           </FieldGroup>
         )}
 
@@ -225,7 +256,7 @@ export function ItemEditDialog({
               </Button>
             }
           />
-          <Button onClick={submit} disabled={isPending}>
+          <Button onClick={submit} disabled={isPending || minAmountInvalid}>
             {isPending ? <Spinner data-icon="inline-start" /> : <CheckIcon data-icon="inline-start" />}
             Salvar
           </Button>

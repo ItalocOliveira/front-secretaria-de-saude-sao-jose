@@ -1,9 +1,9 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { EyeIcon, PackageSearchIcon } from "lucide-react"
 
 import type { ItemDto } from "@/api/itens"
 import type { PaginationInfo } from "@/api/pagination"
-import { ITEM_STATUS_BADGE, ITEM_STATUS_LABEL, ITEM_TYPE_LABEL } from "@/lib/itens"
+import { ITEM_STATUS_BADGE, ITEM_STATUS_LABEL, ITEM_TYPE_LABEL, isLowStock } from "@/lib/itens"
 import { ItemDeleteAlert } from "@/components/itens/item-delete-alert"
 import { ItemDetailsDialog } from "@/components/itens/item-details-dialog"
 import { ItemEditDialog } from "@/components/itens/item-edit-dialog"
@@ -30,6 +30,9 @@ export function ItensTableCard({
   isFetching,
   onRefresh,
   error,
+  isSearching = false,
+  toolbar,
+  defaultSelectedId = null,
 }: {
   /** Uma página de `GET /itens`. */
   itens: ItemDto[]
@@ -39,8 +42,13 @@ export function ItensTableCard({
   isFetching: boolean
   onRefresh: () => void
   error: Error | null
+  /** Muda o texto do estado vazio ("nenhum encontrado" em vez de "nenhum cadastrado"). */
+  isSearching?: boolean
+  toolbar?: ReactNode
+  /** Item cujo detalhe abre assim que aparecer na página (vindo do sino). Lido só na montagem. */
+  defaultSelectedId?: string | null
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(defaultSelectedId)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null)
@@ -59,6 +67,7 @@ export function ItensTableCard({
           Produtos cadastrados
           {pagination === undefined ? null : <Badge variant="secondary">{pagination.total}</Badge>}
         </CardTitle>
+        {toolbar === undefined ? null : <div className="pt-2">{toolbar}</div>}
       </CardHeader>
 
       <CardContent className="px-0">
@@ -86,8 +95,10 @@ export function ItensTableCard({
                 <EmptyMedia variant="icon">
                   <PackageSearchIcon />
                 </EmptyMedia>
-                <EmptyTitle>Nenhum produto cadastrado</EmptyTitle>
-                <EmptyDescription>Cadastre o primeiro produto em "Novo produto".</EmptyDescription>
+                <EmptyTitle>{isSearching ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}</EmptyTitle>
+                <EmptyDescription>
+                  {isSearching ? "Nenhum produto com esse nome." : 'Cadastre o primeiro produto em "Novo produto".'}
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           </div>
@@ -135,7 +146,14 @@ export function ItensTableCard({
                     <TableCell>
                       <Badge variant={ITEM_STATUS_BADGE[item.status]}>{ITEM_STATUS_LABEL[item.status]}</Badge>
                     </TableCell>
-                    <TableCell className="tabular-nums">{item.amount}</TableCell>
+                    <TableCell className="tabular-nums">
+                      <div className="flex flex-col items-start gap-1">
+                        {item.amount}
+                        {isLowStock(item) ? (
+                          <Badge variant="destructive">Abaixo do mínimo ({item.min_amount})</Badge>
+                        ) : null}
+                      </div>
+                    </TableCell>
                     <TableCell className="pr-4">
                       <div className="flex justify-end">
                         <Tooltip>

@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 
 import {
   createApac,
@@ -10,9 +10,18 @@ import {
   type UpdateApacPayload,
 } from "@/api/apacs"
 import { ApiError } from "@/api/client"
+import { NOTIFICATIONS_QUERY_KEY } from "@/hooks/use-notifications"
 
 /** Prefixo de todas as páginas/filtros — invalidar por ele atualiza qualquer listagem aberta. */
 export const APACS_QUERY_KEY = ["apacs"] as const
+
+/** Status/prioridade de APAC alimentam o sino (`urgentApacs`) — criar, editar e excluir atualizam os dois. */
+function invalidateApacs(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: APACS_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY }),
+  ])
+}
 
 export function useApacs(params: ApacListParams) {
   return useQuery({
@@ -28,7 +37,7 @@ export function useCreateApac() {
 
   return useMutation({
     mutationFn: createApac,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: APACS_QUERY_KEY }),
+    onSuccess: () => invalidateApacs(queryClient),
   })
 }
 
@@ -37,7 +46,7 @@ export function useUpdateApac() {
 
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateApacPayload }) => updateApac(id, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: APACS_QUERY_KEY }),
+    onSuccess: () => invalidateApacs(queryClient),
   })
 }
 
@@ -48,9 +57,7 @@ export function useDeleteApac() {
   return useMutation({
     mutationFn: (id: string) => deleteApac(id),
     onSettled: (_data, error) =>
-      error === null || (error instanceof ApiError && error.status === 404)
-        ? queryClient.invalidateQueries({ queryKey: APACS_QUERY_KEY })
-        : undefined,
+      error === null || (error instanceof ApiError && error.status === 404) ? invalidateApacs(queryClient) : undefined,
   })
 }
 

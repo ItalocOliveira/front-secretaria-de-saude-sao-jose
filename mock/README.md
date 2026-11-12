@@ -65,6 +65,10 @@ GET /users?status=RECEPCIONISTA
 
 Ordem: mais recentes primeiro; usuários em ordem alfabética. `pdf_url`/`image_url` vêm em todos os itens.
 
+### Notificações e quantidade mínima
+
+`GET /notifications` (todos menos `RECEPCIONISTA`, que recebe `403`) calcula na hora os alertas do sino: itens com `amount < min_amount` (menor quantidade primeiro) e APACs `URGENTE` em `PENDENTE`/`AGUARDO` (mais antigas primeiro), até 10 de cada. As APACs do mock não têm `protocol_number`: o mock usa a posição na base. `POST`/`PATCH /itens` aceitam `min_amount` (inteiro 0–1.000.000, `null` = 0); itens antigos saem com `0` (sem alerta). Contrato em [`.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`](../.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md).
+
 ### Upload e download de PDF
 
 `POST /apacs` devolve `{ apac, uploadUrl }`. `uploadUrl` aponta pra um endpoint local (`PUT /mock-uploads/:id.pdf?exp=...`) que imita a presigned URL de upload do Cloudflare R2 da API real: sem `Authorization`, validade de 15 min (`exp` embutido na própria URL, não em token). Depois do `exp`, o `PUT` devolve `403`, igual a um link do R2 vencido. Os arquivos "enviados" ficam em `mock/uploads/` (gitignored).

@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 
 import {
   createItem,
@@ -13,8 +13,17 @@ import {
 import { ApiError } from "@/api/client"
 import type { ListParams } from "@/api/pagination"
 import type { ItemStatus } from "@/lib/itens"
+import { NOTIFICATIONS_QUERY_KEY } from "@/hooks/use-notifications"
 
 export const ITENS_QUERY_KEY = ["itens"] as const
+
+/** Estoque e `min_amount` alimentam o sino (`lowStock`) — toda mutação de item atualiza os dois. */
+function invalidateItens(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY }),
+  ])
+}
 
 export function useItens(params: ListParams<ItemStatus>) {
   return useQuery({
@@ -29,7 +38,7 @@ export function useCreateItem() {
 
   return useMutation({
     mutationFn: createItem,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY }),
+    onSuccess: () => invalidateItens(queryClient),
   })
 }
 
@@ -38,7 +47,7 @@ export function useUpdateItem() {
 
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateItemPayload }) => updateItem(id, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY }),
+    onSuccess: () => invalidateItens(queryClient),
   })
 }
 
@@ -49,9 +58,7 @@ export function useDeleteItem() {
     mutationFn: (id: string) => deleteItem(id),
     // `404`: o item já não existe — some da tabela do mesmo jeito.
     onSettled: (_data, error) =>
-      error === null || (error instanceof ApiError && error.status === 404)
-        ? queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY })
-        : undefined,
+      error === null || (error instanceof ApiError && error.status === 404) ? invalidateItens(queryClient) : undefined,
   })
 }
 
@@ -61,7 +68,7 @@ export function useCreateItemMovement() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: CreateItemMovementPayload }) =>
       createItemMovement(id, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY }),
+    onSuccess: () => invalidateItens(queryClient),
   })
 }
 
