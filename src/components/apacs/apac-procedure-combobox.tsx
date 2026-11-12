@@ -1,4 +1,5 @@
 import { APAC_PROCEDURE_OPTIONS, type ApacProcedure } from "@/lib/apac"
+import { matchesSearch } from "@/lib/search"
 import { Button } from "@/components/ui/button"
 import {
   Combobox,
@@ -12,6 +13,14 @@ import {
 } from "@/components/ui/combobox"
 
 const PLACEHOLDER = "Selecione o procedimento"
+
+/**
+ * O filtro padrão do Base UI exige o texto contínuo ("oci xyz" não acha
+ * "OCI - xyz"). Este ignora acentos/pontuação e aceita as palavras em qualquer ordem.
+ */
+function filterProcedure(option: (typeof APAC_PROCEDURE_OPTIONS)[number], query: string) {
+  return matchesSearch(option.search, query)
+}
 
 /**
  * Campo de procedimento compartilhado entre criação e edição de APAC.
@@ -35,6 +44,7 @@ export function ApacProcedureCombobox({
   return (
     <Combobox
       items={APAC_PROCEDURE_OPTIONS}
+      filter={filterProcedure}
       value={APAC_PROCEDURE_OPTIONS.find((option) => option.value === value) ?? null}
       onValueChange={(option) => onValueChange(option?.value ?? null)}
     >
