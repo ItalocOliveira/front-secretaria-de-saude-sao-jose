@@ -46,7 +46,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { MAX_NAME_LENGTH } from "@/lib/field-limits"
+import { MAX_ITEM_AMOUNT, MAX_NAME_LENGTH, parseItemAmount } from "@/lib/field-limits"
 
 const MOVEMENT_FORM_ID = "item-movement-form"
 
@@ -127,14 +127,15 @@ export function ItemDetailsDialog({
   const submitMovement = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (item === null || movementType === null) {
+    const parsedAmount = parseItemAmount(amount, 1)
+    if (item === null || movementType === null || parsedAmount === null) {
       return
     }
 
     const movementLabel = movementType === "ENTRADA" ? "Entrada" : "Saída"
 
     createMovement(
-      { id: item.id, payload: { movementType, amount: Number(amount), destination: destination.trim() } },
+      { id: item.id, payload: { movementType, amount: parsedAmount, destination: destination.trim() } },
       {
         onSuccess: ({ uploadUrl }) => {
           if (movementImageFile === null) {
@@ -345,13 +346,21 @@ export function ItemDetailsDialog({
                   <Input
                     id="movimento-quantidade"
                     type="number"
+                    inputMode="numeric"
                     min={1}
+                    max={movementType === "SAIDA" ? Math.min(item.amount, MAX_ITEM_AMOUNT) : MAX_ITEM_AMOUNT}
+                    step={1}
                     required
                     autoFocus
                     disabled={isPending}
                     value={amount}
                     onChange={(event) => setAmount(event.target.value)}
                   />
+                  <FieldDescription>
+                    {movementType === "SAIDA"
+                      ? `Número inteiro, até o saldo atual (${item.amount}).`
+                      : `Número inteiro, de 1 a ${MAX_ITEM_AMOUNT.toLocaleString("pt-BR")}.`}
+                  </FieldDescription>
                 </Field>
 
                 <Field>

@@ -12,3 +12,16 @@ export const MAX_TEXT_LENGTH = 2000
 
 /** `password` no login e no cadastro de usuário. */
 export const MAX_PASSWORD_LENGTH = 128
+
+/**
+ * `amount` de item (`POST /itens`, 0 a este valor) e de movimentação (`POST /itens/:id/movements`,
+ * 1 a este valor) — sempre inteiro. Fracionado, negativo ou acima disso → `400`.
+ */
+export const MAX_ITEM_AMOUNT = 1_000_000
+
+/** Converte o texto de um `<input type="number">` em quantidade válida (inteira, entre `min` e `MAX_ITEM_AMOUNT`) ou `null`. */
+export function parseItemAmount(value: string, min: number): number | null {
+  if (value.trim() === "") return null
+  const amount = Number(value)
+  return Number.isInteger(amount) && amount >= min && amount <= MAX_ITEM_AMOUNT ? amount : null
+}

@@ -683,6 +683,42 @@ async function deleteDocument(res, id) {
 // POST /itens
 // ---------------------------------------------------------------------------
 
+const MAX_ITEM_AMOUNT = 1_000_000
+
+/** `amount` de item/movimento: inteiro entre `min` e 1.000.000 — mensagens no formato do validador da API. */
+function validateAmount(amount, min) {
+  if (!Number.isFinite(amount)) return "body/amount must be number"
+  if (!Number.isInteger(amount)) return "body/amount must be integer"
+  if (amount < min) return `body/amount must be >= ${min}`
+  if (amount > MAX_ITEM_AMOUNT) return `body/amount must be <= ${MAX_ITEM_AMOUNT}`
+  return null
+}
+
+/** `PATCH /itens/:id` — `amount` é ignorado (estoque só muda por movimentação). 404 se não existe. */
+async function updateItem(req, res, id) {
+  const body = await readJsonBody(req)
+  if (!body) return send(res, 400, { message: "Corpo da requisição deve ser um objeto JSON." })
+
+  const item = db.data.itens.find((entry) => entry.id === id)
+  if (!item) return send(res, 404, { error: "Item não encontrado." })
+
+  if (body.type !== undefined && !ITEM_TYPES.includes(body.type)) {
+    return send(res, 400, { message: `type inválido. Valores aceitos: ${ITEM_TYPES.join(", ")}.` })
+  }
+  if (body.status !== undefined && !["DISPONIVEL", "EMPRESTADO"].includes(body.status)) {
+    return send(res, 400, { message: "status inválido. Valores aceitos: DISPONIVEL, EMPRESTADO." })
+  }
+
+  if (body.name !== undefined) item.name = String(body.name)
+  if (body.description !== undefined) item.description = String(body.description)
+  if (body.type !== undefined) item.type = body.type
+  if (body.status !== undefined) item.status = body.status
+
+  await db.write()
+
+  return send(res, 200, withImageUrl(item))
+}
+
 async function createItem(req, res, user) {
   const fail = (details) => {
     console.warn("POST /itens inválido:", Object.keys(details).join(", "))
@@ -695,12 +731,16 @@ async function createItem(req, res, user) {
   const details = {}
   if (!body.name) details.name = "Campo obrigatório."
   if (!ITEM_TYPES.includes(body.type)) details.type = `Valores aceitos: ${ITEM_TYPES.join(", ")}.`
-  if (body.amount != null && (!Number.isFinite(Number(body.amount)) || Number(body.amount) < 0)) {
-    details.amount = "Deve ser um número não negativo."
-  }
   if (Object.keys(details).length > 0) return fail(details)
 
+  // Como na API real: inteiro de 0 a 1.000.000 (`null`/ausente = 0), erro no formato do validador de schema.
   const amount = body.amount != null ? Number(body.amount) : 0
+  const amountError = validateAmount(amount, 0)
+  if (amountError) return send(res, 400, { statusCode: 400, error: "Bad Request", message: amountError })
+
+  const author = db.data.users.find((entry) => entry.id === user.id)
+  if (!author) return send(res, 404, { error: "Usuário não encontrado." })
+
   const name = String(body.name)
 
   const item = {
@@ -721,7 +761,7 @@ async function createItem(req, res, user) {
               movementType: "ENTRADA",
               amount,
               destination: "Estoque inicial",
-              description: `Item ${name} foi criado no estoque com ${amount} unidades.`,
+              description: `${author.name} cadastrou o item ${name} no estoque com ${amount} unidades.`,
               dateTime: new Date().toISOString(),
             },
           ]
@@ -755,9 +795,8 @@ async function createItemMovement(req, res, itemId, user) {
   }
 
   const amount = Number(body.amount)
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return send(res, 400, { message: "amount deve ser um número maior que zero." })
-  }
+  const amountError = validateAmount(amount, 1)
+  if (amountError) return send(res, 400, { statusCode: 400, error: "Bad Request", message: amountError })
 
   if (!body.destination) {
     return send(res, 400, { message: "destination é obrigatório." })
@@ -767,7 +806,7 @@ async function createItemMovement(req, res, itemId, user) {
   if (!item) return send(res, 404, { error: "Item não encontrado." })
 
   const author = db.data.users.find((entry) => entry.id === user.id)
-  if (!author) return send(res, 500, { message: "Usuário não encontrado." })
+  if (!author) return send(res, 404, { error: "Usuário não encontrado." })
 
   if (body.movementType === "SAIDA" && amount > item.amount) {
     return send(res, 400, { error: "Estoque insuficiente para esta saída." })
@@ -1163,6 +1202,10 @@ const server = createServer(async (req, res) => {
   if (collection === "reports") {
     if (method === "POST" && rest.length === 1 && rest[0] === "apacs") return reportApacs(req, res)
     return send(res, 404, { message: "Rota não encontrada." })
+  }
+
+  if (method === "PATCH" && collection === "itens" && rest.length === 1) {
+    return updateItem(req, res, rest[0])
   }
 
   if (method === "PATCH" && collection === "documents" && rest.length === 1) {
