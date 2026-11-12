@@ -38,7 +38,7 @@ function BrandPanel() {
       />
 
       <div className="relative flex max-w-120 flex-col gap-3">
-        <img src="/logo_secretaria.png" alt="" className="mb-4 size-18 object-contain" />
+        <img src="/logo_icos.png" alt="" className="mb-4 size-18 object-contain" />
         <h2 className="text-[clamp(1.75rem,2.6vw,2.5rem)] leading-tight font-extrabold tracking-tight">
           Interface de Controle Operacional da Saúde
         </h2>
@@ -129,7 +129,7 @@ export function LoginPage() {
     <main className="grid min-h-svh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <section className="flex flex-col bg-background p-6 sm:px-[clamp(1.5rem,6vw,4.5rem)] sm:py-8">
         <header className="flex items-center gap-3">
-          <img src="/logo_secretaria.png" alt="" className="size-10 shrink-0 object-contain" />
+          <img src="/logo_icos.png" alt="" className="size-10 shrink-0 object-contain" />
           <div className="flex flex-col gap-0.5 leading-none">
             <span className="text-xl font-extrabold tracking-tight">ICOS</span>
             <span className="text-[0.8125rem] text-muted-foreground">São José dos Ramos</span>
