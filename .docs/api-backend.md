@@ -85,7 +85,7 @@ Campos do modelo `Apac` (schema Prisma): `id`, `name`, `birth_date`, `cns_hash`,
 - Toda APAC deve possuir `name`, `cns`, `procedure` e `priority`
 - `cns` e `cpf` (quando informado) são persistidos com hash e criptografia, mas trafegam em **texto puro** nas respostas da API
 - `status` inicia como `PENDENTE`; a transição (`AGUARDO`/`APROVADO`/`CANCELADO`/`NEGADO`/`ENTREGUE`) é feita via `PATCH /apacs/:id`
-- `procedure` é um enum Prisma (`Procedures`) — a chave é `SCREAMING_SNAKE_CASE` sem acento (ex.: `CONSULTA_EM_DERMATOLOGIA_ADULTO`), não o texto formatado exibido na tela. `EXAME`/`CIRURGIA` eram os valores originais; hoje é um catálogo de ~47 procedimentos, ver `APAC_PROCEDURE`/`APAC_PROCEDURE_LABEL` em `src/lib/apac.ts`
+- `procedure` é um enum Prisma (`Procedures`) — a chave é `SCREAMING_SNAKE_CASE` sem acento (ex.: `CONSULTA_EM_DERMATOLOGIA_PEDIATRIA`), não o texto formatado exibido na tela. `EXAME`/`CIRURGIA` eram os valores originais; hoje é um catálogo de ~72 procedimentos, ver `APAC_PROCEDURE`/`APAC_PROCEDURE_LABEL` em `src/lib/apac.ts`
 - `priority` aceita apenas `URGENTE` ou `ELETIVO` (`ELETIVO` era `NORMAL` antes desta mudança de regra de negócio)
 
 ### Segurança e acesso
@@ -378,7 +378,7 @@ Cadastra uma nova APAC (Autorização de Procedimento Ambulatorial de Alta Compl
 
 | Enum                        | Valores                                                              |
 | --------------------------- | -------------------------------------------------------------------- |
-| `procedure`                 | enum `Procedures` — ~47 valores, ver `src/lib/apac.ts`               |
+| `procedure`                 | enum `Procedures` — ~72 valores, ver `src/lib/apac.ts`               |
 | `priority`                  | `URGENTE`, `ELETIVO`                                                 |
 | `acs`                       | ver enum `Acs` no início da seção de APACs                           |
 | `status` (somente resposta) | `PENDENTE`, `AGUARDO`, `APROVADO`, `CANCELADO`, `NEGADO`, `ENTREGUE` |
