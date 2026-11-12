@@ -5,6 +5,11 @@ import { toListQuery, type ListParams, type Paginated } from "@/api/pagination"
 export type ItemMovementDto = {
   id: string
   itemId: string
+  /**
+   * Id de quem registrou. `"SISTEMA"` no ajuste automático de inventário que a API gera uma vez
+   * para itens antigos cujo histórico não fechava com o estoque (`destination: "Ajuste de inventário"`,
+   * `description` começando com `"Ajuste automático de inventário: ..."`, sem foto).
+   */
   userId: string
   movementType: MovementType
   amount: number
@@ -38,9 +43,11 @@ export type ItemDto = {
 }
 
 /**
- * `amount` é opcional — omitido ou `0` cria o produto sem estoque (sem
- * movimento no histórico). Se vier `> 0`, a API cria uma `ENTRADA` automática
- * com descrição gerada por ela mesma.
+ * `amount` é opcional, inteiro de 0 a 1.000.000 — omitido ou `0` cria o produto
+ * sem estoque (sem movimento no histórico). Se vier `> 0`, a API cria uma
+ * `ENTRADA` automática (`destination: "Estoque inicial"`) com a descrição
+ * `"<usuário> cadastrou o item <NOME> no estoque com N unidades."`.
+ * `404` `"Usuário não encontrado."` se quem está logado não existe mais no município.
  */
 export type CreateItemPayload = {
   name: string
@@ -55,17 +62,22 @@ export type CreateItemResult = {
   uploadUrl: string
 }
 
-/** Todos os campos opcionais — envie só o que for alterar. Não gera movimento nem mexe na foto. */
+/**
+ * Todos os campos opcionais — envie só o que for alterar. Não gera movimento nem mexe na foto.
+ * **Sem `amount`**: a API ignora a quantidade no `PATCH` — o estoque só muda por
+ * `createItemMovement` (`ENTRADA` soma, `SAIDA` subtrai), para o histórico sempre fechar com o saldo.
+ */
 export type UpdateItemPayload = {
   name?: string
   description?: string
   status?: ItemStatus
-  amount?: number
   type?: ItemType
 }
 
 /**
  * `itemId` vem da URL e `userId` do token — a `description` é gerada pela API.
+ * `amount` é inteiro de 1 a 1.000.000. Duas saídas simultâneas que passem do
+ * estoque: a segunda recebe `400` `"Estoque insuficiente para esta saída."`.
  * `destination` é obrigatório para os dois tipos de movimento (entrada e
  * saída), sem enum/whitelist no backend.
  */

@@ -181,7 +181,11 @@ export function ItensTableCard({
         onRefresh={onRefresh}
         isRefreshing={isFetching}
       />
-      <ItemEditDialog item={editing} onOpenChange={(open) => (open ? null : setEditingId(null))} />
+      <ItemEditDialog
+        item={editing}
+        onOpenChange={(open) => (open ? null : setEditingId(null))}
+        onMoveStock={(item) => setSelectedId(item.id)}
+      />
       <ItemDeleteAlert item={deleting} onOpenChange={(open) => (open ? null : setDeletingId(null))} />
       <ImageLightbox src={zoomedImageUrl} onOpenChange={(open) => (open ? null : setZoomedImageUrl(null))} />
     </Card>

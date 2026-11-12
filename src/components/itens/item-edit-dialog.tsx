@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { CheckIcon } from "lucide-react"
+import { ArrowDownUpIcon, CheckIcon } from "lucide-react"
 
 import type { ItemDto, UpdateItemPayload } from "@/api/itens"
 import {
@@ -34,7 +34,6 @@ type FormValues = {
   name: string
   description: string
   status: ItemStatus
-  amount: number
   type: ItemType
 }
 
@@ -43,7 +42,6 @@ function toFormValues(item: ItemDto): FormValues {
     name: item.name,
     description: item.description ?? "",
     status: item.status,
-    amount: item.amount,
     type: item.type,
   }
 }
@@ -54,18 +52,23 @@ function diffPayload(item: ItemDto, values: FormValues): UpdateItemPayload {
   if (values.name !== item.name) payload.name = values.name
   if (values.description !== (item.description ?? "")) payload.description = values.description
   if (values.status !== item.status) payload.status = values.status
-  if (values.amount !== item.amount) payload.amount = values.amount
   if (values.type !== item.type) payload.type = values.type
 
   return payload
 }
 
+/**
+ * Edita nome, descrição, tipo e situação. A quantidade **não** é editável aqui: a API ignora
+ * `amount` no `PATCH` — o estoque só muda por entrada/saída (`onMoveStock` abre os detalhes).
+ */
 export function ItemEditDialog({
   item,
   onOpenChange,
+  onMoveStock,
 }: {
   item: ItemDto | null
   onOpenChange: (open: boolean) => void
+  onMoveStock: (item: ItemDto) => void
 }) {
   const [values, setValues] = useState<FormValues | null>(null)
   const { mutate: updateItem, isPending, error, reset } = useUpdateItem()
@@ -106,10 +109,10 @@ export function ItemEditDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar produto</DialogTitle>
-          <DialogDescription>Atualiza os dados via PATCH /itens/:id — envie só o que mudar.</DialogDescription>
+          <DialogDescription>Atualize os dados do produto. O estoque muda só por entrada ou saída.</DialogDescription>
         </DialogHeader>
 
-        {current === null ? null : (
+        {current === null || item === null ? null : (
           <FieldGroup>
             {error === null ? null : (
               <Alert variant="destructive">
@@ -191,16 +194,24 @@ export function ItemEditDialog({
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="editar-item-quantidade">Quantidade</FieldLabel>
-              <Input
-                id="editar-item-quantidade"
-                type="number"
-                min={0}
-                value={current.amount}
-                onChange={(event) => setValues({ ...current, amount: Number(event.target.value) })}
-              />
+              <FieldLabel htmlFor="editar-item-quantidade">Quantidade em estoque</FieldLabel>
+              <div className="flex gap-2">
+                <Input id="editar-item-quantidade" type="number" readOnly value={item.amount} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => {
+                    close()
+                    onMoveStock(item)
+                  }}
+                >
+                  <ArrowDownUpIcon data-icon="inline-start" />
+                  Registrar entrada/saída
+                </Button>
+              </div>
               <FieldDescription>
-                Ajuste direto — não gera registro no extrato. Para rastrear, use Entrada/Saída nos detalhes do produto.
+                Para alterar o estoque, registre uma entrada ou saída — assim o extrato sempre fecha com o saldo.
               </FieldDescription>
             </Field>
           </FieldGroup>

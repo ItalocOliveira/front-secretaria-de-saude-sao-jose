@@ -31,17 +31,24 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
-import { MAX_NAME_LENGTH, MAX_TEXT_LENGTH } from "@/lib/field-limits"
+import { MAX_ITEM_AMOUNT, MAX_NAME_LENGTH, MAX_TEXT_LENGTH, parseItemAmount } from "@/lib/field-limits"
 
-const INITIAL_FORM = { name: "", description: "", type: null as ItemType | null, imageFile: null as File | null }
+const INITIAL_FORM = {
+  name: "",
+  description: "",
+  type: null as ItemType | null,
+  amount: "",
+  imageFile: null as File | null,
+}
 
 /** Produto já criado, mas o `PUT` da foto pro R2 falhou — guarda o necessário pra reenviar sem recriar o registro. */
 type PendingUpload = { uploadUrl: string; file: File; itemName: string }
 
 /**
- * Cadastro de produto no catálogo — sem quantidade. O produto nasce com
- * saldo 0 e sem movimento no histórico; entrada/saída de estoque acontecem
- * depois, na tela de detalhe do produto (`ItemDetailsDialog`).
+ * Cadastro de produto no catálogo. A quantidade inicial é opcional: vazia/`0`
+ * cria o produto sem estoque e sem movimento; `> 0` faz a API registrar uma
+ * `ENTRADA` "Estoque inicial" no histórico, em nome de quem cadastrou. Depois
+ * disso, o estoque só muda por entrada/saída (`ItemDetailsDialog`).
  */
 export function ItemCreateDialog() {
   const [open, setOpen] = useState(false)
@@ -75,7 +82,8 @@ export function ItemCreateDialog() {
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (form.type === null) {
+    const amount = form.amount.trim() === "" ? 0 : parseItemAmount(form.amount, 0)
+    if (form.type === null || amount === null) {
       return
     }
 
@@ -84,6 +92,7 @@ export function ItemCreateDialog() {
         name: form.name,
         description: form.description === "" ? undefined : form.description,
         type: form.type,
+        amount,
       },
       {
         onSuccess: ({ item, uploadUrl }) => {
@@ -150,8 +159,8 @@ export function ItemCreateDialog() {
             <DialogHeader>
               <DialogTitle>Novo produto</DialogTitle>
               <DialogDescription>
-                Cadastra o produto no catálogo via POST /itens, sem estoque. Lance uma entrada depois, nos detalhes do
-                produto.
+                Cadastra o produto no almoxarifado. Informe a quantidade inicial ou lance uma entrada depois, nos
+                detalhes do produto.
               </DialogDescription>
             </DialogHeader>
 
@@ -196,6 +205,25 @@ export function ItemCreateDialog() {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="item-quantidade">Quantidade inicial</FieldLabel>
+                <Input
+                  id="item-quantidade"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={MAX_ITEM_AMOUNT}
+                  step={1}
+                  placeholder="0"
+                  disabled={isPending}
+                  value={form.amount}
+                  onChange={(event) => patch({ amount: event.target.value })}
+                />
+                <FieldDescription>
+                  Opcional. Número inteiro; se maior que zero, entra no extrato como estoque inicial em seu nome.
+                </FieldDescription>
               </Field>
 
               <Field>
