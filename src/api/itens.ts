@@ -31,6 +31,11 @@ export type ItemDto = {
   status: ItemStatus
   description?: string
   amount: number
+  /**
+   * Quantidade mínima em estoque: abaixo dela (`amount < min_amount`) o item entra no sino
+   * (`GET /notifications`). `0` = sem alerta — padrão dos itens antigos.
+   */
+  min_amount: number
   type: ItemType
   movements: ItemMovementDto[]
   /**
@@ -54,6 +59,8 @@ export type CreateItemPayload = {
   description?: string
   type: ItemType
   amount?: number
+  /** Inteiro de 0 a 1.000.000, opcional (padrão `0` = sem alerta de estoque baixo). */
+  min_amount?: number
 }
 
 export type CreateItemResult = {
@@ -66,12 +73,14 @@ export type CreateItemResult = {
  * Todos os campos opcionais — envie só o que for alterar. Não gera movimento nem mexe na foto.
  * **Sem `amount`**: a API ignora a quantidade no `PATCH` — o estoque só muda por
  * `createItemMovement` (`ENTRADA` soma, `SAIDA` subtrai), para o histórico sempre fechar com o saldo.
+ * `min_amount` **é** editável: é só o limite do alerta, não mexe no estoque.
  */
 export type UpdateItemPayload = {
   name?: string
   description?: string
   status?: ItemStatus
   type?: ItemType
+  min_amount?: number
 }
 
 /**

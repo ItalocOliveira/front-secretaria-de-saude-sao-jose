@@ -163,6 +163,7 @@ const ACCESS = {
   itens: ALL_EXCEPT_RECEPCIONISTA,
   documents: ALL_ROLES,
   reports: ALL_ROLES,
+  notifications: ALL_EXCEPT_RECEPCIONISTA,
 }
 
 /** Roles da rota específica: `DELETE /apacs/:id` e tudo de `/documents` além do `POST` são restritos. */
@@ -680,6 +681,52 @@ async function deleteDocument(res, id) {
 }
 
 // ---------------------------------------------------------------------------
+// GET /notifications — espelha `.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`
+// ---------------------------------------------------------------------------
+
+const NOTIFICATION_LIMIT = 10
+const URGENT_QUEUE_STATUSES = ["PENDENTE", "AGUARDO"]
+
+/** Alertas calculados na hora: itens com `amount < min_amount` e APACs urgentes na fila. */
+function getNotifications(res) {
+  const lowStock = db.data.itens
+    .filter((item) => (item.min_amount ?? 0) > 0 && item.amount < item.min_amount)
+    .sort((a, b) => a.amount - b.amount)
+
+  // O mock não tem `protocol_number` nas APACs: usa a posição na base como substituto.
+  const urgent = db.data.apacs
+    .map((apac, index) => ({ apac, protocol: apac.protocol_number ?? index + 1 }))
+    .filter(({ apac }) => apac.priority === "URGENTE" && URGENT_QUEUE_STATUSES.includes(apac.status))
+    .sort((a, b) => createdAtMs(a.apac) - createdAtMs(b.apac))
+
+  return send(res, 200, {
+    total: lowStock.length + urgent.length,
+    lowStock: {
+      count: lowStock.length,
+      items: lowStock.slice(0, NOTIFICATION_LIMIT).map(({ id, name, type, amount, min_amount }) => ({
+        id,
+        name,
+        type,
+        amount,
+        min_amount,
+      })),
+    },
+    urgentApacs: {
+      count: urgent.length,
+      statuses: URGENT_QUEUE_STATUSES,
+      items: urgent.slice(0, NOTIFICATION_LIMIT).map(({ apac, protocol }) => ({
+        id: apac.id,
+        protocol_number: protocol,
+        name: apac.name,
+        procedure: apac.procedure,
+        status: apac.status,
+        created_at: apac.created_at ?? apac.createdAt,
+      })),
+    },
+  })
+}
+
+// ---------------------------------------------------------------------------
 // POST /itens
 // ---------------------------------------------------------------------------
 
@@ -707,6 +754,13 @@ async function updateItem(req, res, id) {
   }
   if (body.status !== undefined && !["DISPONIVEL", "EMPRESTADO"].includes(body.status)) {
     return send(res, 400, { message: "status inválido. Valores aceitos: DISPONIVEL, EMPRESTADO." })
+  }
+  // `min_amount` é editável (só o limite do alerta) — `null` vale 0.
+  if (body.min_amount !== undefined) {
+    const minAmount = body.min_amount === null ? 0 : Number(body.min_amount)
+    const minError = validateAmount(minAmount, 0)?.replace("amount", "min_amount")
+    if (minError) return send(res, 400, { statusCode: 400, error: "Bad Request", message: minError })
+    item.min_amount = minAmount
   }
 
   if (body.name !== undefined) item.name = String(body.name)
@@ -738,6 +792,10 @@ async function createItem(req, res, user) {
   const amountError = validateAmount(amount, 0)
   if (amountError) return send(res, 400, { statusCode: 400, error: "Bad Request", message: amountError })
 
+  const minAmount = body.min_amount != null ? Number(body.min_amount) : 0
+  const minAmountError = validateAmount(minAmount, 0)?.replace("amount", "min_amount")
+  if (minAmountError) return send(res, 400, { statusCode: 400, error: "Bad Request", message: minAmountError })
+
   const author = db.data.users.find((entry) => entry.id === user.id)
   if (!author) return send(res, 404, { error: "Usuário não encontrado." })
 
@@ -748,6 +806,7 @@ async function createItem(req, res, user) {
     name,
     status: "DISPONIVEL", // definido no backend, não vem do cliente
     amount,
+    min_amount: minAmount,
     type: body.type,
     ...(body.description ? { description: String(body.description) } : {}),
     // `amount: 0` representa "produto sem estoque ainda" — sem movimento no histórico.
@@ -909,6 +968,8 @@ function withImageUrl(item) {
   if (!item?.id) return item
   return {
     ...item,
+    // Itens anteriores ao campo ficam com `0` (sem alerta), como na API real.
+    min_amount: item.min_amount ?? 0,
     image_url: mockItemImageUrl(item.id, DOWNLOAD_TTL_MS),
     movements: (item.movements ?? []).map((movement) => ({
       ...movement,
@@ -1006,6 +1067,7 @@ function routeIndex() {
       { method: "GET", path: "/documents", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "PATCH | DELETE", path: "/documents/:id", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "POST", path: "/reports/apacs", roles: ACCESS.reports.join(", ") },
+      { method: "GET", path: "/notifications", roles: ACCESS.notifications.join(", ") },
       {
         method: "PUT",
         path: "/mock-uploads/:filename?exp=...",
@@ -1196,6 +1258,12 @@ const server = createServer(async (req, res) => {
     if (collection === "apacs") return createApac(req, res)
     if (collection === "itens") return createItem(req, res, user)
     if (collection === "documents") return createDocument(req, res)
+  }
+
+  // `notifications` também não: só `GET /notifications`, sem id nem query.
+  if (collection === "notifications") {
+    if (method === "GET" && rest.length === 0) return getNotifications(res)
+    return send(res, 404, { message: "Rota não encontrada." })
   }
 
   // `reports` não é coleção do json-server: só `POST /reports/apacs` existe.

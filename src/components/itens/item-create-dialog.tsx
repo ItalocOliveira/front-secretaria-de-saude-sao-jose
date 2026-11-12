@@ -38,6 +38,7 @@ const INITIAL_FORM = {
   description: "",
   type: null as ItemType | null,
   amount: "",
+  minAmount: "",
   imageFile: null as File | null,
 }
 
@@ -83,7 +84,8 @@ export function ItemCreateDialog() {
     event.preventDefault()
 
     const amount = form.amount.trim() === "" ? 0 : parseItemAmount(form.amount, 0)
-    if (form.type === null || amount === null) {
+    const minAmount = form.minAmount.trim() === "" ? 0 : parseItemAmount(form.minAmount, 0)
+    if (form.type === null || amount === null || minAmount === null) {
       return
     }
 
@@ -93,6 +95,7 @@ export function ItemCreateDialog() {
         description: form.description === "" ? undefined : form.description,
         type: form.type,
         amount,
+        min_amount: minAmount,
       },
       {
         onSuccess: ({ item, uploadUrl }) => {
@@ -223,6 +226,26 @@ export function ItemCreateDialog() {
                 />
                 <FieldDescription>
                   Opcional. Número inteiro; se maior que zero, entra no extrato como estoque inicial em seu nome.
+                </FieldDescription>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="item-quantidade-minima">Quantidade mínima</FieldLabel>
+                <Input
+                  id="item-quantidade-minima"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={MAX_ITEM_AMOUNT}
+                  step={1}
+                  placeholder="0"
+                  disabled={isPending}
+                  value={form.minAmount}
+                  onChange={(event) => patch({ minAmount: event.target.value })}
+                />
+                <FieldDescription>
+                  Opcional. Com o estoque abaixo deste número, o produto aparece nas notificações. Zero ou vazio desliga
+                  o alerta.
                 </FieldDescription>
               </Field>
 

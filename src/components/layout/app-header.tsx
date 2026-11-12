@@ -1,7 +1,7 @@
-import { BellIcon, CircleQuestionMarkIcon } from "lucide-react"
+import { CircleQuestionMarkIcon } from "lucide-react"
 
+import { NotificationsMenu } from "@/components/layout/notifications-menu"
 import { UserMenu } from "@/components/layout/user-menu"
-import { Badge } from "@/components/ui/badge"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,8 +13,6 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-
-const NOTIFICATION_COUNT = 12
 
 export function AppHeader({ section }: { section: string }) {
   return (
@@ -33,19 +31,7 @@ export function AppHeader({ section }: { section: string }) {
       </Breadcrumb>
 
       <div className="ml-auto flex items-center gap-1">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button variant="ghost" size="icon" className="relative" aria-label="Notificações">
-                <BellIcon />
-                <Badge variant="destructive" className="absolute -top-0.5 -right-1 px-1 tabular-nums">
-                  {NOTIFICATION_COUNT}
-                </Badge>
-              </Button>
-            }
-          />
-          <TooltipContent>{NOTIFICATION_COUNT} notificações não lidas</TooltipContent>
-        </Tooltip>
+        <NotificationsMenu />
 
         <Tooltip>
           <TooltipTrigger

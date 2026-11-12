@@ -1,7 +1,8 @@
 import { useState } from "react"
+import { useLocation } from "react-router"
 import { PlusIcon } from "lucide-react"
 
-import { EMPTY_FILTERS, toApacListFilters, type ApacFiltersValue } from "@/lib/apac-filters"
+import { readApacsLocationState, toApacListFilters, type ApacFiltersValue } from "@/lib/apac-filters"
 import { useApacs } from "@/hooks/use-apacs"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { useApacsReport } from "@/hooks/use-reports"
@@ -19,9 +20,22 @@ const PAGE_SIZE = 6
 const STATS_REPORT_REQUEST = {}
 
 export function ApacsPage() {
-  const [filters, setFilters] = useState<ApacFiltersValue>(EMPTY_FILTERS)
+  const location = useLocation()
+  const [locationKey, setLocationKey] = useState(location.key)
+  const [initial, setInitial] = useState(() => readApacsLocationState(location.state))
+  const [filters, setFilters] = useState<ApacFiltersValue>(initial.filters)
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
+
+  // Nova navegação para cá (ex.: clique no sino já estando em APACs): recomeça com os filtros que
+  // vieram no `location.state`. Ajuste durante o render, sem `useEffect`.
+  if (location.key !== locationKey) {
+    const next = readApacsLocationState(location.state)
+    setLocationKey(location.key)
+    setInitial(next)
+    setFilters(next.filters)
+    setPage(1)
+  }
 
   // Cada tecla viraria um `GET /apacs`: a busca só vai para a API depois de uma pausa.
   const search = useDebouncedValue(filters.search)
@@ -67,6 +81,9 @@ export function ApacsPage() {
         />
 
         <ApacsTableCard
+          // Remonta a cada navegação: o detalhe pedido pelo sino abre assim que a APAC chegar.
+          key={locationKey}
+          defaultSelectedId={initial.apacId}
           apacs={data?.data ?? NO_APACS}
           pagination={data?.pagination}
           onPageChange={setPage}
