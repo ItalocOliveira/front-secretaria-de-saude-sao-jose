@@ -1,6 +1,7 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query"
 
 import { getTenant, type TenantInfo } from "@/api/auth"
+import { TENANT_SLUG } from "@/lib/tenant"
 
 export const TENANT_QUERY_KEY = ["auth", "tenant"] as const
 
@@ -9,6 +10,8 @@ export function useTenant() {
   return useQuery({
     queryKey: TENANT_QUERY_KEY,
     queryFn: ({ signal }) => getTenant(signal),
+    // Sem município no endereço só existe a landing; nada deve consultar a API sem `X-Tenant`.
+    enabled: TENANT_SLUG !== undefined,
     staleTime: Infinity,
     gcTime: Infinity,
   })

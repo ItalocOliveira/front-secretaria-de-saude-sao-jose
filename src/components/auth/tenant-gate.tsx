@@ -2,9 +2,11 @@ import type { ReactNode } from "react"
 import { MapPinOffIcon } from "lucide-react"
 
 import { ApiError } from "@/api/client"
+import { TENANT_SLUG } from "@/lib/tenant"
 import { useTenant } from "@/hooks/use-tenant"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Spinner } from "@/components/ui/spinner"
+import { LandingPage } from "@/pages/landing-page"
 
 function TenantNotFound() {
   return (
@@ -29,7 +31,7 @@ function TenantNotFound() {
  * `404` = slug inexistente: o login também daria `404`, então nem mostramos o formulário.
  * Outras falhas (rede, cold start) não bloqueiam: o app segue e cada tela trata o próprio erro.
  */
-export function TenantGate({ children }: { children: ReactNode }) {
+function TenantGateWithTenant({ children }: { children: ReactNode }) {
   const { data, isPending, error } = useTenant()
 
   if (isPending) {
@@ -52,4 +54,18 @@ export function TenantGate({ children }: { children: ReactNode }) {
       {children}
     </>
   )
+}
+
+/**
+ * Domínio principal / `www` / `localhost` sem município → landing neutra, sem router e sem
+ * nenhuma chamada à API (`.docs/att-backend/2026-11-12-landing-sem-municipio.md`).
+ * Com município, o gate valida o endereço. Dois componentes para o `useTenant()` nunca
+ * ser chamado condicionalmente.
+ */
+export function TenantGate({ children }: { children: ReactNode }) {
+  if (TENANT_SLUG === undefined) {
+    return <LandingPage />
+  }
+
+  return <TenantGateWithTenant>{children}</TenantGateWithTenant>
 }
