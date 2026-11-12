@@ -20,7 +20,7 @@ Escritas (`POST`, `PATCH`, `PUT`, `DELETE`) persistem em `db.json` e sobrevivem 
 
 ## Município (`X-Tenant`)
 
-`GET /auth/tenant` conhece `saojosedosramos.pb` (padrão, também sem header) e `salgadodesaofelix.pb`; outro slug dá `404 "Município não encontrado."`. Só isso é simulado: contas e dados **não** são separados por município. Para testar a tela de erro, abra `http://naoexiste.pb.localhost:3001`; `http://localhost:3001` (sem município) mostra a landing e não chama o mock.
+`GET /auth/tenant` conhece `saojosedosramos.pb` e `salgadodesaofelix.pb`; outro slug dá `404 "Município não encontrado."`. Não há município padrão: sem o header, `GET /auth/tenant` e `POST /auth/login` dão `400 "Município não informado."`, como a API real. Só isso é simulado: contas e dados **não** são separados por município. Para testar a tela de erro, abra `http://naoexiste.pb.localhost:3001`; `http://localhost:3001` (sem município) mostra a landing e não chama o mock.
 
 `mari.pb` existe mas está **suspenso** (`active: false`): o login dá `403` e as rotas autenticadas dão `401`, os dois com `"Acesso deste município suspenso. Procure o suporte do ICOS."`. Abra `http://mari.pb.localhost:3001` para ver a tela de acesso suspenso.
 
