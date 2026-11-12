@@ -1,3 +1,5 @@
+import { normalizeSearchText } from "@/lib/search"
+
 /**
  * Domínio de APACs — espelha os enums do contrato em `.docs/api-backend.md`.
  *
@@ -279,10 +281,13 @@ export const USER_ROLE_LIST = Object.values(USER_ROLE)
  * automaticamente e usa `label` pra exibir/buscar e `value` pro valor
  * selecionado, sem precisar de `itemToStringLabel`/`itemToStringValue`.
  * Ordenado alfabeticamente pelo `label` (pt-BR, ignorando acentos/caixa).
+ * `search` é o `label` já normalizado para a busca tolerante (`matchesSearch`),
+ * calculado uma vez aqui em vez de a cada tecla.
  */
 export const APAC_PROCEDURE_OPTIONS = APAC_PROCEDURE_LIST.map((value) => ({
   value,
   label: APAC_PROCEDURE_LABEL[value],
+  search: normalizeSearchText(APAC_PROCEDURE_LABEL[value]),
 })).sort((a, b) => a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }))
 
 /** Iniciais para `AvatarFallback` — no máximo duas letras. */
