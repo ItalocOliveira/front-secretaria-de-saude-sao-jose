@@ -8,7 +8,7 @@ import { AppHeader } from "@/components/layout/app-header"
 import { ListPagination } from "@/components/list-pagination"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/variants/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -43,10 +43,10 @@ export function UsersPage() {
             <h1 className="font-heading text-2xl font-semibold tracking-tight">Usuários</h1>
             <p className="text-sm text-muted-foreground">Contas com acesso ao sistema de regulação.</p>
           </div>
-          <Button render={<Link to="/usuarios/novo" />}>
+          <Link to="/usuarios/novo" data-slot="button" className={buttonVariants()}>
             <UserPlusIcon data-icon="inline-start" />
             Novo usuário
-          </Button>
+          </Link>
         </div>
 
         <Card>

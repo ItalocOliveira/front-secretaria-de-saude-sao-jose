@@ -12,6 +12,7 @@ import {
 } from "@/lib/apac"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/variants/button"
 import {
   Dialog,
   DialogClose,
@@ -101,10 +102,16 @@ export function ApacDetailsDialog({
             </Button>
           )}
           {apac?.pdfUrl === null || apac?.pdfUrl === undefined ? null : (
-            <Button render={<a href={apac.pdfUrl} target="_blank" rel="noopener noreferrer" />}>
+            <a
+              href={apac.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-slot="button"
+              className={buttonVariants()}
+            >
               <FileTextIcon data-icon="inline-start" />
               Ver PDF
-            </Button>
+            </a>
           )}
         </DialogFooter>
       </DialogContent>

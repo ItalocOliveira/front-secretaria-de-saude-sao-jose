@@ -13,6 +13,7 @@ import { ListPagination } from "@/components/list-pagination"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/variants/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -149,14 +150,16 @@ export function DocumentsTableCard({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
+                                <a
+                                  href={document.pdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  data-slot="button"
                                   aria-label={`Ver PDF do ofício ${document.protocolNumber}`}
-                                  render={<a href={document.pdfUrl} target="_blank" rel="noopener noreferrer" />}
+                                  className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
                                 >
                                   <FileTextIcon />
-                                </Button>
+                                </a>
                               }
                             />
                             <TooltipContent>Ver PDF</TooltipContent>

@@ -25,6 +25,7 @@ import {
   AttachmentTitle,
 } from "@/components/ui/attachment"
 import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/variants/button"
 import {
   Dialog,
   DialogClose,
@@ -278,14 +279,16 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
                 </AttachmentContent>
                 <AttachmentActions className="gap-1">
                   {hasPdf && pdfSource?.pdfUrl ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      render={<a href={pdfSource.pdfUrl} target="_blank" rel="noopener noreferrer" />}
+                    <a
+                      href={pdfSource.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-slot="button"
+                      className={buttonVariants({ variant: "ghost", size: "sm" })}
                     >
                       <ExternalLinkIcon data-icon="inline-start" />
                       Ver
-                    </Button>
+                    </a>
                   ) : null}
                   <Button variant="outline" size="sm" disabled={isPending} onClick={() => pdfInputRef.current?.click()}>
                     <FileUpIcon data-icon="inline-start" />

@@ -4,7 +4,7 @@ import { ShieldXIcon } from "lucide-react"
 import { USER_ROLE_LABEL, type UserRole } from "@/lib/apac"
 import { homeRouteFor } from "@/lib/permissions"
 import { useSession } from "@/hooks/use-session"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/variants/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
 /**
@@ -34,7 +34,9 @@ export function RequireRole({ allowed }: { allowed: readonly UserRole[] }) {
           <EmptyDescription>O perfil {USER_ROLE_LABEL[claims.role]} não tem permissão para esta área.</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button render={<Link to={homeRouteFor(claims.role)} />}>Ir para a minha área</Button>
+          <Link to={homeRouteFor(claims.role)} data-slot="button" className={buttonVariants()}>
+            Ir para a minha área
+          </Link>
         </EmptyContent>
       </Empty>
     </div>
