@@ -334,6 +334,7 @@ async function login(req, res) {
   const body = await readJsonBody(req)
   const invalid = () => send(res, 401, { message: "Credenciais inválidas." })
 
+  if (!req.headers["x-tenant"]) return missingTenant(res)
   if (!body?.cpf || !body?.password) return invalid()
   if (isSuspendedTenant(req)) return send(res, 403, { statusCode: 403, error: "Forbidden", message: SUSPENDED_MESSAGE })
 
@@ -360,12 +361,14 @@ async function login(req, res) {
 // Municípios do `GET /auth/tenant` (`.docs/att-backend/2026-11-12-subdominio-por-municipio.md`).
 // Só a validação do endereço é simulada: o mock não separa dados nem contas por município.
 // `mari.pb` está suspenso (`.docs/att-backend/2026-11-13-municipio-suspenso.md`).
+// Não há município padrão: sem `X-Tenant`, login e `/auth/tenant` dão `400`
+// (`.docs/att-backend/2026-11-13-x-tenant-obrigatorio.md`).
 const TENANTS = [
   { name: "São José dos Ramos", slug: "saojosedosramos.pb", active: true },
   { name: "Salgado de São Félix", slug: "salgadodesaofelix.pb", active: true },
   { name: "Mari", slug: "mari.pb", active: false },
 ]
-const DEFAULT_TENANT = TENANTS[0]
+const missingTenant = (res) => send(res, 400, { message: "Município não informado." })
 const SUSPENDED_MESSAGE = "Acesso deste município suspenso. Procure o suporte do ICOS."
 
 function isSuspendedTenant(req) {
@@ -376,7 +379,7 @@ function isSuspendedTenant(req) {
 
 function getTenant(req, res) {
   const slug = req.headers["x-tenant"]
-  if (!slug) return send(res, 200, DEFAULT_TENANT)
+  if (!slug) return missingTenant(res)
 
   const tenant = TENANTS.find((item) => item.slug === String(slug).toLowerCase())
   if (!tenant) return send(res, 404, { statusCode: 404, error: "Not Found", message: "Município não encontrado." })
