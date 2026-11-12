@@ -118,7 +118,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" tooltip="ICOS" render={<Link to={homeRoute} />}>
-              <img src="/logo_secretaria.png" alt="" className="size-8 shrink-0 object-contain" />
+              <img src="/logo_icos.png" alt="" className="size-8 shrink-0 object-contain" />
               <div className="flex min-w-0 flex-col gap-0.5 leading-none">
                 <span className="truncate text-xl font-bold tracking-wide">ICOS</span>
                 <span className="truncate text-xs text-muted-foreground">São José dos Ramos</span>
