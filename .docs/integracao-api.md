@@ -88,11 +88,12 @@ Detalhes em `src/lib/session.ts`:
 
 Comunicado: [`att-backend/2026-11-12-subdominio-por-municipio.md`](att-backend/2026-11-12-subdominio-por-municipio.md). Cada prefeitura tem um endereço `<municipio>.<uf>.icosaude.com.br`, e cada uma tem **contas separadas** (o mesmo CPF pode ter senha e cargo diferentes em cada prefeitura).
 
-- `TENANT_SLUG` (`src/lib/tenant.ts`) lê o slug `<municipio>.<uf>` do `hostname` uma vez no carregamento (aceita `*.icosaude.com.br` e `*.localhost`). `VITE_TENANT_SLUG` força um slug quando o endereço não tem município (previews da Vercel). Sem município (`www`, `localhost`, previews sem a env) → nenhum header, e a API cai em São José dos Ramos.
+- `TENANT_SLUG` (`src/lib/tenant.ts`) lê o slug `<municipio>.<uf>` do `hostname` uma vez no carregamento (aceita `*.icosaude.com.br` e `*.localhost`). `VITE_TENANT_SLUG` força um slug quando o endereço não tem município (previews da Vercel). Sem município (`www`, `localhost`, previews sem a env) → **landing page neutra** (`src/pages/landing-page.tsx`, comunicado [`2026-11-12-landing-sem-municipio.md`](att-backend/2026-11-12-landing-sem-municipio.md)): o `TenantGate` não monta router nem login e nenhuma chamada à API é feita (`useTenant` tem `enabled: TENANT_SLUG !== undefined`). O link de transição para São José é a constante `TRANSITION_TENANT` — troque por `null` quando houver mais prefeituras.
 - `request()` manda `X-Tenant` em **todas** as rotas da API, inclusive `POST /auth/login` e `GET /auth/tenant`. As URLs do R2 não passam por `request()` e **não** podem levar o header (assinatura).
 - `TenantGate` (`src/components/auth/tenant-gate.tsx`), em volta do router, chama `GET /auth/tenant` antes de qualquer tela: `404` mostra "Município não encontrado" em vez do login; rede/5xx não bloqueia. `useTenantName()` (`src/hooks/use-tenant.ts`, cache eterno) exibe o nome no login e na sidebar. Login/logout limpam o cache com `clearKeepingTenant` para não perder o município.
 - `401` "Sessão de outro município" é tratado como qualquer `401` (limpa o token). O token continua no `sessionStorage`, que o navegador já separa por subdomínio — **não** mova para cookie de `.icosaude.com.br`.
-- Dev: abra `http://saojosedosramos.pb.localhost:3001` (o mock conhece também `salgadodesaofelix.pb`; qualquer outro slug dá `404`). `http://localhost:3001` segue funcionando, sem município.
+- Dev: abra `http://saojosedosramos.pb.localhost:3001` (o mock conhece também `salgadodesaofelix.pb`; qualquer outro slug dá `404`). `http://localhost:3001` mostra a landing (ou defina `VITE_TENANT_SLUG` no `.env.local`).
+- Vercel: `VITE_TENANT_SLUG=saojosedosramos.pb` no ambiente **Preview** (senão os previews só mostram a landing) e **vazia** em Production (preenchida, até o `www` viraria aquele município). O domínio `*.pb.icosaude.com.br` precisa estar ativo antes do deploy da landing, ou quem usa o `www` fica sem acesso.
 
 ### Sessão sem Context
 

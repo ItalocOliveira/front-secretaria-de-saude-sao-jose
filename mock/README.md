@@ -20,7 +20,7 @@ Escritas (`POST`, `PATCH`, `PUT`, `DELETE`) persistem em `db.json` e sobrevivem 
 
 ## Município (`X-Tenant`)
 
-`GET /auth/tenant` conhece `saojosedosramos.pb` (padrão, também sem header) e `salgadodesaofelix.pb`; outro slug dá `404 "Município não encontrado."`. Só isso é simulado: contas e dados **não** são separados por município. Para testar a tela de erro, abra `http://naoexiste.pb.localhost:3001`.
+`GET /auth/tenant` conhece `saojosedosramos.pb` (padrão, também sem header) e `salgadodesaofelix.pb`; outro slug dá `404 "Município não encontrado."`. Só isso é simulado: contas e dados **não** são separados por município. Para testar a tela de erro, abra `http://naoexiste.pb.localhost:3001`; `http://localhost:3001` (sem município) mostra a landing e não chama o mock.
 
 ## Credenciais
 
