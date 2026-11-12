@@ -121,7 +121,7 @@ export function ItensTableCard({
                   <TableRow key={item.id}>
                     <TableCell className="pl-4 font-medium">
                       <div className="flex items-center gap-3">
-                        {item.image_url === undefined ? (
+                        {!item.has_image || item.image_url === undefined ? (
                           <Avatar className="size-[120px] overflow-hidden rounded-md after:hidden">
                             <AvatarFallback className="rounded-none">
                               <PackageSearchIcon className="size-10" />
