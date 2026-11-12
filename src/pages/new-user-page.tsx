@@ -5,12 +5,13 @@ import { ArrowLeftIcon, UserPlusIcon } from "lucide-react"
 import { USER_ROLE_LABEL, type UserRole } from "@/lib/apac"
 import { MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH } from "@/lib/field-limits"
 import { creatableRolesFor } from "@/lib/permissions"
-import { formatCpf, onlyDigits } from "@/lib/utils"
+import { cn, formatCpf, onlyDigits } from "@/lib/utils"
 import { useCreateUser } from "@/hooks/use-users"
 import { useSession } from "@/hooks/use-session"
 import { AppHeader } from "@/components/layout/app-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/variants/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -172,10 +173,20 @@ export function NewUserPage() {
             </CardContent>
 
             <CardFooter className="justify-end gap-2">
-              <Button variant="ghost" disabled={isPending} render={<Link to="/usuarios" />}>
+              {/* Link não tem `disabled`: enquanto salva, `aria-disabled` + fora do Tab + clique cancelado. */}
+              <Link
+                to="/usuarios"
+                data-slot="button"
+                aria-disabled={isPending}
+                tabIndex={isPending ? -1 : undefined}
+                onClick={(event) => {
+                  if (isPending) event.preventDefault()
+                }}
+                className={cn(buttonVariants({ variant: "ghost" }), isPending && "pointer-events-none opacity-50")}
+              >
                 <ArrowLeftIcon data-icon="inline-start" />
                 Voltar
-              </Button>
+              </Link>
               <Button type="submit" disabled={isPending}>
                 {isPending ? <Spinner data-icon="inline-start" /> : <UserPlusIcon data-icon="inline-start" />}
                 Criar conta

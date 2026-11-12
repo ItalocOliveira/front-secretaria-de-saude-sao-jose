@@ -7,6 +7,7 @@ import { decodeToken } from "@/lib/session"
 import { formatCpf, onlyDigits } from "@/lib/utils"
 import { useLogin } from "@/hooks/use-auth"
 import { useSession } from "@/hooks/use-session"
+import { useTenantName } from "@/hooks/use-tenant"
 import { useTheme } from "@/components/theme-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -94,6 +95,8 @@ export function LoginPage() {
   const location = useLocation()
   const { claims } = useSession()
   const { mutate: signIn, isPending, error } = useLogin()
+  // Quem trabalha em mais de uma prefeitura tem uma conta em cada: o nome deixa claro em qual entra.
+  const tenantName = useTenantName()
 
   const [cpf, setCpf] = useState("")
   const [password, setPassword] = useState("")
@@ -132,13 +135,21 @@ export function LoginPage() {
           <img src="/logo_icos.png" alt="" className="size-10 shrink-0 object-contain" />
           <div className="flex flex-col gap-0.5 leading-none">
             <span className="text-xl font-extrabold tracking-tight">ICOS</span>
-            <span className="text-[0.8125rem] text-muted-foreground">São José dos Ramos</span>
+            {tenantName === undefined ? null : (
+              <span className="text-[0.8125rem] text-muted-foreground">{tenantName}</span>
+            )}
           </div>
         </header>
 
         <div className="mx-auto flex w-full max-w-100 flex-1 flex-col justify-center py-12">
-          <h1 className="mb-1.5 text-[1.75rem] leading-tight font-bold tracking-tight">Entrar</h1>
-          <p className="mb-8 text-muted-foreground">Use o CPF cadastrado na Secretaria de Saúde.</p>
+          <h1 className="mb-1.5 text-[1.75rem] leading-tight font-bold tracking-tight">
+            {tenantName === undefined ? "Entrar" : `Entrar — ${tenantName}`}
+          </h1>
+          <p className="mb-8 text-muted-foreground">
+            {tenantName === undefined
+              ? "Use o CPF cadastrado na Secretaria de Saúde."
+              : `Use o CPF cadastrado na Secretaria de Saúde de ${tenantName}.`}
+          </p>
 
           <form onSubmit={handleSubmit}>
             <FieldGroup>
@@ -205,7 +216,7 @@ export function LoginPage() {
           <div className="flex items-center gap-2.5">
             <img src="/logo_prefeitura.png" alt="Brasão de São José dos Ramos" className="h-7 w-auto shrink-0" />
             <span className="leading-tight">
-              Prefeitura de São José dos Ramos
+              {tenantName === undefined ? "Prefeitura Municipal" : `Prefeitura de ${tenantName}`}
               <br />
               Secretaria Municipal de Saúde
             </span>

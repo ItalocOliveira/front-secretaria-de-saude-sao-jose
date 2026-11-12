@@ -3,11 +3,14 @@ import { RouterProvider } from "react-router/dom"
 
 import { queryClient } from "@/app/query-client"
 import { router } from "@/app/router"
+import { TenantGate } from "@/components/auth/tenant-gate"
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <TenantGate>
+        <RouterProvider router={router} />
+      </TenantGate>
     </QueryClientProvider>
   )
 }

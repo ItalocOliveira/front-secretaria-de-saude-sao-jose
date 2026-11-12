@@ -355,8 +355,30 @@ async function login(req, res) {
   return send(res, 200, { token })
 }
 
+// Municípios do `GET /auth/tenant` (`.docs/att-backend/2026-11-12-subdominio-por-municipio.md`).
+// Só a validação do endereço é simulada: o mock não separa dados nem contas por município.
+const TENANTS = [
+  { name: "São José dos Ramos", slug: "saojosedosramos.pb" },
+  { name: "Salgado de São Félix", slug: "salgadodesaofelix.pb" },
+]
+const DEFAULT_TENANT = TENANTS[0]
+
+function getTenant(req, res) {
+  const slug = req.headers["x-tenant"]
+  if (!slug) return send(res, 200, DEFAULT_TENANT)
+
+  const tenant = TENANTS.find((item) => item.slug === String(slug).toLowerCase())
+  if (!tenant) return send(res, 404, { statusCode: 404, error: "Not Found", message: "Município não encontrado." })
+
+  return send(res, 200, tenant)
+}
+
 async function handleAuth(req, res, segments) {
   const [action] = segments
+
+  if (action === "tenant" && segments.length === 1 && req.method === "GET") {
+    return getTenant(req, res)
+  }
 
   if (action === "login" && segments.length === 1) {
     if (req.method !== "POST") return send(res, 404, { message: "Rota não encontrada." })
@@ -1068,7 +1090,7 @@ async function downloadMockFile(req, res, filename, searchParams) {
 function preflight(req, res) {
   res.writeHead(204, {
     ...CORS_HEADERS,
-    "access-control-allow-headers": req.headers["access-control-request-headers"] ?? "Content-Type,Authorization",
+    "access-control-allow-headers": req.headers["access-control-request-headers"] ?? "Content-Type,Authorization,X-Tenant",
   })
   res.end()
 }
@@ -1077,6 +1099,7 @@ function routeIndex() {
   return {
     api: "Mock — Secretária de Saúde de São José dos Ramos",
     endpoints: [
+      { method: "GET", path: "/auth/tenant", roles: "público" },
       { method: "POST", path: "/auth/login", roles: "público" },
       { method: "GET", path: "/auth/me", roles: "qualquer role autenticada" },
       { method: "GET", path: "/auth/admin", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },

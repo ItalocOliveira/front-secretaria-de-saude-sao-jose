@@ -21,6 +21,7 @@ import {
   USER_MANAGEMENT_ROLES,
 } from "@/lib/permissions"
 import { useSession } from "@/hooks/use-session"
+import { useTenantName } from "@/hooks/use-tenant"
 import {
   Sidebar,
   SidebarContent,
@@ -108,6 +109,8 @@ function NavMenu({ items }: { items: NavItem[] }) {
 
 export function AppSidebar() {
   const { claims } = useSession()
+  // Município do endereço: deixa claro em qual prefeitura a pessoa está logada.
+  const tenantName = useTenantName()
 
   // Nem todo perfil enxerga APACs, então o logo leva para a home de cada um.
   const homeRoute = claims === null ? "/" : homeRouteFor(claims.role)
@@ -121,7 +124,9 @@ export function AppSidebar() {
               <img src="/logo_icos.png" alt="" className="size-8 shrink-0 object-contain" />
               <div className="flex min-w-0 flex-col gap-0.5 leading-none">
                 <span className="truncate text-xl font-bold tracking-wide">ICOS</span>
-                <span className="truncate text-xs text-muted-foreground">São José dos Ramos</span>
+                {tenantName === undefined ? null : (
+                  <span className="truncate text-xs text-muted-foreground">{tenantName}</span>
+                )}
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

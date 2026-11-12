@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { getAuthenticatedUser, login } from "@/api/auth"
 import { clearToken, setToken } from "@/lib/session"
 import { useSession } from "@/hooks/use-session"
+import { clearKeepingTenant } from "@/hooks/use-tenant"
 
 export const AUTH_ME_QUERY_KEY = ["auth", "me"] as const
 
@@ -14,8 +15,8 @@ export function useLogin() {
     mutationFn: login,
     onSuccess: (data) => {
       // Limpa antes de autenticar: o cache pode ter dados de outra conta, e a
-      // troca de token dispara rçefetch imediato das queries habilitadas.
-      queryClient.clear()
+      // troca de token dispara refetch imediato das queries habilitadas.
+      clearKeepingTenant(queryClient)
       setToken(data.token)
     },
   })
@@ -26,7 +27,7 @@ export function useSignOut() {
 
   return useCallback(() => {
     clearToken()
-    queryClient.clear()
+    clearKeepingTenant(queryClient)
   }, [queryClient])
 }
 

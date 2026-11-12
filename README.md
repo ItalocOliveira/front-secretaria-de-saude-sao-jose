@@ -24,6 +24,8 @@ pnpm install
 pnpm dev        # http://localhost:3001
 ```
 
+Cada prefeitura tem o próprio endereço (`<municipio>.<uf>.icosaude.com.br`). Em dev, abra `http://saojosedosramos.pb.localhost:3001` para entrar como um município específico — `localhost:3001` funciona sem município (cai em São José dos Ramos). Detalhes em [.docs/integracao-api.md](.docs/integracao-api.md).
+
 ## Scripts
 
 | Comando          | Descrição                                                             |

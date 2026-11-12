@@ -84,6 +84,16 @@ Detalhes em `src/lib/session.ts`:
 - um `setTimeout` limpa a sessão no instante do `exp`, para uma aba esquecida aberta não descobrir a expiração só na próxima requisição;
 - as claims expostas ao app **omitem o `cpf`** que existe no payload do JWT, para nenhum componente conseguir renderizá-lo por descuido.
 
+### Município pelo subdomínio (`X-Tenant`)
+
+Comunicado: [`att-backend/2026-11-12-subdominio-por-municipio.md`](att-backend/2026-11-12-subdominio-por-municipio.md). Cada prefeitura tem um endereço `<municipio>.<uf>.icosaude.com.br`, e cada uma tem **contas separadas** (o mesmo CPF pode ter senha e cargo diferentes em cada prefeitura).
+
+- `TENANT_SLUG` (`src/lib/tenant.ts`) lê o slug `<municipio>.<uf>` do `hostname` uma vez no carregamento (aceita `*.icosaude.com.br` e `*.localhost`). `VITE_TENANT_SLUG` força um slug quando o endereço não tem município (previews da Vercel). Sem município (`www`, `localhost`, previews sem a env) → nenhum header, e a API cai em São José dos Ramos.
+- `request()` manda `X-Tenant` em **todas** as rotas da API, inclusive `POST /auth/login` e `GET /auth/tenant`. As URLs do R2 não passam por `request()` e **não** podem levar o header (assinatura).
+- `TenantGate` (`src/components/auth/tenant-gate.tsx`), em volta do router, chama `GET /auth/tenant` antes de qualquer tela: `404` mostra "Município não encontrado" em vez do login; rede/5xx não bloqueia. `useTenantName()` (`src/hooks/use-tenant.ts`, cache eterno) exibe o nome no login e na sidebar. Login/logout limpam o cache com `clearKeepingTenant` para não perder o município.
+- `401` "Sessão de outro município" é tratado como qualquer `401` (limpa o token). O token continua no `sessionStorage`, que o navegador já separa por subdomínio — **não** mova para cookie de `.icosaude.com.br`.
+- Dev: abra `http://saojosedosramos.pb.localhost:3001` (o mock conhece também `salgadodesaofelix.pb`; qualquer outro slug dá `404`). `http://localhost:3001` segue funcionando, sem município.
+
 ### Sessão sem Context
 
 `session.ts` é um store externo consumido por `useSyncExternalStore`. Assim o client HTTP derruba a sessão ao receber `401` e as guardas de rota reagem sozinhas, sem `useEffect` e sem provider.

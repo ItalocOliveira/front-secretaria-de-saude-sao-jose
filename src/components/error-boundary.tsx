@@ -4,6 +4,7 @@ import { AlertTriangleIcon, HouseIcon, RotateCcwIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/variants/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
 function describe(error: unknown) {
@@ -58,10 +59,10 @@ function ErrorState({
             </Button>
             {/* Âncora nativa em vez de `Link`: o `AppErrorBoundary` vive fora do
                 `RouterProvider`, onde os hooks de navegação não existem. */}
-            <Button variant="outline" render={<a href="/apacs" />}>
+            <a href="/apacs" data-slot="button" className={buttonVariants({ variant: "outline" })}>
               <HouseIcon data-icon="inline-start" />
               Ir para o início
-            </Button>
+            </a>
           </div>
         </EmptyContent>
       </Empty>
