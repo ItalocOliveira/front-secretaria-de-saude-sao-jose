@@ -202,7 +202,8 @@ export function ItemDetailsDialog({
 
   return (
     <Dialog open={item !== null} onOpenChange={close}>
-      <DialogContent className="sm:max-w-lg">
+      {/* Header e footer fixos; só o corpo rola — em notebooks com ~700px úteis o conteúdo passa da tela. */}
+      <DialogContent className="flex flex-col overflow-hidden sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {item?.name ?? "Produto"}
@@ -224,7 +225,7 @@ export function ItemDetailsDialog({
         ) : null}
 
         {item === null || pendingMovementUpload !== null ? null : (
-          <div className="flex flex-col gap-4">
+          <div className="-mx-4 flex min-h-0 flex-col gap-4 overflow-y-auto px-4">
             <div className="flex flex-col items-center gap-2">
               {item.has_image && item.image_url !== undefined && failedImageUrl !== item.image_url ? (
                 <button
@@ -314,7 +315,7 @@ export function ItemDetailsDialog({
                     </EmptyHeader>
                   </Empty>
                 ) : (
-                  <ItemGroup className="max-h-72 gap-2 overflow-y-auto">
+                  <ItemGroup className="gap-2">
                     {item.movements.map((movement) => (
                       <Item key={movement.id} variant="muted" size="sm">
                         {movement.image_url === undefined || failedMovementImageIds.has(movement.id) ? null : (
