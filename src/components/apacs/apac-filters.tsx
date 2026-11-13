@@ -3,7 +3,14 @@ import { SearchIcon, XIcon } from "lucide-react"
 import { MUNICIPALITY_NOT_INFORMED } from "@/api/apacs"
 import { MAX_SEARCH_LENGTH } from "@/api/pagination"
 import { MUNICIPALITIES } from "@/data/apacs-mock"
-import { APAC_PRIORITY_LABEL, APAC_PRIORITY_LIST, type ApacPriority } from "@/lib/apac"
+import {
+  APAC_PRIORITY_LABEL,
+  APAC_PRIORITY_LIST,
+  APAC_STATUS_LABEL,
+  APAC_STATUS_LIST,
+  type ApacPriority,
+  type ApacStatus,
+} from "@/lib/apac"
 import { ALL, EMPTY_FILTERS, isFiltersDirty, type ApacFiltersValue } from "@/lib/apac-filters"
 import { DateRangePicker } from "@/components/apacs/date-range-picker"
 import { Button } from "@/components/ui/button"
@@ -13,7 +20,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 /**
  * Barra de filtros em uma linha, dentro do bloco da tabela. Sem rótulos visíveis:
  * cada controle diz o que é pelo próprio valor ("Todas as prioridades"), e o rótulo
- * fica no `aria-label`. O status é filtrado pelos cards de indicador, não aqui. Tudo vai para
+ * fica no `aria-label`. O status também pode ser escolhido pelos cards de indicador — os dois
+ * mexem no mesmo `value.status`, então ficam sempre em sincronia. Tudo vai para
  * a query string de `GET /apacs`; a busca é só pelo nome do paciente (CPF/CNS não são pesquisáveis).
  */
 export function ApacFilters({
@@ -49,6 +57,29 @@ export function ApacFilters({
           </InputGroupAddon>
         ) : null}
       </InputGroup>
+
+      <Select
+        value={value.status}
+        onValueChange={(status: ApacFiltersValue["status"] | null) => patch({ status: status ?? ALL })}
+      >
+        <SelectTrigger aria-label="Status" className="w-full sm:w-44">
+          <SelectValue>
+            {(status: ApacFiltersValue["status"]) =>
+              status === ALL ? "Todos os status" : APAC_STATUS_LABEL[status as ApacStatus]
+            }
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value={ALL}>Todos os status</SelectItem>
+            {APAC_STATUS_LIST.map((status) => (
+              <SelectItem key={status} value={status}>
+                {APAC_STATUS_LABEL[status]}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
 
       <Select
         value={value.priority}
