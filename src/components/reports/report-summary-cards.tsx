@@ -52,7 +52,7 @@ export function ReportSummaryCards({ report, isPending }: { report: ApacsReport 
     isPending || content === undefined ? <Skeleton className="h-7 w-12" /> : content.toLocaleString("pt-BR")
 
   return (
-    <div className="grid gap-4 *:min-w-0 *:break-inside-avoid sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 *:min-w-0 sm:grid-cols-2 xl:grid-cols-4">
       <Card size="sm">
         <CardHeader>
           <CardDescription>APACs criadas no período</CardDescription>

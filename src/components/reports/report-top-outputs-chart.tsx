@@ -1,7 +1,6 @@
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import type { ReportTopOutputItem } from "@/api/reports"
-import { PRINT_CHART_CLASS_NAME, PRINT_CHART_WIDTH } from "@/components/reports/print-chart"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
 const CHART_CONFIG = {
@@ -18,17 +17,8 @@ const heightFor = (count: number) => Math.max(count, 3) * 32 + 32
 
 const formatName = (name: string) => (name.length > NAME_MAX_CHARS ? `${name.slice(0, NAME_MAX_CHARS - 1)}…` : name)
 
-/**
- * Barras horizontais dos itens mais retirados no período. Carregado via `React.lazy`.
- * `variant="print"` é a cópia de tamanho fixo que vai para a folha de gráficos do PDF.
- */
-export function ReportTopOutputsChart({
-  items,
-  variant = "screen",
-}: {
-  items: ReportTopOutputItem[]
-  variant?: "screen" | "print"
-}) {
+/** Barras horizontais dos itens mais retirados (só na tela, via `React.lazy`). */
+export function ReportTopOutputsChart({ items }: { items: ReportTopOutputItem[] }) {
   const height = heightFor(items.length)
 
   const axes = (
@@ -46,17 +36,6 @@ export function ReportTopOutputsChart({
       />
     </>
   )
-
-  if (variant === "print") {
-    return (
-      <div aria-hidden className={PRINT_CHART_CLASS_NAME}>
-        <BarChart width={PRINT_CHART_WIDTH} height={height} data={items} layout="vertical" margin={CHART_MARGIN}>
-          {axes}
-          <Bar dataKey="units" fill="var(--chart-2)" radius={4} isAnimationActive={false} />
-        </BarChart>
-      </div>
-    )
-  }
 
   return (
     <ChartContainer config={CHART_CONFIG} className="aspect-auto w-full" style={{ height }}>

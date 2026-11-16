@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relatório de APACs e almoxarifado</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap"
+      rel="stylesheet"
+    />
+    <!--
+      Simulação do PDF de /relatorios (impressão do navegador). Proposta de design para
+      iterar antes de portar para o React — dados FICTÍCIOS e só agregados.
+
+      Como ver a paginação real: abra no Chrome e use Ctrl+P (mesmo motor da produção).
+      Desmarque "Cabeçalhos e rodapés": o rodapé com número de página vem do próprio @page.
+
+      Volume de dados pela query string: ?preset=pequeno | realista (padrão) | grande
+    -->
+    <style>
+      /* Tokens do tema claro, copiados de src/index.css (:root). */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.141 0.005 285.823);
+        --primary: oklch(0.488 0.243 264.376);
+        --primary-soft: oklch(0.488 0.243 264.376 / 8%);
+        --muted: oklch(0.967 0.001 286.375);
+        --muted-foreground: oklch(0.552 0.016 285.938);
+        --destructive: oklch(0.577 0.245 27.325);
+        --destructive-soft: oklch(0.577 0.245 27.325 / 10%);
+        --border: oklch(0.92 0.004 286.32);
+        --border-strong: oklch(0.85 0.006 286.32);
+        --chart-2: oklch(0.769 0.188 70.08);
+        --chart-3: oklch(0.666 0.179 58.318);
+        --radius: 0.625rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        margin: 0;
+        background: oklch(0.93 0.003 286);
+        color: var(--foreground);
+        font-family: "Inter", sans-serif;
+        font-size: 10pt;
+        line-height: 1.4;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------- Tela: folha A4 centralizada + barra de controle ---------- */
+
+      .toolbar {
+        position: sticky;
+        top: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 16px;
+        padding: 10px 16px;
+        background: var(--foreground);
+        color: var(--background);
+        font-size: 13px;
+      }
+      .toolbar a {
+        color: inherit;
+        opacity: 0.7;
+      }
+      .toolbar a[aria-current="true"] {
+        opacity: 1;
+        font-weight: 600;
+      }
+      .toolbar button {
+        margin-left: auto;
+        padding: 6px 12px;
+        border: 0;
+        border-radius: 6px;
+        background: var(--background);
+        color: var(--foreground);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .doc {
+        width: 210mm;
+        margin: 24px auto;
+        padding: 14mm 12mm;
+        background: var(--background);
+        box-shadow: 0 1px 8px oklch(0 0 0 / 15%);
+      }
+
+      @media (max-width: 840px) {
+        .doc {
+          width: auto;
+          margin: 0;
+          padding: 16px;
+        }
+      }
+
+      /* ---------- Impressão ---------- */
+
+      @page {
+        size: A4;
+        margin: 14mm 12mm 16mm;
+      }
+
+      @media print {
+        body {
+          background: none;
+        }
+        .toolbar {
+          display: none;
+        }
+        .doc {
+          width: auto;
+          margin: 0;
+          padding: 0;
+          box-shadow: none;
+        }
+      }
+
+      /* ---------- Cabeçalho do relatório ---------- */
+
+      .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--primary);
+        margin-bottom: 18px;
+      }
+      .report-header .org {
+        font-size: 8pt;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .report-header h1 {
+        margin: 2px 0 0;
+        font-size: 17pt;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .report-header dl {
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 1px 10px;
+        margin: 0;
+        font-size: 8.5pt;
+        text-align: right;
+      }
+      .report-header dt {
+        color: var(--muted-foreground);
+      }
+      .report-header dd {
+        margin: 0;
+        font-weight: 500;
+      }
+
+      /* ---------- Seções (cada uma em página própria no PDF) ---------- */
+
+      .section + .section {
+        break-before: page;
+      }
+      @media screen {
+        .section + .section {
+          margin-top: 28px;
+          padding-top: 20px;
+          border-top: 1px dashed var(--border-strong);
+        }
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 12px;
+        font-size: 13pt;
+        font-weight: 600;
+        break-after: avoid;
+      }
+      .section-title .num {
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--primary);
+        color: var(--background);
+        font-size: 9pt;
+      }
+      .section-title .note {
+        margin-left: auto;
+        font-size: 8pt;
+        font-weight: 400;
+        color: var(--muted-foreground);
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* ---------- Indicadores ---------- */
+
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        break-inside: avoid;
+      }
+      .kpi {
+        padding: 9px 12px;
+      }
+      .kpi + .kpi {
+        border-left: 1px solid var(--border);
+      }
+      .kpi .label {
+        font-size: 8pt;
+        color: var(--muted-foreground);
+      }
+      .kpi .value {
+        margin-top: 2px;
+        font-size: 16pt;
+        font-weight: 600;
+        line-height: 1.15;
+      }
+      .kpi .hint {
+        margin-top: 2px;
+        font-size: 7.5pt;
+        color: var(--muted-foreground);
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 0 6px;
+        border-radius: 999px;
+        font-size: 7.5pt;
+        font-weight: 500;
+        line-height: 1.6;
+        white-space: nowrap;
+      }
+      .tag.danger {
+        background: var(--destructive-soft);
+        color: var(--destructive);
+      }
+      .tag.neutral {
+        border: 1px solid var(--border-strong);
+      }
+
+      /* ---------- Tabelas de distribuição ----------
+         Curtas: duas por linha e nunca partidas. Longas: largura total, partem entre
+         linhas e repetem o cabeçalho (título incluso) em cada página. */
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+
+      table.dist {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 8.5pt;
+      }
+      table.dist.short {
+        break-inside: avoid;
+      }
+      table.dist th,
+      table.dist td {
+        padding: 4px 10px;
+        text-align: left;
+        vertical-align: top;
+      }
+      table.dist .title th {
+        padding-top: 8px;
+        padding-bottom: 2px;
+        font-size: 9.5pt;
+        font-weight: 600;
+      }
+      table.dist .title .sub {
+        display: block;
+        font-size: 7.5pt;
+        font-weight: 400;
+        color: var(--muted-foreground);
+      }
+      table.dist .cols th {
+        border-bottom: 1px solid var(--border);
+        font-size: 7.5pt;
+        font-weight: 500;
+        color: var(--muted-foreground);
+      }
+      table.dist tbody tr {
+        break-inside: avoid;
+      }
+      table.dist tbody tr + tr td {
+        border-top: 1px solid var(--muted);
+      }
+      table.dist .num {
+        width: 1%;
+        text-align: right;
+        white-space: nowrap;
+      }
+      table.dist .bar {
+        width: 30%;
+      }
+      /* Total como última linha (e não <tfoot>): o Chrome repete o tfoot em toda página. */
+      table.dist tbody tr.total td {
+        border-top: 1px solid var(--border);
+        font-weight: 600;
+      }
+      .meter {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .meter .track {
+        flex: 1;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--muted);
+        overflow: hidden;
+      }
+      .meter .fill {
+        height: 100%;
+        border-radius: 3px;
+        background: var(--primary);
+      }
+      .meter .pct {
+        width: 34px;
+        text-align: right;
+        color: var(--muted-foreground);
+        font-size: 7.5pt;
+      }
+      .empty-row td {
+        padding: 10px;
+        color: var(--muted-foreground);
+        text-align: center;
+      }
+
+      /* ---------- Inventário completo ---------- */
+
+      .inventory {
+        column-gap: 18px;
+      }
+      .inventory.two-columns {
+        columns: 2;
+      }
+      .inv-group {
+        margin-bottom: 10px;
+      }
+      .inv-group-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 3px 8px;
+        border-radius: 5px;
+        background: var(--muted);
+        font-size: 8.5pt;
+        font-weight: 600;
+        break-after: avoid;
+        break-inside: avoid;
+      }
+      .inv-group-head span {
+        font-weight: 400;
+        color: var(--muted-foreground);
+      }
+      .inv-row {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        padding: 2px 8px;
+        border-bottom: 1px solid var(--muted);
+        font-size: 8pt;
+        break-inside: avoid;
+      }
+      .inv-row .name {
+        flex: 1;
+        min-width: 0;
+      }
+      .inv-legend {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 8px;
+        font-size: 7.5pt;
+        color: var(--muted-foreground);
+      }
+
+      /* ---------- Gráficos: cada um num painel fechado e numerado ---------- */
+
+      .figure {
+        margin: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        break-inside: avoid;
+        overflow: hidden;
+      }
+      .figure + .figure {
+        margin-top: 16px;
+      }
+      .figure-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--muted);
+      }
+      .figure-head .kicker {
+        font-size: 7.5pt;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--primary);
+      }
+      .figure-head .name {
+        font-size: 10.5pt;
+        font-weight: 600;
+      }
+      .figure-head .sub {
+        font-size: 8pt;
+        color: var(--muted-foreground);
+      }
+      .figure-head .stats {
+        display: flex;
+        gap: 14px;
+        text-align: right;
+      }
+      .figure-head .stats strong {
+        display: block;
+        font-size: 12pt;
+      }
+      .figure-head .stats span {
+        font-size: 7.5pt;
+        color: var(--muted-foreground);
+      }
+      .figure-body {
+        padding: 10px 14px 8px;
+      }
+      .figure-body svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+      .figure-foot {
+        padding: 0 14px 10px;
+        font-size: 7.5pt;
+        color: var(--muted-foreground);
+      }
+
+      svg text {
+        font-family: "Inter", sans-serif;
+        font-size: 10px;
+        fill: var(--muted-foreground);
+      }
+      svg .grid {
+        stroke: var(--border);
+        stroke-width: 1;
+      }
+      svg .baseline {
+        stroke: var(--border-strong);
+        stroke-width: 1;
+      }
+      svg .value-label {
+        fill: var(--foreground);
+        font-weight: 600;
+      }
+      svg .axis-title {
+        font-size: 9px;
+      }
+      svg .cat-label {
+        fill: var(--foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="toolbar" aria-label="Controles da simulação">
+      <strong>Simulação do PDF</strong>
+      <span>Volume de dados:</span>
+      <a href="?preset=pequeno">pequeno</a>
+      <a href="?preset=realista">realista</a>
+      <a href="?preset=grande">grande</a>
+      <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
+    </nav>
+
+    <main class="doc" id="doc"></main>
+
+    <script>
+      // ---------------------------------------------------------------------------
+      // Dados FICTÍCIOS, só agregados (nada de paciente). Mesmo formato do
+      // POST /reports/apacs + inventário completo (GET /itens, todas as páginas).
+      // ---------------------------------------------------------------------------
+
+      const PRESETS = {
+        pequeno: { procedures: 4, acs: 3, municipalities: 1, items: 12, outputs: 0, destinations: 0, apacScale: 0.2 },
+        realista: { procedures: 26, acs: 14, municipalities: 5, items: 64, outputs: 1, destinations: 1, apacScale: 1 },
+        grande: { procedures: 60, acs: 14, municipalities: 12, items: 260, outputs: 10, destinations: 14, apacScale: 2.5 },
+      }
+
+      const presetName = new URLSearchParams(location.search).get("preset") ?? "realista"
+      const preset = PRESETS[presetName] ?? PRESETS.realista
+      document.querySelectorAll(".toolbar a").forEach((link) => {
+        link.setAttribute("aria-current", String(link.getAttribute("href") === `?preset=${presetName}`))
+      })
+
+      // PRNG com semente: o mesmo preset sempre gera os mesmos números.
+      let seed = 20261116
+      const random = () => {
+        seed |= 0
+        seed = (seed + 0x6d2b79f5) | 0
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+      }
+      const pick = (list) => list[Math.floor(random() * list.length)]
+
+      const PROCEDURE_NAMES = [
+        "TOMOGRAFIAS",
+        "RESSONANCIA MAGNETICA",
+        "ULTRASSONOGRAFIA GERAL",
+        "AVALIACAO EM CIRURGIA OFTALMOLOGICA - CATARATA",
+        "CONSULTA EM ANGIOLOGIA",
+        "CONSULTA EM CARDIOLOGIA",
+        "CONSULTA EM DERMATOLOGIA",
+        "CONSULTA EM ENDOCRINOLOGIA E METABOLOGIA",
+        "CONSULTA EM GINECOLOGIA",
+        "CONSULTA EM NEUROLOGIA - CLINICA",
+        "CONSULTA EM ODONTOLOGIA - CIRURGIA BUCO-MAXILO FACIAL",
+        "CONSULTA EM OFTALMOLOGIA - GLAUCOMA",
+        "CONSULTA EM ORTOPEDIA - COLUNA",
+        "CONSULTA EM UROLOGIA",
+        "CONSULTA EM PSIQUIATRIA",
+        "CONSULTA EM GERIATRIA",
+        "CONSULTA EM HEPATOLOGIA",
+        "CONSULTA EM INFECTOLOGIA",
+        "CONSULTA EM NEUROCIRURGIA",
+        "CONSULTA EM CIRURGIA GERAL",
+        "CONSULTA EM PRE-NATAL DE ALTO RISCO",
+        "CONSULTA EM CARDIOLOGIA - PEDIATRIA",
+        "CONSULTA EM NEFROLOGIA - PRE DIALITICO",
+        "CONSULTA EM GASTROENTEROLOGIA - GERAL",
+        "ESTUDO URODINAMICO",
+        "BIOPSIA PERCUTANEA ORIENTADA POR TOMOGRAFIA / ULTRASSONOGRAFIA / RESSONANCIA MAGNETICA",
+        "CONSULTA EM ONCOLOGIA CLINICA - PEDIATRIA",
+        "CONSULTA EM CIRURGIA PLASTICA - PEDIATRIA",
+        "CONSULTA EM DERMATOLOGIA - PEDIATRIA",
+        "CONSULTA EM NEUROLOGIA - PEDIATRIA",
+        "CONSULTA EM CIRURGIA TORACICA - ONCOLOGIA",
+        "CONSULTA EM UROLOGIA - ONCOLOGIA",
+        "CONSULTA EM GINECOLOGIA - CLIMATERIO",
+        "CONSULTA EM IODOTERAPIA",
+        "CONSULTA EM TRAUMATO/ORTOPEDIA - QUADRIL E FEMUR II",
+        "CONSULTA EM CARDIOLOGIA - GESTACAO DE ALTO RISCO",
+        "CONSULTA EM ORTOPEDIA GERAL - PEDIATRIA",
+        "CONSULTA EM OFTALMOLOGIA - TESTE DO OLHINHO",
+        "CONSULTA EM GINECOLOGIA - DIU",
+        "CONSULTA EM HEPATOLOGIA - PEDIATRIA",
+        "VITRECTOMIA POSTERIOR COM INFUSAO DE PERFLUOCARBONO/OLEO DE SILICONE/ENDOLASER - OE",
+        "CONSULTA EM CIRURGIA DO APARELHO DIGESTIVO",
+        "CONSULTA EM ONCOLOGIA ABDOMINAL",
+        "CONSULTA EM CIRURGIA PEDIATRICA",
+        "CONSULTA EM CARDIOLOGIA - CARDIOPATIA CONGENITA",
+        "CONSULTA EM GINECOLOGIA - ONCOLOGIA",
+        "CONSULTA EM OFTALMOLOGIA",
+        "CONSULTA EM PSIQUIATRIA - INFANTIL",
+        "CONSULTA EM REUMATOLOGIA",
+        "CONSULTA EM PNEUMOLOGIA",
+        "CONSULTA EM HEMATOLOGIA",
+        "CONSULTA EM OTORRINOLARINGOLOGIA",
+        "CONSULTA EM MASTOLOGIA",
+        "CONSULTA EM PROCTOLOGIA",
+        "CONSULTA EM NUTRICAO",
+        "CONSULTA EM FISIATRIA",
+        "CONSULTA EM ALERGOLOGIA",
+        "CONSULTA EM GENETICA CLINICA",
+        "CONSULTA EM ORTOPEDIA - MAO",
+        "CONSULTA EM ORTOPEDIA - JOELHO",
+      ]
+      const ACS_NAMES = [
+        "Marlon",
+        "Deyse",
+        "Joelma Fernandes",
+        "Flávio",
+        "Ana Paula",
+        "Cícero",
+        "Edilene",
+        "Fátima",
+        "Gilvan",
+        "Josefa",
+        "Luciana",
+        "Maria das Dores",
+        "Rosilda",
+        "Severino",
+      ]
+      const MUNICIPALITIES = [
+        "São José dos Ramos",
+        "Pilar",
+        "Sobrado",
+        "Itabaiana",
+        "Gurinhém",
+        "Juripiranga",
+        "Mogeiro",
+        "Riachão do Poço",
+        "Salgado de São Félix",
+        "São Miguel de Taipu",
+        "Cruz do Espírito Santo",
+        "Não informado",
+      ]
+      const ITEM_TYPES = [
+        "Medicamento",
+        "Odontológico",
+        "Laboratorial",
+        "Expediente",
+        "Insumo",
+        "Consumo geral",
+        "Material de limpeza",
+        "Equipamento",
+      ]
+      const ITEM_NAMES = [
+        "AVENTAL MANGA LONGA DESCARTÁVEL",
+        "DIPIRONA 500MG",
+        "PARACETAMOL 750MG",
+        "AMOXICILINA 500MG",
+        "LUVA DE PROCEDIMENTO M",
+        "SERINGA 10ML",
+        "GAZE ESTÉRIL",
+        "ESPARADRAPO 10CM",
+        "ÁLCOOL 70%",
+        "MÁSCARA CIRÚRGICA",
+        "PAPEL A4",
+        "DETERGENTE NEUTRO",
+        "TERMÔMETRO DIGITAL",
+        "SORO FISIOLÓGICO 500ML",
+        "ALGODÃO HIDRÓFILO",
+        "AGULHA 25X7",
+        "TOUCA DESCARTÁVEL",
+        "CLOREXIDINA 2%",
+      ]
+
+      const DAYS = 30
+      // Curva parecida com a do relatório real: dias zerados e picos concentrados.
+      const SHAPE = { 9: 8, 10: 16, 11: 35, 14: 13 }
+      const createdPoints = Array.from({ length: DAYS }, (_, index) => ({
+        date: `2026-11-${String(index + 1).padStart(2, "0")}`,
+        count: Math.round((SHAPE[index] ?? 0) * preset.apacScale),
+      }))
+      const totalCreated = createdPoints.reduce((sum, point) => sum + point.count, 0)
+
+      /** Distribui `total` entre `labels` com cauda longa (alguns grandes, muitos com 1). */
+      function distribute(labels, total) {
+        if (labels.length === 0) return []
+        // Cauda longa com soma exata: cada um ganha 1 e o resto vai por peso (maiores restos).
+        const weights = labels.map((_, index) => 1 / (index + 1) ** 1.3)
+        const sum = weights.reduce((a, b) => a + b, 0)
+        const spare = Math.max(Math.round(total) - labels.length, 0)
+        const raw = weights.map((weight) => (weight / sum) * spare)
+        const counts = raw.map((value) => 1 + Math.floor(value))
+        let left = labels.length + spare - counts.reduce((a, b) => a + b, 0)
+        raw
+          .map((value, index) => [value - Math.floor(value), index])
+          .sort((a, b) => b[0] - a[0])
+          .forEach(([, index]) => {
+            if (left > 0) {
+              counts[index] += 1
+              left -= 1
+            }
+          })
+        return labels.map((label, index) => ({ label, count: counts[index] }))
+      }
+
+      const report = {
+        period: "01/11/2026 a 30/11/2026",
+        generatedAt: "16/11/2026, 11:50",
+        totalCreated,
+        previousTotal: Math.round(totalCreated * 0.8),
+        pendingQueue: Math.round(totalCreated * 0.6),
+        urgent: Math.round(totalCreated * 0.15),
+        statusInPeriod: distribute(["Pendente", "Em análise", "Aprovada", "Negada", "Cancelada"], totalCreated),
+        statusAll: distribute(["Pendente", "Aprovada", "Em análise", "Cancelada", "Negada"], totalCreated * 3),
+        priority: distribute(["Eletivo", "Urgente"], totalCreated),
+        municipality: distribute(MUNICIPALITIES.slice(0, preset.municipalities), totalCreated),
+        procedure: distribute(PROCEDURE_NAMES.slice(0, preset.procedures), totalCreated),
+        acs: distribute(ACS_NAMES.slice(0, preset.acs), totalCreated),
+        createdPoints,
+      }
+
+      const items = Array.from({ length: preset.items }, (_, index) => {
+        const base = ITEM_NAMES[index % ITEM_NAMES.length]
+        const name = index < ITEM_NAMES.length ? base : `${base} - LOTE ${String(index).padStart(3, "0")}`
+        const amount = Math.floor(random() * 400)
+        return {
+          name,
+          type: ITEM_TYPES[index % ITEM_TYPES.length],
+          amount,
+          low: random() < 0.12,
+          lent: random() < 0.04,
+        }
+      })
+
+      const topOutputs = items
+        .slice(0, preset.outputs)
+        .map((item, index) => ({ ...item, units: preset.outputs === 1 ? 1 : Math.max(1, 60 - index * 6) }))
+      const destinations = distribute(
+        ["UBS Centro", "Hospital Municipal", "UBS Rural", "CAPS", "Policlínica", "UBS Vila Nova", "SAMU", "Farmácia Básica", "UBS Alto", "CEO", "Laboratório", "Vigilância", "Academia da Saúde", "NASF"].slice(0, preset.destinations),
+        topOutputs.reduce((sum, item) => sum + item.units, 0)
+      )
+      const unitsByType = ITEM_TYPES.map((type) => ({
+        label: type,
+        count: items.filter((item) => item.type === type).reduce((sum, item) => sum + item.amount, 0),
+      })).filter((entry) => entry.count > 0)
+
+      const inventory = {
+        totalItems: items.length,
+        totalUnits: items.reduce((sum, item) => sum + item.amount, 0),
+        lowStock: items.filter((item) => item.low).length,
+        entries: { units: preset.items * 15, count: preset.items },
+        outputs: {
+          units: topOutputs.reduce((sum, item) => sum + item.units, 0),
+          count: topOutputs.length,
+        },
+        unitsByType,
+        status: [
+          { label: "Disponível", count: items.filter((item) => !item.lent).length },
+          { label: "Emprestado", count: items.filter((item) => item.lent).length },
+        ],
+        destinations,
+        topOutputs,
+      }
+
+      // ---------------------------------------------------------------------------
+      // Render
+      // ---------------------------------------------------------------------------
+
+      const fmt = (value) => value.toLocaleString("pt-BR")
+      const esc = (text) =>
+        String(text).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char])
+      const plural = (count, one, many) => `${fmt(count)} ${count === 1 ? one : many}`
+
+      /** Até aqui a tabela é "curta": fica inteira, lado a lado com outra. */
+      const SHORT_ROWS = 8
+
+      function distTable({ title, sub, entries, empty = "Sem dados no período.", unit = "Qtd." }) {
+        const sorted = [...entries].filter((entry) => entry.count > 0).sort((a, b) => b.count - a.count)
+        const total = sorted.reduce((sum, entry) => sum + entry.count, 0)
+        const short = sorted.length <= SHORT_ROWS
+        const rows =
+          sorted.length === 0
+            ? `<tr class="empty-row"><td colspan="3">${esc(empty)}</td></tr>`
+            : sorted
+                .map((entry) => {
+                  const pct = total === 0 ? 0 : (entry.count / total) * 100
+                  return `<tr>
+                    <td>${esc(entry.label)}</td>
+                    <td class="num">${fmt(entry.count)}</td>
+                    <td class="bar"><div class="meter"><div class="track"><div class="fill" style="width:${pct}%"></div></div><span class="pct">${pct.toFixed(pct < 10 ? 1 : 0).replace(".", ",")}%</span></div></td>
+                  </tr>`
+                })
+                .join("")
+
+        return {
+          short,
+          html: `<table class="dist ${short ? "short" : "long"}">
+            <thead>
+              <tr class="title"><th colspan="3">${esc(title)}<span class="sub">${esc(sub)}</span></th></tr>
+              <tr class="cols"><th>Descrição</th><th class="num">${unit}</th><th class="bar">Participação</th></tr>
+            </thead>
+            <tbody>${rows}${sorted.length > 1 ? `<tr class="total"><td>Total</td><td class="num">${fmt(total)}</td><td></td></tr>` : ""}</tbody>
+          </table>`,
+        }
+      }
+
+      /** Curtas em pares (2 colunas), longas em largura total — na ordem em que vieram. */
+      function distGroup(tables) {
+        const blocks = []
+        let pair = []
+        const flush = () => {
+          if (pair.length) blocks.push(`<div class="grid-2">${pair.join("")}</div>`)
+          pair = []
+        }
+        for (const table of tables) {
+          if (table.short) {
+            pair.push(table.html)
+            if (pair.length === 2) flush()
+          } else {
+            flush()
+            blocks.push(table.html)
+          }
+        }
+        flush()
+        return blocks.join("")
+      }
+
+      const kpi = (label, value, hint = "") =>
+        `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">${hint}</div></div>`
+
+      const sectionTitle = (num, text, note = "") =>
+        `<h2 class="section-title"><span class="num">${num}</span>${text}${note ? `<span class="note">${note}</span>` : ""}</h2>`
+
+      // ---------- Gráficos (SVG à mão, tamanho fixo + viewBox: escala para a folha) ----------
+
+      /** Marcas "redondas" (passo 1, 2, 2,5 ou 5 × 10ⁿ) cobrindo o máximo, com 3 a 5 intervalos. */
+      function ticksFor(max) {
+        if (max <= 5) return Array.from({ length: Math.max(max, 1) + 1 }, (_, index) => index)
+        const rough = max / 4
+        const magnitude = 10 ** Math.floor(Math.log10(rough))
+        const step = [1, 2, 2.5, 5, 10].map((factor) => factor * magnitude).find((value) => value >= rough)
+        const top = Math.ceil(max / step) * step
+        return Array.from({ length: Math.round(top / step) + 1 }, (_, index) => index * step)
+      }
+
+      function lineChart(points) {
+        const width = 700
+        const height = 250
+        const pad = { top: 18, right: 10, bottom: 26, left: 34 }
+        const plotW = width - pad.left - pad.right
+        const plotH = height - pad.top - pad.bottom
+        const ticks = ticksFor(Math.max(...points.map((point) => point.count)))
+        const top = ticks[ticks.length - 1]
+        const x = (index) => pad.left + (index / (points.length - 1)) * plotW
+        const y = (value) => pad.top + plotH - (value / top) * plotH
+
+        const grid = ticks
+          .map(
+            (tick) =>
+              `<line class="${tick === 0 ? "baseline" : "grid"}" x1="${pad.left}" x2="${width - pad.right}" y1="${y(tick)}" y2="${y(tick)}"/>
+               <text x="${pad.left - 6}" y="${y(tick) + 3}" text-anchor="end">${fmt(tick)}</text>`
+          )
+          .join("")
+        const xLabels = points
+          .map((point, index) =>
+            index % 3 === 0 || index === points.length - 1
+              ? `<text x="${x(index)}" y="${height - 8}" text-anchor="middle">${point.date.slice(8)}/${point.date.slice(5, 7)}</text>`
+              : ""
+          )
+          .join("")
+        const path = points.map((point, index) => `${index ? "L" : "M"}${x(index)},${y(point.count)}`).join("")
+        const area = `${path}L${x(points.length - 1)},${y(0)}L${x(0)},${y(0)}Z`
+        // Marcadores só nos dias com APAC; rótulo de valor só no pico.
+        const peak = points.reduce((best, point, index) => (point.count > points[best].count ? index : best), 0)
+        const dots = points
+          .map((point, index) =>
+            point.count > 0
+              ? `<circle cx="${x(index)}" cy="${y(point.count)}" r="4" fill="var(--background)" stroke="var(--chart-3)" stroke-width="2"/>`
+              : ""
+          )
+          .join("")
+        const peakLabel =
+          points[peak].count > 0
+            ? `<text class="value-label" x="${x(peak)}" y="${y(points[peak].count) - 9}" text-anchor="middle">${fmt(points[peak].count)}</text>`
+            : ""
+
+        return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="APACs criadas por dia">
+          ${grid}${xLabels}
+          <path d="${area}" fill="var(--chart-3)" fill-opacity="0.12"/>
+          <path d="${path}" fill="none" stroke="var(--chart-3)" stroke-width="2" stroke-linejoin="round"/>
+          ${dots}${peakLabel}
+        </svg>`
+      }
+
+      /** Quebra o nome em até 2 linhas para caber na coluna de rótulos (sem cortar no PDF). */
+      function wrapLabel(text, maxChars = 30) {
+        const words = text.split(" ")
+        const lines = [""]
+        for (const word of words) {
+          const current = lines[lines.length - 1]
+          if ((current + " " + word).trim().length > maxChars && current) lines.push(word)
+          else lines[lines.length - 1] = (current + " " + word).trim()
+        }
+        if (lines.length > 2) lines.splice(2, lines.length - 2, lines.slice(1).join(" ").slice(0, maxChars - 1) + "…")
+        return lines
+      }
+
+      function barChart(entries) {
+        const width = 700
+        const labelW = 210
+        const rowH = 30
+        const barH = 16
+        const pad = { top: 6, right: 40, bottom: 24 }
+        const height = pad.top + entries.length * rowH + pad.bottom
+        const plotW = width - labelW - pad.right
+        const ticks = ticksFor(Math.max(...entries.map((entry) => entry.units)))
+        const top = ticks[ticks.length - 1]
+        const x = (value) => labelW + (value / top) * plotW
+        const plotBottom = pad.top + entries.length * rowH
+
+        const grid = ticks
+          .map(
+            (tick) =>
+              `<line class="${tick === 0 ? "baseline" : "grid"}" x1="${x(tick)}" x2="${x(tick)}" y1="${pad.top}" y2="${plotBottom}"/>
+               <text x="${x(tick)}" y="${plotBottom + 14}" text-anchor="middle">${fmt(tick)}</text>`
+          )
+          .join("")
+        const rows = entries
+          .map((entry, index) => {
+            const cy = pad.top + index * rowH + rowH / 2
+            const lines = wrapLabel(entry.name)
+            const label = lines
+              .map(
+                (line, lineIndex) =>
+                  `<text class="cat-label" x="${labelW - 10}" y="${cy + 3 + (lineIndex - (lines.length - 1) / 2) * 11}" text-anchor="end">${esc(line)}</text>`
+              )
+              .join("")
+            const barW = Math.max(x(entry.units) - labelW, 2)
+            return `${label}
+              <rect x="${labelW}" y="${cy - barH / 2}" width="${barW}" height="${barH}" rx="4" fill="var(--chart-2)"/>
+              <text class="value-label" x="${labelW + barW + 6}" y="${cy + 3.5}">${fmt(entry.units)}</text>`
+          })
+          .join("")
+
+        return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Itens mais retirados no período">${grid}${rows}</svg>`
+      }
+
+      function figure({ num, title, sub, stats, body, foot }) {
+        return `<figure class="figure">
+          <figcaption class="figure-head">
+            <div><div class="kicker">Gráfico ${num}</div><div class="name">${title}</div><div class="sub">${sub}</div></div>
+            <div class="stats">${stats.map(([value, label]) => `<div><strong>${value}</strong><span>${label}</span></div>`).join("")}</div>
+          </figcaption>
+          <div class="figure-body">${body}</div>
+          ${foot ? `<div class="figure-foot">${foot}</div>` : ""}
+        </figure>`
+      }
+
+      // ---------- Página ----------
+
+      const peakPoint = report.createdPoints.reduce((best, point) => (point.count > best.count ? point : best))
+      const daysWithApac = report.createdPoints.filter((point) => point.count > 0).length
+      const difference = report.totalCreated - report.previousTotal
+
+      const apacsSection = `
+        <section class="section stack">
+          ${sectionTitle(1, "APACs", "Contagens do período, exceto onde indicado")}
+          <div class="kpis">
+            ${kpi("Criadas no período", fmt(report.totalCreated), `<span class="tag neutral">${difference >= 0 ? "+" : ""}${fmt(difference)}</span> vs. período anterior`)}
+            ${kpi("Período anterior", fmt(report.previousTotal), "01/10/2026 a 31/10/2026")}
+            ${kpi("Fila de pendentes", fmt(report.pendingQueue), "Situação atual")}
+            ${kpi("Urgentes na fila", fmt(report.urgent), report.urgent > 0 ? '<span class="tag danger">Requer atenção</span>' : "Nenhuma urgente")}
+          </div>
+          ${distGroup([
+            distTable({ title: "Status no período", sub: "Situação atual das APACs criadas no período", entries: report.statusInPeriod }),
+            distTable({ title: "Status geral", sub: "Todas as APACs do sistema, sem filtro de data", entries: report.statusAll }),
+            distTable({ title: "Prioridade", sub: "APACs criadas no período", entries: report.priority }),
+            distTable({ title: "Município", sub: "APACs criadas no período", entries: report.municipality }),
+            distTable({ title: "Agente Comunitário de Saúde", sub: "APACs criadas no período", entries: report.acs }),
+            distTable({ title: "Procedimento", sub: "APACs criadas no período", entries: report.procedure }),
+          ])}
+        </section>`
+
+      const inventorySection = `
+        <section class="section stack">
+          ${sectionTitle(2, "Almoxarifado", "Estoque e status: situação atual · movimentações: período")}
+          <div class="kpis">
+            ${kpi("Itens cadastrados", fmt(inventory.totalItems), `${fmt(inventory.totalUnits)} unidades em estoque`)}
+            ${kpi("Estoque baixo", fmt(inventory.lowStock), inventory.lowStock > 0 ? '<span class="tag danger">Requer reposição</span>' : "Nenhum item")}
+            ${kpi("Entradas no período", fmt(inventory.entries.units), `unidades em ${plural(inventory.entries.count, "movimentação", "movimentações")}`)}
+            ${kpi("Saídas no período", fmt(inventory.outputs.units), `unidades em ${plural(inventory.outputs.count, "movimentação", "movimentações")} · saldo +${fmt(inventory.entries.units - inventory.outputs.units)}`)}
+          </div>
+          ${distGroup([
+            distTable({ title: "Estoque por tipo", sub: "Unidades em estoque hoje", entries: inventory.unitsByType, unit: "Unid." }),
+            distTable({ title: "Status dos itens", sub: "Itens cadastrados, situação atual", entries: inventory.status, unit: "Itens" }),
+            distTable({ title: "Saídas por destino", sub: "Unidades retiradas no período", entries: inventory.destinations, unit: "Unid.", empty: "Nenhuma saída no período." }),
+          ])}
+          <!-- No máximo 10 linhas: cabe sempre numa página, então nunca parte. -->
+          <table class="dist short">
+            <thead>
+              <tr class="title"><th colspan="4">Itens mais retirados<span class="sub">Até 10 itens com mais unidades retiradas no período</span></th></tr>
+              <tr class="cols"><th>Item</th><th>Tipo</th><th class="num">Retirado no período</th><th class="num">Estoque atual</th></tr>
+            </thead>
+            <tbody>
+              ${
+                inventory.topOutputs.length === 0
+                  ? '<tr class="empty-row"><td colspan="4">Nenhuma saída no período.</td></tr>'
+                  : inventory.topOutputs
+                      .map((item) => `<tr><td>${esc(item.name)}</td><td>${item.type}</td><td class="num">${fmt(item.units)}</td><td class="num">${fmt(item.amount)}</td></tr>`)
+                      .join("")
+              }
+            </tbody>
+          </table>
+        </section>`
+
+      const groups = ITEM_TYPES.map((type) => {
+        const list = items.filter((item) => item.type === type).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+        return { type, list, units: list.reduce((sum, item) => sum + item.amount, 0) }
+      }).filter((group) => group.list.length > 0)
+
+      const listSection = `
+        <section class="section">
+          ${sectionTitle(3, "Inventário completo", `${plural(inventory.totalItems, "item", "itens")} · ${fmt(inventory.totalUnits)} unidades em estoque hoje`)}
+          <div class="inv-legend"><span>Quantidade atual à direita</span><span><span class="tag danger">Baixo</span> abaixo do mínimo</span><span><span class="tag neutral">Emprestado</span> status do item</span></div>
+          <div class="inventory ${items.length >= 25 ? "two-columns" : ""}">
+            ${groups
+              .map(
+                (group) => `<div class="inv-group">
+                  <div class="inv-group-head">${group.type}<span>${plural(group.list.length, "item", "itens")} · ${fmt(group.units)} un.</span></div>
+                  ${group.list
+                    .map(
+                      (item) => `<div class="inv-row"><span class="name">${esc(item.name)}</span>${item.lent ? '<span class="tag neutral">Emprestado</span>' : ""}${item.low ? '<span class="tag danger">Baixo</span>' : ""}<span>${fmt(item.amount)}</span></div>`
+                    )
+                    .join("")}
+                </div>`
+              )
+              .join("")}
+          </div>
+        </section>`
+
+      const chartsSection = `
+        <section class="section">
+          ${sectionTitle(4, "Gráficos")}
+          ${figure({
+            num: 1,
+            title: "APACs criadas ao longo do tempo",
+            sub: "Total por dia · eixo vertical: quantidade de APACs",
+            stats: [
+              [fmt(report.totalCreated), "no período"],
+              [fmt(peakPoint.count), `pico em ${peakPoint.date.slice(8)}/${peakPoint.date.slice(5, 7)}`],
+              [fmt(daysWithApac), "dias com APAC"],
+            ],
+            body: lineChart(report.createdPoints),
+            foot: "Dias sem APAC aparecem na linha de base (0).",
+          })}
+          ${figure({
+            num: 2,
+            title: "Almoxarifado — itens mais retirados",
+            sub: "Unidades retiradas no período, por item",
+            stats: [
+              [fmt(inventory.outputs.units), "unidades retiradas"],
+              [fmt(inventory.topOutputs.length), inventory.topOutputs.length === 1 ? "item" : "itens"],
+            ],
+            body:
+              inventory.topOutputs.length === 0
+                ? '<p style="margin:16px 0;text-align:center;color:var(--muted-foreground)">Nenhuma saída registrada no período.</p>'
+                : barChart(inventory.topOutputs),
+          })}
+        </section>`
+
+      document.getElementById("doc").innerHTML = `
+        <header class="report-header">
+          <div>
+            <div class="org">ICOS · Secretaria de Saúde de São José dos Ramos</div>
+            <h1>Relatório de APACs e almoxarifado</h1>
+          </div>
+          <dl>
+            <dt>Período</dt><dd>${report.period}</dd>
+            <dt>Gráfico agrupado por</dt><dd>dia</dd>
+            <dt>Gerado em</dt><dd>${report.generatedAt}</dd>
+          </dl>
+        </header>
+        ${apacsSection}${inventorySection}${listSection}${chartsSection}`
+
+      // Rodapé com página: margin boxes do @page (Chrome 131+). Fica fora do <style>
+      // porque o período entra no texto.
+      const pageStyle = document.createElement("style")
+      pageStyle.textContent = `@page {
+        @bottom-left { content: "Relatório de APACs e almoxarifado · ${report.period}"; font: 7.5pt Inter, sans-serif; color: #71717a; }
+        @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 7.5pt Inter, sans-serif; color: #71717a; }
+      }`
+      document.head.append(pageStyle)
+    </script>
+  </body>
+</html>

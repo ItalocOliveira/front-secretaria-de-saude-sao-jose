@@ -12,10 +12,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 
-/** Na tela a lista abre recolhida; no PDF sai sempre completa. */
+/** A lista abre recolhida; "Ver todos" mostra o resto. */
 const COLLAPSED_LIMIT = 12
 
-/** A partir daqui a lista vira 2 colunas (no PDF e em telas largas). */
+/** A partir daqui a lista vira 2 colunas em telas largas. */
 const TWO_COLUMNS_FROM = 25
 
 const SKELETON_ROWS = Array.from({ length: 6 }, (_, index) => index)
@@ -56,7 +56,7 @@ const formatCount = (value: number) => value.toLocaleString("pt-BR")
 
 /**
  * Inventário completo: todos os itens do almoxarifado, agrupados por tipo, com a
- * quantidade atual. No PDF começa numa página própria; com estoque grande, 2 colunas.
+ * quantidade atual. A versão do PDF fica em `report-print-document.tsx`.
  */
 export function ReportInventoryListCard({
   items,
@@ -109,13 +109,13 @@ export function ReportInventoryListCard({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className={cn("gap-8", twoColumns && "lg:columns-2 print:columns-2")}>
+          <div className={cn("gap-8", twoColumns && "lg:columns-2")}>
             {groups.map((group) => {
               const { start } = group
               const groupHidden = !expanded && start >= COLLAPSED_LIMIT
 
               return (
-                <div key={group.type} className={cn("flex flex-col pb-4", groupHidden && "hidden print:flex")}>
+                <div key={group.type} className={cn("flex flex-col pb-4", groupHidden && "hidden")}>
                   <div className="flex break-after-avoid items-baseline justify-between gap-2 border-b border-border pb-1">
                     <span className="font-medium">{itemTypeLabel(group.type)}</span>
                     <span className="text-xs text-muted-foreground tabular-nums">
@@ -128,12 +128,11 @@ export function ReportInventoryListCard({
                     <div
                       key={item.id}
                       className={cn(
-                        // No PDF as linhas ficam mais densas: mais itens por folha.
-                        "flex break-inside-avoid items-center justify-between gap-2 border-b border-border/50 py-1 print:py-0.5 print:text-xs",
-                        !expanded && start + index >= COLLAPSED_LIMIT && "hidden print:flex"
+                        "flex break-inside-avoid items-center justify-between gap-2 border-b border-border/50 py-1",
+                        !expanded && start + index >= COLLAPSED_LIMIT && "hidden"
                       )}
                     >
-                      <span className="min-w-0 flex-1 truncate print:whitespace-normal" title={item.name}>
+                      <span className="min-w-0 flex-1 truncate" title={item.name}>
                         {item.name}
                       </span>
                       {item.status === ITEM_STATUS.EMPRESTADO ? <Badge variant="secondary">Emprestado</Badge> : null}
@@ -149,7 +148,7 @@ export function ReportInventoryListCard({
       </CardContent>
 
       {!isPending && !error && hiddenCount > 0 ? (
-        <CardFooter className="print:hidden">
+        <CardFooter>
           <Button variant="ghost" size="sm" onClick={() => setExpanded((value) => !value)}>
             {expanded ? "Mostrar menos" : `Ver todos (+${formatCount(hiddenCount)})`}
           </Button>
