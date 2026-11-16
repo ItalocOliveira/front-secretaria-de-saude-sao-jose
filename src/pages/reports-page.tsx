@@ -3,23 +3,34 @@ import type { DateRange } from "react-day-picker"
 import { FileDownIcon, RotateCcwIcon } from "lucide-react"
 
 import type { ReportInterval } from "@/api/reports"
+import { useAllItens } from "@/hooks/use-itens"
 import { useApacsReport } from "@/hooks/use-reports"
+import { useSession } from "@/hooks/use-session"
+import { canAccessItens } from "@/lib/permissions"
 import { printPage } from "@/lib/print"
 import {
   REPORT_MAX_DAYS,
   acsLabel,
   buildReportRequest,
+  destinationLabel,
   formatReportDate,
+  itemStatusLabel,
+  itemTypeLabel,
   municipalityLabel,
   priorityLabel,
   procedureLabel,
   statusLabel,
   toBreakdown,
+  unitsOf,
 } from "@/lib/report"
 import { DateRangePicker } from "@/components/apacs/date-range-picker"
 import { AppHeader } from "@/components/layout/app-header"
 import { ReportBreakdownCard } from "@/components/reports/report-breakdown-card"
+import { ReportChartsPrintSheet } from "@/components/reports/report-charts-print-sheet"
+import { ReportInventoryListCard } from "@/components/reports/report-inventory-list-card"
+import { ReportInventorySummaryCards } from "@/components/reports/report-inventory-summary-cards"
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards"
+import { ReportTopOutputsCard } from "@/components/reports/report-top-outputs-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,23 +50,40 @@ const INTERVAL_LABEL: Record<ReportInterval, string> = { day: "dia", week: "sema
 
 const GENERATED_AT_FORMAT = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" })
 
+/*
+ * Ordem do PDF: (1) APACs — resumo e quebras; (2) almoxarifado, a partir de uma
+ * página nova; (3) inventário completo, também em página nova (2 colunas se for
+ * grande); (4) folha só de gráficos (`ReportChartsPrintSheet`). Na tela, cada
+ * gráfico fica junto da sua seção e some na impressão (`print:hidden`).
+ */
 export function ReportsPage() {
   const [period, setPeriod] = useState<DateRange | undefined>(undefined)
   const [interval, setReportInterval] = useState<ReportInterval>("day")
+  const { claims } = useSession()
 
   const { data: report, isPending, isFetching, error } = useApacsReport(buildReportRequest(period, interval))
+
+  // Quem diz se há seção é a API (`inventory: null`); o perfil só decide o esqueleto do carregamento.
+  const inventory = report === undefined ? undefined : report.inventory
+  const showInventory =
+    inventory === undefined ? isPending && claims !== null && canAccessItens(claims.role) : inventory !== null
+
+  // Inventário completo: só quem recebe a seção do almoxarifado; não depende do período.
+  const allItens = useAllItens(showInventory)
 
   const periodText =
     report === undefined
       ? null
       : `${formatReportDate(report.period.startDate)} a ${formatReportDate(report.period.endDate)}`
 
+  const reportTitle = inventory ? "Relatório de APACs e almoxarifado" : "Relatório de APACs"
+
   const exportPdf = () => {
     if (periodText === null) {
       return
     }
     // Nome sugerido do arquivo: sem "/" (vira separador de pasta em alguns sistemas).
-    printPage(`Relatório de APACs - ${periodText.replaceAll("/", "-")}`)
+    printPage(`${reportTitle} - ${periodText.replaceAll("/", "-")}`)
   }
 
   const breakdown = (counts: Record<string, number> | undefined, label: (key: string) => string) =>
@@ -69,12 +97,15 @@ export function ReportsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="font-heading text-xl font-medium">
-              Relatórios<span className="hidden print:inline"> de APACs</span>
+              <span className="print:hidden">Relatórios</span>
+              <span className="hidden print:inline">{reportTitle}</span>
             </h1>
-            <p className="text-sm text-muted-foreground print:hidden">Indicadores de criação de APACs por período.</p>
+            <p className="text-sm text-muted-foreground print:hidden">
+              Indicadores de APACs{showInventory ? " e do almoxarifado" : ""} por período.
+            </p>
             {/* Os filtros não vão para o PDF; este resumo substitui eles no papel. */}
             <p className="hidden text-sm text-muted-foreground print:block">
-              Período: {periodText} · Gráfico agrupado por {INTERVAL_LABEL[interval]} · Gerado em{" "}
+              Período: {periodText} · Gráfico de APACs agrupado por {INTERVAL_LABEL[interval]} · Gerado em{" "}
               {GENERATED_AT_FORMAT.format(new Date())}
             </p>
           </div>
@@ -82,7 +113,7 @@ export function ReportsPage() {
           <Button
             variant="outline"
             className="print:hidden"
-            disabled={report === undefined || isFetching}
+            disabled={report === undefined || isFetching || (inventory ? allItens.isPending : false)}
             onClick={exportPdf}
           >
             <FileDownIcon data-icon="inline-start" />
@@ -146,65 +177,119 @@ export function ReportsPage() {
           </Alert>
         ) : null}
 
-        <ReportSummaryCards report={report} isPending={isPending} />
+        <section className="flex flex-col gap-4">
+          <h2 className="font-heading text-lg font-medium">APACs</h2>
 
-        {/* No PDF o gráfico ocupa uma folha só dele: nunca é cortado entre páginas. */}
-        <Card className="print:break-before-page print:break-inside-avoid print:break-after-page">
-          <CardHeader>
-            <CardTitle>APACs criadas ao longo do tempo</CardTitle>
-            <CardDescription>
-              {interval === "week" ? "Total por semana (a partir de segunda-feira)" : "Total por dia"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {report === undefined ? (
-              CHART_FALLBACK
-            ) : (
-              <Suspense fallback={CHART_FALLBACK}>
-                <ReportCreatedChart series={report.createdOverTime} />
-              </Suspense>
-            )}
-          </CardContent>
-        </Card>
+          <ReportSummaryCards report={report} isPending={isPending} />
 
-        <div className="grid gap-4 *:min-w-0 lg:grid-cols-2 print:grid-cols-2">
-          <ReportBreakdownCard
-            title="Status no período"
-            description="Situação atual das APACs criadas no período"
-            entries={breakdown(report?.countByStatusInPeriod, statusLabel)}
-            isPending={isPending}
-          />
-          <ReportBreakdownCard
-            title="Status geral"
-            description="Todas as APACs do sistema, sem filtro de data"
-            entries={breakdown(report?.countByStatus, statusLabel)}
-            isPending={isPending}
-          />
-          <ReportBreakdownCard
-            title="Prioridade"
-            description="APACs criadas no período"
-            entries={breakdown(report?.countByPriorityInPeriod, priorityLabel)}
-            isPending={isPending}
-          />
-          <ReportBreakdownCard
-            title="Município"
-            description="APACs criadas no período"
-            entries={breakdown(report?.countByMunicipalityInPeriod, municipalityLabel)}
-            isPending={isPending}
-          />
-          <ReportBreakdownCard
-            title="Procedimento"
-            description="APACs criadas no período"
-            entries={breakdown(report?.countByProcedureInPeriod, procedureLabel)}
-            isPending={isPending}
-          />
-          <ReportBreakdownCard
-            title="Agente Comunitário de Saúde"
-            description="APACs criadas no período"
-            entries={breakdown(report?.countByAcsInPeriod, acsLabel)}
-            isPending={isPending}
-          />
-        </div>
+          <Card className="print:hidden">
+            <CardHeader>
+              <CardTitle>APACs criadas ao longo do tempo</CardTitle>
+              <CardDescription>
+                {interval === "week" ? "Total por semana (a partir de segunda-feira)" : "Total por dia"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {report === undefined ? (
+                CHART_FALLBACK
+              ) : (
+                <Suspense fallback={CHART_FALLBACK}>
+                  <ReportCreatedChart series={report.createdOverTime} />
+                </Suspense>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 *:min-w-0 lg:grid-cols-2 print:grid-cols-2">
+            <ReportBreakdownCard
+              title="Status no período"
+              description="Situação atual das APACs criadas no período"
+              entries={breakdown(report?.countByStatusInPeriod, statusLabel)}
+              isPending={isPending}
+            />
+            <ReportBreakdownCard
+              title="Status geral"
+              description="Todas as APACs do sistema, sem filtro de data"
+              entries={breakdown(report?.countByStatus, statusLabel)}
+              isPending={isPending}
+            />
+            <ReportBreakdownCard
+              title="Prioridade"
+              description="APACs criadas no período"
+              entries={breakdown(report?.countByPriorityInPeriod, priorityLabel)}
+              isPending={isPending}
+            />
+            <ReportBreakdownCard
+              title="Município"
+              description="APACs criadas no período"
+              entries={breakdown(report?.countByMunicipalityInPeriod, municipalityLabel)}
+              isPending={isPending}
+            />
+            <ReportBreakdownCard
+              title="Procedimento"
+              description="APACs criadas no período"
+              entries={breakdown(report?.countByProcedureInPeriod, procedureLabel)}
+              isPending={isPending}
+            />
+            <ReportBreakdownCard
+              title="Agente Comunitário de Saúde"
+              description="APACs criadas no período"
+              entries={breakdown(report?.countByAcsInPeriod, acsLabel)}
+              isPending={isPending}
+            />
+          </div>
+        </section>
+
+        {showInventory ? (
+          // No PDF o almoxarifado começa numa página nova, separado das APACs.
+          <section className="flex flex-col gap-4 pt-4 print:break-before-page print:pt-0">
+            <div className="flex flex-col gap-1">
+              <h2 className="font-heading text-lg font-medium">Almoxarifado</h2>
+              <p className="text-sm text-muted-foreground">
+                Estoque e status refletem a situação atual; entradas, saídas e destinos são do período.
+              </p>
+            </div>
+
+            <ReportInventorySummaryCards inventory={inventory ?? undefined} />
+
+            <div className="grid gap-4 *:min-w-0 lg:grid-cols-2 print:grid-cols-2">
+              <ReportBreakdownCard
+                title="Estoque por tipo"
+                description="Unidades em estoque hoje"
+                entries={breakdown(inventory ? unitsOf(inventory.stock.byType) : undefined, itemTypeLabel)}
+                isPending={inventory === undefined}
+                emptyDescription="Nenhuma unidade em estoque."
+              />
+              <ReportBreakdownCard
+                title="Status dos itens"
+                description="Quantidade de itens cadastrados, situação atual"
+                entries={breakdown(inventory?.stock.byStatus, itemStatusLabel)}
+                isPending={inventory === undefined}
+                emptyDescription="Nenhum item cadastrado."
+              />
+              <ReportBreakdownCard
+                title="Saídas por destino"
+                description="Unidades retiradas no período, pelo destino informado"
+                entries={breakdown(
+                  inventory ? unitsOf(inventory.movementsInPeriod.outputsByDestination) : undefined,
+                  destinationLabel
+                )}
+                isPending={inventory === undefined}
+                emptyDescription="Nenhuma saída registrada no período."
+              />
+            </div>
+
+            <ReportTopOutputsCard items={inventory?.movementsInPeriod.topOutputItems} />
+          </section>
+        ) : null}
+
+        {showInventory ? (
+          <section className="flex flex-col gap-4 print:break-before-page">
+            <ReportInventoryListCard items={allItens.data} isPending={allItens.isPending} error={allItens.error} />
+          </section>
+        ) : null}
+
+        {report === undefined ? null : <ReportChartsPrintSheet report={report} />}
       </div>
     </>
   )
