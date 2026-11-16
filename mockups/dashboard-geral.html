@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard geral</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet" />
+    <!--
+      Proposta da tela /dashboard — dados FICTÍCIOS e só agregados (nada de CPF/CNS).
+      Iterar aqui antes de portar para o React (mesmo fluxo de relatorio-pdf.html).
+
+      Fontes dos dados na tela real:
+        - POST /reports/apacs com {}  → KPIs do mês, gráfico diário, status, fila, almoxarifado
+        - GET /notifications          → urgentes, estoque baixo e `support` (já em cache pelo sino)
+
+      Acesso: DEV, DIRETOR, SECRETARIO, COORDENADOR, REGULADOR. RECEPCIONISTA não vê a tela.
+      `support` só vem para SECRETARIO/DIRETOR — use "Simular perfil" para comparar.
+      Tecla "d" alterna claro/escuro, como no app.
+    -->
+    <style>
+      /* Tokens copiados de src/index.css (:root / .dark). */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.141 0.005 285.823);
+        --card: oklch(1 0 0);
+        --primary: oklch(0.488 0.243 264.376);
+        --primary-foreground: oklch(0.97 0.014 254.604);
+        --muted: oklch(0.967 0.001 286.375);
+        --muted-foreground: oklch(0.552 0.016 285.938);
+        --destructive: oklch(0.577 0.245 27.325);
+        --success: oklch(0.527 0.154 150.069);
+        --warning: oklch(0.555 0.13 70);
+        --border: oklch(0.92 0.004 286.32);
+        --ring-card: oklch(0.141 0.005 285.823 / 10%);
+        --sidebar: oklch(0.93 0.003 286);
+        --sidebar-accent: oklch(0.885 0.004 286);
+        --sidebar-border: oklch(0.87 0.005 286);
+        --brand-accent: oklch(0.66 0.16 135);
+        --radius: 0.625rem;
+        color-scheme: light;
+      }
+      :root.dark {
+        --background: oklch(0.141 0.005 285.823);
+        --foreground: oklch(0.985 0 0);
+        --card: oklch(0.21 0.006 285.885);
+        --primary: oklch(0.424 0.199 265.638);
+        --primary-foreground: oklch(0.97 0.014 254.604);
+        --muted: oklch(0.274 0.006 286.033);
+        --muted-foreground: oklch(0.705 0.015 286.067);
+        --destructive: oklch(0.704 0.191 22.216);
+        --success: oklch(0.765 0.177 145);
+        --warning: oklch(0.82 0.15 85);
+        --border: oklch(1 0 0 / 10%);
+        --ring-card: oklch(1 0 0 / 10%);
+        --sidebar: oklch(0.21 0.006 285.885);
+        --sidebar-accent: oklch(0.274 0.006 286.033);
+        --sidebar-border: oklch(1 0 0 / 10%);
+        color-scheme: dark;
+      }
+      /* Barras do gráfico: no escuro o --primary é escuro demais contra o card. */
+      :root { --bar: var(--primary); }
+      :root.dark { --bar: oklch(0.623 0.214 259.815); }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, sans-serif;
+        font-size: 14px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      button { font: inherit; color: inherit; }
+
+      /* ---------- Barra do mockup (não faz parte da tela) ---------- */
+      .mock-bar {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+        padding: 8px 16px; font-size: 12px;
+        background: repeating-linear-gradient(135deg, var(--muted) 0 10px, transparent 10px 20px);
+        border-bottom: 1px dashed var(--border);
+        color: var(--muted-foreground);
+      }
+      .mock-bar strong { color: var(--foreground); }
+      .mock-bar select, .mock-bar button {
+        font: inherit; padding: 3px 8px; border-radius: 6px;
+        border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer;
+      }
+
+      /* ---------- Shell ---------- */
+      .shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100vh - 37px); }
+      .sidebar {
+        background: var(--sidebar); border-right: 1px solid var(--sidebar-border);
+        display: flex; flex-direction: column; justify-content: space-between; padding: 12px 8px;
+      }
+      .logo { display: flex; gap: 10px; align-items: center; padding: 6px 8px 14px; }
+      .logo-mark {
+        display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px;
+        background: var(--brand-accent); color: white; font-weight: 700;
+      }
+      .logo strong { display: block; font-size: 15px; }
+      .logo span { display: block; font-size: 11px; color: var(--muted-foreground); }
+      .nav-label { font-size: 12px; color: var(--muted-foreground); padding: 10px 8px 4px; }
+      .nav a {
+        display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px;
+        color: inherit; text-decoration: none;
+      }
+      .nav a:hover { background: var(--sidebar-accent); }
+      .nav a[aria-current="page"] { background: var(--sidebar-accent); font-weight: 600; }
+      .nav svg { width: 16px; height: 16px; flex: none; }
+      .version { font-size: 12px; color: var(--muted-foreground); padding: 8px; }
+
+      .main { min-width: 0; display: flex; flex-direction: column; }
+      .header {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        height: 56px; padding: 0 24px; border-bottom: 1px solid var(--border);
+      }
+      .crumb { color: var(--muted-foreground); }
+      .crumb b { color: var(--foreground); font-weight: 600; }
+      .header-right { display: flex; align-items: center; gap: 14px; }
+      .bell { position: relative; display: grid; place-items: center; width: 32px; height: 32px; }
+      .bell svg { width: 18px; height: 18px; }
+      .bell .count {
+        position: absolute; top: -2px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
+        border-radius: 9px; background: var(--destructive); color: white; font-size: 11px;
+        display: grid; place-items: center; font-weight: 600;
+      }
+      .user { display: flex; align-items: center; gap: 8px; }
+      .avatar {
+        width: 32px; height: 32px; border-radius: 50%; background: var(--muted);
+        display: grid; place-items: center; font-weight: 600; font-size: 12px;
+      }
+      .user small { display: block; color: var(--muted-foreground); font-size: 12px; }
+
+      .content { display: flex; flex-direction: column; gap: 24px; padding: 28px; }
+
+      /* ---------- Primitivas (equivalentes aos componentes do app) ---------- */
+      .card {
+        background: var(--card); border-radius: calc(var(--radius) * 1.4);
+        box-shadow: 0 0 0 1px var(--ring-card); display: flex; flex-direction: column; min-width: 0;
+      }
+      .card-header { padding: 18px 20px 0; display: flex; justify-content: space-between; gap: 12px; }
+      .card-title { font-weight: 600; font-size: 15px; }
+      .card-desc { color: var(--muted-foreground); font-size: 13px; margin-top: 3px; }
+      .card-content { padding: 16px 20px 20px; }
+      .card-footer { padding: 0 20px 18px; color: var(--muted-foreground); font-size: 13px; }
+      .link { color: var(--bar); font-weight: 500; text-decoration: none; font-size: 13px; white-space: nowrap; }
+      .link:hover { text-decoration: underline; }
+      .muted { color: var(--muted-foreground); }
+      .badge {
+        display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px;
+        font-size: 12px; font-weight: 500; white-space: nowrap; border: 1px solid var(--border);
+      }
+      .badge.warning { color: var(--warning); }
+      .badge.info { color: var(--bar); }
+      .icon { width: 16px; height: 16px; flex: none; }
+
+      /* ---------- Cabeçalho da página ---------- */
+      .page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; }
+      .page-head h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+      .page-head p { margin: 4px 0 0; color: var(--muted-foreground); }
+      .period {
+        display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px;
+        border: 1px solid var(--border); font-weight: 500;
+      }
+
+      /* ---------- Faixa de avisos do suporte (campo pequeno) ---------- */
+      .support-strip {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        padding: 10px 14px; border-radius: var(--radius);
+        border: 1px solid var(--border); background: var(--muted);
+      }
+      .support-strip .lead { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+      .support-strip .last { flex: 1 1 260px; min-width: 0; color: var(--muted-foreground); }
+      .support-strip .last b { color: var(--foreground); font-weight: 500; }
+
+      /* ---------- KPIs ---------- */
+      .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+      .kpi { padding: 16px 18px; gap: 6px; text-decoration: none; color: inherit; transition: background .15s; }
+      a.kpi:hover { background: color-mix(in oklch, var(--muted) 60%, var(--card)); }
+      .kpi-label { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 13px; font-weight: 500; }
+      .kpi-value { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+      .kpi-extra { font-size: 13px; color: var(--muted-foreground); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .delta { font-weight: 600; color: var(--foreground); }
+      .kpi.alert .kpi-label { color: var(--destructive); }
+
+      /* ---------- Grades ---------- */
+      .grid-main { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+      .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+      .grid-bottom { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+      .grid-bottom.no-support { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+      /* ---------- Gráfico diário (uma série, sem legenda) ---------- */
+      .chart { position: relative; }
+      .chart-plot {
+        display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 2px; align-items: end;
+        height: 180px; border-bottom: 1px solid var(--border); position: relative;
+      }
+      .gridline { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--border); pointer-events: none; }
+      .gridline span { position: absolute; right: 100%; transform: translate(-6px, -50%); font-size: 11px; color: var(--muted-foreground); }
+      .bar-slot { height: 100%; display: flex; align-items: flex-end; cursor: default; }
+      .bar { width: 100%; background: var(--bar); border-radius: 4px 4px 0 0; min-height: 2px; }
+      .bar-slot.future .bar { background: transparent; }
+      .bar-slot:hover .bar { filter: brightness(1.15); }
+      .bar-slot.today .bar { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--bar); }
+      .chart-x { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 2px; margin-top: 6px; font-size: 11px; color: var(--muted-foreground); text-align: center; }
+      .chart-wrap { padding-left: 22px; }
+      .tooltip {
+        position: absolute; pointer-events: none; padding: 6px 10px; border-radius: 8px; font-size: 12px;
+        background: var(--foreground); color: var(--background); white-space: nowrap;
+        transform: translate(-50%, calc(-100% - 8px)); opacity: 0; transition: opacity .1s;
+      }
+      .tooltip.show { opacity: 1; }
+
+      /* ---------- Status (pizza em rosca + legenda clicável) ---------- */
+      .pie-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 28px; align-items: center; }
+      .pie-box { position: relative; width: 200px; height: 200px; }
+      .pie-box svg { width: 100%; height: 100%; display: block; }
+      .pie-box path { stroke: var(--card); stroke-width: 2; cursor: pointer; transition: opacity .15s; }
+      .pie-box svg:hover path:not(:hover) { opacity: .45; }
+      .pie-center {
+        position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        pointer-events: none;
+      }
+      .pie-center b { font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1; }
+      .pie-center span { font-size: 12px; color: var(--muted-foreground); margin-top: 4px; }
+      .legend { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+      .legend .pct { color: var(--muted-foreground); width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+      .legend a.dim { opacity: .45; }
+
+      /* ---------- Auditoria (abas) ---------- */
+      .tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: 8px; background: var(--muted); }
+      .tabs button {
+        border: 0; background: transparent; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+        font-size: 13px; font-weight: 500; color: var(--muted-foreground); display: inline-flex; gap: 6px; align-items: center;
+      }
+      .tabs button[aria-selected="true"] { background: var(--card); color: var(--foreground); box-shadow: 0 1px 2px oklch(0 0 0 / 12%); }
+      .tabs .n { font-size: 11px; padding: 0 6px; border-radius: 999px; background: var(--card); }
+      .tabs button[aria-selected="true"] .n { background: var(--muted); }
+      .audit-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .pending-api {
+        font-size: 12px; color: var(--warning); border: 1px dashed currentColor; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px;
+      }
+      .who { font-weight: 600; }
+      .legend a {
+        display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none;
+        padding: 4px 6px; border-radius: 6px; margin: 0 -6px;
+      }
+      .legend a:hover { background: var(--muted); }
+      .legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+      .legend .n { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+      /* ---------- Listas ---------- */
+      .list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+      .row {
+        display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 8px;
+        background: var(--muted); text-decoration: none; color: inherit;
+      }
+      a.row:hover { filter: brightness(0.97); }
+      :root.dark a.row:hover { filter: brightness(1.15); }
+      .row-main { flex: 1; min-width: 0; }
+      .row-title, .row-sub { display: block; }
+      .row-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .row-sub { font-size: 12px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .row-media {
+        width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none;
+        background: var(--card); color: var(--muted-foreground);
+      }
+      .row-media.urgent { color: var(--destructive); }
+      .stock { text-align: right; font-size: 12px; color: var(--muted-foreground); flex: none; }
+      .stock b { display: block; font-size: 14px; color: var(--destructive); font-variant-numeric: tabular-nums; }
+      .meter { height: 4px; border-radius: 2px; background: var(--card); margin-top: 6px; overflow: hidden; }
+      .meter span { display: block; height: 100%; background: var(--destructive); border-radius: 2px; }
+
+      /* ---------- Almoxarifado ---------- */
+      .split { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+      .mini { background: var(--muted); border-radius: 8px; padding: 10px 12px; }
+      .mini small { display: block; color: var(--muted-foreground); font-size: 12px; }
+      .mini b { font-size: 18px; font-variant-numeric: tabular-nums; }
+      .hbar { display: grid; grid-template-columns: minmax(0, 1fr) 2fr auto; align-items: center; gap: 10px; font-size: 13px; padding: 4px 0; }
+      .hbar .track { height: 8px; }
+      .hbar .fill { height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; }
+      .hbar .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .hbar .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+      /* ---------- Atalhos ---------- */
+      .shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .shortcut {
+        display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px;
+        border: 1px solid var(--border); background: transparent; cursor: pointer; text-align: left;
+      }
+      .shortcut:hover { background: var(--muted); }
+      .shortcut.primary { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+      .shortcut.primary:hover { filter: brightness(1.1); }
+
+      [hidden] { display: none !important; }
+
+      /* ---------- Responsivo ---------- */
+      @media (max-width: 1100px) {
+        .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-main, .grid-bottom, .grid-bottom.no-support { grid-template-columns: minmax(0, 1fr); }
+      }
+      @media (max-width: 768px) {
+        .shell { grid-template-columns: minmax(0, 1fr); }
+        .sidebar { display: none; }
+        .header { padding: 0 16px; }
+        .user-info { display: none; }
+        .content { padding: 20px 16px; }
+        .chart-x span:nth-child(even) { visibility: hidden; }
+        .pie-layout { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+        .legend { width: 100%; }
+        .split { grid-template-columns: minmax(0, 1fr); }
+      }
+      @media (max-width: 420px) {
+        .kpis { grid-template-columns: minmax(0, 1fr); }
+        .shortcuts { grid-template-columns: minmax(0, 1fr); }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Ícones (traço lucide) -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-dash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+        <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/><path d="M10 15H6a4 4 0 0 0-4 4v2"/><path d="m21.7 16.4-.9-.3"/><path d="m15.2 13.9-.9-.3"/><path d="m16.6 18.7.3-.9"/><path d="m19.1 12.2.3-.9"/></symbol>
+        <symbol id="i-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/></symbol>
+        <symbol id="i-sign" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L18 5.5"/><path d="M8 18h1"/><path d="M18.42 9.61a2.1 2.1 0 1 1 2.97 2.97L16.95 17 13 18l.99-3.95 4.43-4.44Z"/></symbol>
+        <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+        <symbol id="i-life" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol>
+        <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+        <symbol id="i-usercog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/><path d="M10 15H6a4 4 0 0 0-4 4v2"/></symbol>
+        <symbol id="i-userplus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></symbol>
+        <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+        <symbol id="i-signal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/></symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+        <symbol id="i-arrows" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></symbol>
+        <symbol id="i-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+      </defs>
+    </svg>
+
+    <div class="mock-bar">
+      <strong>Mockup · dados fictícios</strong>
+      <label>Simular perfil
+        <select id="role">
+          <option value="SECRETARIO">Secretário(a) de Saúde</option>
+          <option value="DIRETOR">Diretor Geral</option>
+          <option value="COORDENADOR">Coordenador</option>
+          <option value="REGULADOR">Regulador</option>
+        </select>
+      </label>
+      <button id="theme" type="button">Alternar tema (d)</button>
+      <span>Recepcionista não acessa esta tela.</span>
+    </div>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div>
+          <div class="logo">
+            <div class="logo-mark">+</div>
+            <div><strong>ICOS</strong><span>São José dos Ramos</span></div>
+          </div>
+          <div class="nav-label">Navegação</div>
+          <nav class="nav">
+            <a href="#" aria-current="page"><svg><use href="#i-dash" /></svg>Dashboard</a>
+            <a href="#"><svg><use href="#i-file" /></svg>APACs</a>
+            <a href="#"><svg><use href="#i-alert" /></svg>Pendências</a>
+            <a href="#"><svg><use href="#i-users" /></svg>Usuários</a>
+            <a href="#"><svg><use href="#i-package" /></svg>Almoxarifado</a>
+            <a href="#"><svg><use href="#i-sign" /></svg>Ofícios</a>
+            <a href="#"><svg><use href="#i-chart" /></svg>Relatórios</a>
+          </nav>
+        </div>
+        <div class="version">Versão 2.1.0</div>
+      </aside>
+
+      <div class="main">
+        <header class="header">
+          <div class="crumb">Regulação em Saúde › <b>Dashboard</b></div>
+          <div class="header-right">
+            <div class="bell" title="Sino: estoque baixo + APACs urgentes (o suporte não entra)">
+              <svg><use href="#i-bell" /></svg><span class="count">11</span>
+            </div>
+            <div class="user">
+              <div class="avatar" id="avatar">MS</div>
+              <div class="user-info"><b id="user-name">Mariana Souza</b><small id="user-role">Secretário(a) de Saúde</small></div>
+            </div>
+          </div>
+        </header>
+
+        <main class="content">
+          <!-- 1. Cabeçalho -->
+          <div class="page-head">
+            <div>
+              <h1>Bom dia, <span id="first-name">Mariana</span></h1>
+              <p>São José dos Ramos · segunda-feira, 16 de novembro de 2026</p>
+            </div>
+            <span class="period"><svg class="icon"><use href="#i-calendar" /></svg>Novembro de 2026</span>
+          </div>
+
+          <!-- 2. Campo pequeno: avisos do suporte (só SECRETARIO/DIRETOR) -->
+          <a href="#suporte" class="support-strip support-only" style="text-decoration: none; color: inherit">
+            <span class="lead"><svg class="icon"><use href="#i-life" /></svg>Avisos do suporte</span>
+            <span class="badge info">4 nos últimos 30 dias</span>
+            <span class="last">Mais recente: <b>Senha de Ana Ribeiro redefinida</b> · há 2 horas</span>
+            <span class="link">Ver todas ›</span>
+          </a>
+
+          <!-- 3. KPIs do mês -->
+          <section class="kpis" aria-label="Resumo do mês">
+            <a class="card kpi" href="#">
+              <span class="kpi-label"><svg class="icon"><use href="#i-file" /></svg>APACs no mês</span>
+              <span class="kpi-value">38</span>
+              <span class="kpi-extra"><svg class="icon"><use href="#i-trend" /></svg><span class="delta">+12%</span> vs. outubro (34)</span>
+            </a>
+            <a class="card kpi" href="#">
+              <span class="kpi-label"><svg class="icon"><use href="#i-alert" /></svg>Fila de APACs</span>
+              <span class="kpi-value">21</span>
+              <span class="kpi-extra"><span class="badge" style="color: var(--destructive)">6 urgentes</span> pendentes e em análise</span>
+            </a>
+            <a class="card kpi alert" href="#">
+              <span class="kpi-label"><svg class="icon"><use href="#i-package" /></svg>Estoque abaixo do mínimo</span>
+              <span class="kpi-value">5</span>
+              <span class="kpi-extra">de 142 itens cadastrados</span>
+            </a>
+            <a class="card kpi" href="#">
+              <span class="kpi-label"><svg class="icon"><use href="#i-arrows" /></svg>Almoxarifado no mês</span>
+              <span class="kpi-value">−86 un.</span>
+              <span class="kpi-extra">14 entradas · 31 saídas</span>
+            </a>
+          </section>
+
+          <!-- 4. Grade principal -->
+          <div class="grid-main">
+            <div class="stack">
+              <section class="card">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">APACs cadastradas por dia</div>
+                    <div class="card-desc">Novembro de 2026 · 38 até hoje</div>
+                  </div>
+                  <a class="link" href="#">Abrir relatório ›</a>
+                </div>
+                <div class="card-content">
+                  <div class="chart chart-wrap" id="chart">
+                    <div class="chart-plot" id="plot"></div>
+                    <div class="chart-x" id="xaxis"></div>
+                    <div class="tooltip" id="tip"></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">APACs por status</div>
+                    <div class="card-desc">Toda a base do município · 214 APACs · clique para filtrar</div>
+                  </div>
+                </div>
+                <div class="card-content">
+                  <div class="pie-layout">
+                    <div class="pie-box" id="pie-box">
+                      <svg id="pie" viewBox="0 0 200 200" role="img" aria-label="Distribuição das APACs por status"></svg>
+                      <div class="pie-center"><b>214</b><span>APACs</span></div>
+                      <div class="tooltip" id="pie-tip"></div>
+                    </div>
+                    <div class="legend" id="legend"></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="stack">
+              <section class="card">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">Urgentes na fila</div>
+                    <div class="card-desc">6 APACs urgentes pendentes ou em análise</div>
+                  </div>
+                  <a class="link" href="#">Ver todas ›</a>
+                </div>
+                <div class="card-content">
+                  <ul class="list">
+                    <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">Rafael Queiroz</span><span class="row-sub">Consulta em urologia · há 9 dias</span></span><span class="badge warning">Pendente</span></a></li>
+                    <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">Maria Aparecida Souza</span><span class="row-sub">Consulta em cirurgia plástica · há 6 dias</span></span><span class="badge info">Em análise</span></a></li>
+                    <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">José Lima Neto</span><span class="row-sub">Ressonância magnética · há 4 dias</span></span><span class="badge warning">Pendente</span></a></li>
+                    <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">Helena Duarte</span><span class="row-sub">Consulta em cardiologia · há 2 dias</span></span><span class="badge warning">Pendente</span></a></li>
+                  </ul>
+                </div>
+                <div class="card-footer">Mostrando 4 de 6 · mais antigas primeiro</div>
+              </section>
+
+              <section class="card">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">Estoque abaixo do mínimo</div>
+                    <div class="card-desc">5 itens precisam de reposição</div>
+                  </div>
+                  <a class="link" href="#">Almoxarifado ›</a>
+                </div>
+                <div class="card-content">
+                  <ul class="list">
+                    <li><a class="row" href="#"><span class="row-main"><span class="row-title">Luva de procedimento M</span><span class="meter"><span style="width: 10%"></span></span></span><span class="stock"><b>2</b>mín. 20</span></a></li>
+                    <li><a class="row" href="#"><span class="row-main"><span class="row-title">Seringa 10 ml</span><span class="meter"><span style="width: 24%"></span></span></span><span class="stock"><b>12</b>mín. 50</span></a></li>
+                    <li><a class="row" href="#"><span class="row-main"><span class="row-title">Papel A4 (resma)</span><span class="meter"><span style="width: 30%"></span></span></span><span class="stock"><b>3</b>mín. 10</span></a></li>
+                    <li><a class="row" href="#"><span class="row-main"><span class="row-title">Álcool 70% 1 L</span><span class="meter"><span style="width: 60%"></span></span></span><span class="stock"><b>6</b>mín. 10</span></a></li>
+                  </ul>
+                </div>
+                <div class="card-footer">Mostrando 4 de 5 · menor quantidade primeiro</div>
+              </section>
+            </div>
+          </div>
+
+          <!-- 5. Linha de baixo -->
+          <div class="grid-bottom" id="bottom">
+            <section class="card" id="suporte">
+              <div class="card-header audit-head">
+                <div>
+                  <div class="card-title">Auditoria</div>
+                  <div class="card-desc" id="audit-desc">Quem fez o quê neste município nos últimos 30 dias.</div>
+                </div>
+                <div class="tabs" role="tablist">
+                  <button type="button" role="tab" aria-selected="true" data-tab="comum">Município <span class="n">7</span></button>
+                  <button type="button" role="tab" aria-selected="false" data-tab="suporte" class="support-only">Suporte <span class="n">4</span></button>
+                </div>
+              </div>
+
+              <!-- Aba "Município": auditoria comum (usuários do próprio município) -->
+              <div class="card-content" data-panel="comum">
+                <div class="pending-api">
+                  Depende de rota nova na API: hoje o registro de atividade do município (ex.: <code>APAC_PDF_VIEWED</code>,
+                  <code>USER_CREATED</code> com <code>source: "MUNICIPIO"</code>) só é gravado — não há <code>GET</code> para o front.
+                </div>
+                <ul class="list">
+                  <li class="row"><span class="row-media"><svg class="icon"><use href="#i-file" /></svg></span><span class="row-main"><span class="row-title"><span class="who">Juliana Oliveira</span> abriu o PDF da APAC nº 1042</span><span class="row-sub">há 12 minutos · Regulador</span></span></li>
+                  <li class="row"><span class="row-media"><svg class="icon"><use href="#i-userplus" /></svg></span><span class="row-main"><span class="row-title"><span class="who">Mariana Souza</span> criou o usuário Pedro Lins</span><span class="row-sub">Cargo: Recepcionista · há 1 hora · Secretário(a) de Saúde</span></span></li>
+                  <li class="row"><span class="row-media"><svg class="icon"><use href="#i-file" /></svg></span><span class="row-main"><span class="row-title"><span class="who">Lúcia Ferraz</span> abriu o PDF da APAC nº 1037</span><span class="row-sub">há 3 horas · Coordenador</span></span></li>
+                  <li class="row"><span class="row-media"><svg class="icon"><use href="#i-file" /></svg></span><span class="row-main"><span class="row-title"><span class="who">Juliana Oliveira</span> abriu o PDF da APAC nº 1029</span><span class="row-sub">ontem · Regulador</span></span></li>
+                </ul>
+                <div class="card-footer" style="padding: 12px 0 0">Mostrando 4 de 7 · <a class="link" href="#">Ver registro completo ›</a></div>
+              </div>
+
+              <!-- Aba "Suporte": `support` de GET /notifications (já existe) -->
+              <div class="card-content" data-panel="suporte" hidden>
+                <ul class="list">
+                  <li class="row"><span class="row-media"><svg class="icon"><use href="#i-key" /></svg></span><span class="row-main"><span class="row-title">Senha de Ana Ribeiro redefinida</span><span class="row-sub">há 2 horas · por Suporte ICO Saúde</span></span></li>
+                  <li class="row"><span class="row-media"><svg class="icon"><use href="#i-usercog" /></svg></span><span class="row-main"><span class="row-title">Dados de Carlos Menezes alterados</span><span class="row-sub">Cargo: Recepcionista → Regulador · há 2 dias · por Suporte ICO Saúde</span></span></li>
+                  <li class="row"><span class="row-media"><svg class="icon"><use href="#i-userplus" /></svg></span><span class="row-main"><span class="row-title">Usuário Ana Ribeiro criado</span><span class="row-sub">Cargo: Coordenador · há 6 dias · por Suporte ICO Saúde</span></span></li>
+                  <li class="row"><span class="row-media"><svg class="icon"><use href="#i-building" /></svg></span><span class="row-main"><span class="row-title">Município cadastrado na plataforma</span><span class="row-sub">há 20 dias · por Suporte ICO Saúde</span></span></li>
+                </ul>
+              </div>
+            </section>
+
+            <div class="stack">
+              <section class="card">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">Mais retirados no mês</div>
+                    <div class="card-desc">Unidades que saíram do almoxarifado</div>
+                  </div>
+                </div>
+                <div class="card-content">
+                  <div class="split">
+                    <div class="mini"><small>Entradas</small><b>+148</b></div>
+                    <div class="mini"><small>Saídas</small><b>−234</b></div>
+                    <div class="mini"><small>Saldo</small><b>−86</b></div>
+                  </div>
+                  <div id="top-out"></div>
+                </div>
+              </section>
+
+              <section class="card">
+                <div class="card-header"><div class="card-title">Atalhos</div></div>
+                <div class="card-content">
+                  <div class="shortcuts">
+                    <button class="shortcut primary" type="button"><svg class="icon"><use href="#i-plus" /></svg>Nova APAC</button>
+                    <button class="shortcut" type="button"><svg class="icon"><use href="#i-sign" /></svg>Novo ofício</button>
+                    <button class="shortcut" type="button"><svg class="icon"><use href="#i-arrows" /></svg>Entrada/saída</button>
+                    <button class="shortcut" type="button"><svg class="icon"><use href="#i-chart" /></svg>Relatório</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      // ---------- Tema (tecla "d", como o ThemeProvider) ----------
+      const root = document.documentElement
+      if (matchMedia("(prefers-color-scheme: dark)").matches) root.classList.add("dark")
+      const toggleTheme = () => root.classList.toggle("dark")
+      document.getElementById("theme").addEventListener("click", toggleTheme)
+      addEventListener("keydown", (e) => {
+        if (e.key === "d" && !e.ctrlKey && !e.metaKey && !(e.target instanceof HTMLSelectElement)) toggleTheme()
+      })
+
+      // ---------- Perfil: `support` só para SECRETARIO/DIRETOR ----------
+      const PEOPLE = {
+        SECRETARIO: ["Mariana Souza", "Secretário(a) de Saúde"],
+        DIRETOR: ["Paulo Andrade", "Diretor Geral"],
+        COORDENADOR: ["Lúcia Ferraz", "Coordenador"],
+        REGULADOR: ["Juliana Oliveira", "Regulador"],
+      }
+      const roleSelect = document.getElementById("role")
+      function applyRole() {
+        const role = roleSelect.value
+        const [name, label] = PEOPLE[role]
+        const hasSupport = role === "SECRETARIO" || role === "DIRETOR"
+        // Auditoria do município: todos os perfis do dashboard. Aba "Suporte" (e a faixa): só os
+        // gestores, mesma regra do `support` da API — sem ela, o card fica só com a aba Município.
+        document.querySelectorAll(".support-only").forEach((el) => (el.hidden = !hasSupport))
+        if (!hasSupport) selectTab("comum")
+        document.getElementById("user-name").textContent = name
+        document.getElementById("user-role").textContent = label
+        document.getElementById("first-name").textContent = name.split(" ")[0]
+        document.getElementById("avatar").textContent = name.split(" ").map((p) => p[0]).join("").slice(0, 2)
+      }
+      roleSelect.addEventListener("change", applyRole)
+
+      // ---------- Gráfico diário (uma série → sem legenda; tooltip por barra) ----------
+      const TODAY = 16
+      const daily = [1, 3, 2, 0, 4, 2, 0, 0, 3, 5, 2, 4, 3, 0, 0, 5]
+      const max = 6
+      const plot = document.getElementById("plot")
+      const xaxis = document.getElementById("xaxis")
+      const tip = document.getElementById("tip")
+      const chart = document.getElementById("chart")
+      for (const v of [2, 4, 6]) {
+        const g = document.createElement("div")
+        g.className = "gridline"
+        g.style.bottom = `${(v / max) * 100}%`
+        g.innerHTML = `<span>${v}</span>`
+        plot.appendChild(g)
+      }
+      for (let day = 1; day <= 30; day++) {
+        const value = daily[day - 1]
+        const slot = document.createElement("div")
+        slot.className = "bar-slot" + (day > TODAY ? " future" : "") + (day === TODAY ? " today" : "")
+        const bar = document.createElement("div")
+        bar.className = "bar"
+        bar.style.height = value === undefined ? "0" : `${(value / max) * 100}%`
+        slot.appendChild(bar)
+        slot.addEventListener("mouseenter", () => {
+          const r = slot.getBoundingClientRect()
+          const c = chart.getBoundingClientRect()
+          tip.textContent =
+            day > TODAY ? `${day}/11 · ainda não chegou` : `${day}/11 · ${value} ${value === 1 ? "APAC" : "APACs"}`
+          tip.style.left = `${r.left - c.left + r.width / 2}px`
+          tip.style.top = `${bar.getBoundingClientRect().top - c.top}px`
+          tip.classList.add("show")
+        })
+        slot.addEventListener("mouseleave", () => tip.classList.remove("show"))
+        plot.appendChild(slot)
+        const x = document.createElement("span")
+        x.textContent = day % 5 === 0 || day === 1 ? day : ""
+        xaxis.appendChild(x)
+      }
+
+      // ---------- Auditoria: abas ----------
+      const AUDIT_DESC = {
+        comum: "Quem fez o quê neste município nos últimos 30 dias.",
+        suporte: "Alterações feitas pela equipe da plataforma neste município nos últimos 30 dias.",
+      }
+      function selectTab(tab) {
+        document.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)))
+        document.querySelectorAll("[data-panel]").forEach((p) => (p.hidden = p.dataset.panel !== tab))
+        document.getElementById("audit-desc").textContent = AUDIT_DESC[tab]
+      }
+      document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => selectTab(b.dataset.tab)))
+      // A faixa "Avisos do suporte" abre o card já na aba Suporte.
+      document.querySelector(".support-strip").addEventListener("click", () => selectTab("suporte"))
+
+      // ---------- Status: pizza em rosca + legenda (legenda e fatias filtram /apacs) ----------
+      // Ordem fixa = ordem do fluxo, nunca por tamanho (a cor segue o status, não o ranking).
+      const STATUS = [
+        ["Pendentes", 15, "var(--warning)"],
+        ["Em análise", 6, "var(--bar)"],
+        ["Aprovadas", 142, "var(--success)"],
+        ["Entregues", 31, "oklch(0.6 0.12 200)"],
+        ["Negadas", 12, "var(--destructive)"],
+        ["Canceladas", 8, "var(--muted-foreground)"],
+      ]
+      const total = STATUS.reduce((s, [, n]) => s + n, 0)
+      const pie = document.getElementById("pie")
+      const pieTip = document.getElementById("pie-tip")
+      const pieBox = document.getElementById("pie-box")
+      const legend = document.getElementById("legend")
+      const R = 96, r = 60, C = 100
+      const point = (radius, angle) => [C + radius * Math.sin(angle), C - radius * Math.cos(angle)]
+      function arc(a0, a1) {
+        const large = a1 - a0 > Math.PI ? 1 : 0
+        const [x0, y0] = point(R, a0), [x1, y1] = point(R, a1)
+        const [x2, y2] = point(r, a1), [x3, y3] = point(r, a0)
+        return `M${x0} ${y0} A${R} ${R} 0 ${large} 1 ${x1} ${y1} L${x2} ${y2} A${r} ${r} 0 ${large} 0 ${x3} ${y3}Z`
+      }
+      let angle = 0
+      const links = []
+      STATUS.forEach(([label, n, color], i) => {
+        const pct = Math.round((n / total) * 100)
+        const sweep = (n / total) * Math.PI * 2
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+        path.setAttribute("d", arc(angle, angle + sweep))
+        path.setAttribute("fill", color)
+        const mid = angle + sweep / 2
+        angle += sweep
+        path.addEventListener("mouseenter", () => {
+          const [x, y] = point(R, mid)
+          pieTip.textContent = `${label}: ${n} (${pct}%)`
+          pieTip.style.left = `${x}px`
+          pieTip.style.top = `${y}px`
+          pieTip.classList.add("show")
+          links.forEach((l, j) => l.classList.toggle("dim", j !== i))
+        })
+        path.addEventListener("mouseleave", () => {
+          pieTip.classList.remove("show")
+          links.forEach((l) => l.classList.remove("dim"))
+        })
+        pie.appendChild(path)
+
+        const a = document.createElement("a")
+        a.href = "#"
+        a.innerHTML = `<span class="sw" style="background:${color}"></span>${label}<span class="n">${n}</span><span class="pct">${pct}%</span>`
+        legend.appendChild(a)
+        links.push(a)
+      })
+
+      // ---------- Mais retirados ----------
+      const TOP = [
+        ["Luva de procedimento M", 80],
+        ["Seringa 10 ml", 52],
+        ["Gaze estéril", 40],
+        ["Papel A4 (resma)", 22],
+        ["Álcool 70% 1 L", 14],
+      ]
+      document.getElementById("top-out").innerHTML = TOP.map(
+        ([name, units]) =>
+          `<div class="hbar"><span class="lbl" title="${name}">${name}</span><span class="track"><span class="fill" style="display:block;width:${(units / TOP[0][1]) * 100}%"></span></span><span class="v">${units}</span></div>`
+      ).join("")
+
+      // Por último: `applyRole` usa `selectTab`, definido acima.
+      applyRole()
+    </script>
+  </body>
+</html>

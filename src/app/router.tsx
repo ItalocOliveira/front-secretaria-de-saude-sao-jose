@@ -1,12 +1,20 @@
 import { createBrowserRouter } from "react-router"
 
-import { APAC_ROLES, DOCUMENT_ROLES, ITEM_ROLES, REPORT_ROLES, USER_MANAGEMENT_ROLES } from "@/lib/permissions"
+import {
+  APAC_ROLES,
+  DASHBOARD_ROLES,
+  DOCUMENT_ROLES,
+  ITEM_ROLES,
+  REPORT_ROLES,
+  USER_MANAGEMENT_ROLES,
+} from "@/lib/permissions"
 import { HomeRedirect } from "@/components/auth/home-redirect"
 import { RequireAuth } from "@/components/auth/require-auth"
 import { RequireRole } from "@/components/auth/require-role"
 import { RouteErrorBoundary } from "@/components/error-boundary"
 import { AppShell } from "@/components/layout/app-shell"
 import { ApacsPage } from "@/pages/apacs-page"
+import { DashboardPage } from "@/pages/dashboard-page"
 import { DocumentsPage } from "@/pages/documents-page"
 import { ItensPage } from "@/pages/itens-page"
 import { LoginPage } from "@/pages/login-page"
@@ -30,6 +38,10 @@ export const router = createBrowserRouter([
             children: [
               // Cada área tem seu boundary: o erro renderiza dentro do `Outlet`,
               // então sidebar e navegação continuam de pé.
+              {
+                element: <RequireRole allowed={DASHBOARD_ROLES} />,
+                children: [{ path: "/dashboard", element: <DashboardPage />, errorElement: <RouteErrorBoundary /> }],
+              },
               {
                 element: <RequireRole allowed={APAC_ROLES} />,
                 children: [

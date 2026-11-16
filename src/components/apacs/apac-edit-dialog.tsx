@@ -13,7 +13,7 @@ import {
   type ApacStatus,
 } from "@/lib/apac"
 import { APAC_PDF_MIME } from "@/lib/apac-form"
-import { useAttachApacPdf, useUpdateApac } from "@/hooks/use-apacs"
+import { useAttachApacPdf, useOpenApacPdf, useUpdateApac } from "@/hooks/use-apacs"
 import { ApacProcedureCombobox } from "@/components/apacs/apac-procedure-combobox"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -25,7 +25,6 @@ import {
   AttachmentTitle,
 } from "@/components/ui/attachment"
 import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/variants/button"
 import {
   Dialog,
   DialogClose,
@@ -83,6 +82,7 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
     data: attachedApac,
     reset: resetAttachPdf,
   } = useAttachApacPdf()
+  const openPdf = useOpenApacPdf()
 
   const isPending = saving || uploadingPdf
 
@@ -278,17 +278,20 @@ export function ApacEditDialog({ apac, onOpenChange }: { apac: Apac | null; onOp
                   </AttachmentDescription>
                 </AttachmentContent>
                 <AttachmentActions className="gap-1">
-                  {hasPdf && pdfSource?.pdfUrl ? (
-                    <a
-                      href={pdfSource.pdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-slot="button"
-                      className={buttonVariants({ variant: "ghost", size: "sm" })}
+                  {hasPdf && pdfSource !== null ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isPending || openPdf.pendingId === pdfSource.id}
+                      onClick={() => openPdf.open(pdfSource.id)}
                     >
-                      <ExternalLinkIcon data-icon="inline-start" />
+                      {openPdf.pendingId === pdfSource.id ? (
+                        <Spinner data-icon="inline-start" />
+                      ) : (
+                        <ExternalLinkIcon data-icon="inline-start" />
+                      )}
                       Ver
-                    </a>
+                    </Button>
                   ) : null}
                   <Button variant="outline" size="sm" disabled={isPending} onClick={() => pdfInputRef.current?.click()}>
                     <FileUpIcon data-icon="inline-start" />

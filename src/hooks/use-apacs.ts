@@ -5,11 +5,13 @@ import {
   deleteApac,
   listApacs,
   attachApacPdf,
+  requestApacPdfDownloadUrl,
   updateApac,
   type ApacListParams,
   type UpdateApacPayload,
 } from "@/api/apacs"
 import { ApiError } from "@/api/client"
+import { toast } from "@/components/ui/toast"
 import { NOTIFICATIONS_QUERY_KEY } from "@/hooks/use-notifications"
 
 /** Prefixo de todas as páginas/filtros — invalidar por ele atualiza qualquer listagem aberta. */
@@ -74,4 +76,60 @@ export function useAttachApacPdf() {
       attachApacPdf(id, file, uploadUrl),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: APACS_QUERY_KEY }),
   })
+}
+
+/** Conteúdo provisório da aba enquanto o link chega (`about:blank` é da mesma origem). */
+function showLoading(tab: Window) {
+  try {
+    tab.document.title = "Abrindo PDF…"
+    tab.document.body.textContent = "Abrindo PDF…"
+  } catch {
+    // Só cosmético: se o navegador não deixar escrever, a aba fica em branco até o redirecionamento.
+  }
+}
+
+/**
+ * "Ver PDF" de APAC: pede o link no clique (`POST /apacs/:id/pdf/download-url`, 5 min) — cada
+ * abertura fica no registro de atividade do município. A aba é aberta **no próprio clique** (senão
+ * o navegador bloqueia o pop-up depois do `await`) e recebe o link quando ele chega. `404`/`409`
+ * (APAC excluída ou sem PDF) recarregam a listagem, porque a tela está desatualizada.
+ *
+ * `pendingId`: APAC cujo link está sendo pedido — para o botão mostrar `Spinner`.
+ */
+export function useOpenApacPdf() {
+  const queryClient = useQueryClient()
+  const mutation = useMutation({ mutationFn: (id: string) => requestApacPdfDownloadUrl(id) })
+
+  const open = (id: string) => {
+    const tab = window.open("", "_blank")
+    if (tab !== null) {
+      // Equivale ao `noopener`: a aba do PDF não alcança esta página.
+      tab.opener = null
+      showLoading(tab)
+    }
+
+    mutation.mutate(id, {
+      onSuccess: (downloadUrl) => {
+        if (tab !== null) {
+          tab.location.href = downloadUrl
+          return
+        }
+        if (window.open(downloadUrl, "_blank", "noopener,noreferrer") === null) {
+          toast.add({
+            title: "O navegador bloqueou a nova aba",
+            description: "Permita pop-ups para este site e tente de novo.",
+          })
+        }
+      },
+      onError: (error) => {
+        tab?.close()
+        if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+          void queryClient.invalidateQueries({ queryKey: APACS_QUERY_KEY })
+        }
+        toast.add({ title: "Não foi possível abrir o PDF", description: error.message })
+      },
+    })
+  }
+
+  return { open, pendingId: mutation.isPending ? mutation.variables : undefined }
 }

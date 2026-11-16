@@ -21,6 +21,7 @@ import {
 } from "@/lib/apac"
 import { canDeleteApacs } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
+import { useOpenApacPdf } from "@/hooks/use-apacs"
 import { useSession } from "@/hooks/use-session"
 import { ApacDeleteAlert } from "@/components/apacs/apac-delete-alert"
 import { ApacDetailsDialog } from "@/components/apacs/apac-details-dialog"
@@ -29,10 +30,10 @@ import { ListPagination } from "@/components/list-pagination"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/variants/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -116,6 +117,7 @@ export function ApacsTableCard({
   const [deleting, setDeleting] = useState<Apac | null>(null)
   const { claims } = useSession()
   const canDelete = claims !== null && canDeleteApacs(claims.role)
+  const openPdf = useOpenApacPdf()
 
   return (
     <Card className="gap-0 pb-0">
@@ -227,25 +229,24 @@ export function ApacsTableCard({
                     <TableCell className="text-muted-foreground tabular-nums">{formatDate(apac.createdAt)}</TableCell>
                     <TableCell className="pr-5">
                       <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
-                        {apac.pdfUrl === null ? null : (
+                        {apac.hasPdf ? (
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <a
-                                  href={apac.pdfUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  data-slot="button"
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
                                   aria-label={`Ver PDF da APAC de ${apac.name}`}
-                                  className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+                                  disabled={openPdf.pendingId === apac.id}
+                                  onClick={() => openPdf.open(apac.id)}
                                 >
-                                  <FileTextIcon />
-                                </a>
+                                  {openPdf.pendingId === apac.id ? <Spinner /> : <FileTextIcon />}
+                                </Button>
                               }
                             />
                             <TooltipContent>Ver PDF</TooltipContent>
                           </Tooltip>
-                        )}
+                        ) : null}
                         <Tooltip>
                           <TooltipTrigger
                             render={

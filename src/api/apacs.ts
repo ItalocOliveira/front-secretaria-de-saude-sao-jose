@@ -22,13 +22,8 @@ export type ApacDto = {
   municipality?: string | null
   createdAt: string
   updatedAt: string
-  /**
-   * Presigned URL de **download**, válida por 1h, gerada a cada `GET /apacs`.
-   * Não vem tipada no `ApacDomain` do backend (injetada via spread) — presente
-   * mesmo quando nenhum PDF foi enviado ainda (o link dá 404), então não use como
-   * indicador de "tem PDF" — para isso existe `has_pdf`.
-   */
-  pdf_url?: string | null
+  // `pdf_url` ainda vem na resposta, mas foi omitido de propósito: abrir por ele não fica no registro
+  // de atividade e a API vai removê-lo. O link é pedido no clique — `requestApacPdfDownloadUrl`.
   /** `true` só depois de `POST /apacs/:id/pdf/confirm` (a API confere o arquivo no bucket). */
   has_pdf?: boolean
 }
@@ -55,11 +50,9 @@ export type Apac = {
   createdAt: string
   updatedAt: string
   /**
-   * Presigned URL de download do PDF, válida por 1h, **só quando `has_pdf`** — sem PDF
-   * confirmado o link da API dá 404, então aqui vira `null`.
+   * PDF enviado e confirmado (`has_pdf`). `true` → "Ver PDF" (link pedido no clique, via
+   * `useOpenApacPdf`); `false` → oferecer "Anexar PDF".
    */
-  pdfUrl: string | null
-  /** PDF enviado e confirmado (`has_pdf`). `false` → oferecer "Anexar PDF". */
   hasPdf: boolean
 }
 
@@ -77,7 +70,6 @@ export function toApac(dto: ApacDto): Apac {
     birthDate: dto.birth_date ?? null,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
-    pdfUrl: dto.has_pdf === true ? (dto.pdf_url ?? null) : null,
     hasPdf: dto.has_pdf === true,
   }
 }
@@ -165,6 +157,17 @@ export async function deleteApac(id: string): Promise<void> {
 export async function requestApacPdfUploadUrl(id: string): Promise<string> {
   const data = await request<{ uploadUrl: string }>(`/apacs/${id}/pdf/upload-url`, { method: "POST" })
   return data.uploadUrl
+}
+
+/**
+ * `POST /apacs/:id/pdf/download-url` — presigned GET do PDF, válida por **5 min**, pedida a cada
+ * abertura: a API grava `APAC_PDF_VIEWED` (quem abriu e quando) no registro de atividade do
+ * município. Sem body; `404` APAC inexistente, `409` sem PDF confirmado. Comunicado
+ * `.docs/att-backend/2026-11-16-lgpd-users-e-pdf-apacs.md`, seção 4.
+ */
+export async function requestApacPdfDownloadUrl(id: string): Promise<string> {
+  const data = await request<{ downloadUrl: string }>(`/apacs/${id}/pdf/download-url`, { method: "POST" })
+  return data.downloadUrl
 }
 
 /**

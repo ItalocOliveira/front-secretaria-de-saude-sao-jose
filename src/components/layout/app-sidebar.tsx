@@ -14,6 +14,7 @@ import {
 import type { UserRole } from "@/lib/apac"
 import {
   APAC_ROLES,
+  DASHBOARD_ROLES,
   DOCUMENT_ROLES,
   homeRouteFor,
   ITEM_ROLES,
@@ -49,7 +50,7 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { title: "Dashboard", icon: LayoutDashboardIcon },
+  { title: "Dashboard", icon: LayoutDashboardIcon, url: "/dashboard", roles: DASHBOARD_ROLES },
   { title: "APACs", icon: FileTextIcon, url: "/apacs", roles: APAC_ROLES },
   { title: "Pendências", icon: TriangleAlertIcon, url: "/pendencias", roles: APAC_ROLES },
   { title: "Usuários", icon: UserCogIcon, url: "/usuarios", roles: USER_MANAGEMENT_ROLES },

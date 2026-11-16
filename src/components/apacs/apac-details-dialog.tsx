@@ -10,9 +10,10 @@ import {
   APAC_STATUS_BADGE,
   APAC_STATUS_LABEL,
 } from "@/lib/apac"
+import { useOpenApacPdf } from "@/hooks/use-apacs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/variants/button"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Dialog,
   DialogClose,
@@ -58,6 +59,8 @@ export function ApacDetailsDialog({
   /** Omitido quando o perfil não pode excluir (`canDeleteApacs`) — o botão some. */
   onDelete?: (apac: Apac) => void
 }) {
+  const openPdf = useOpenApacPdf()
+
   return (
     <Dialog open={apac !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -101,18 +104,16 @@ export function ApacDetailsDialog({
               Editar
             </Button>
           )}
-          {apac?.pdfUrl === null || apac?.pdfUrl === undefined ? null : (
-            <a
-              href={apac.pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-slot="button"
-              className={buttonVariants()}
-            >
-              <FileTextIcon data-icon="inline-start" />
+          {apac?.hasPdf === true ? (
+            <Button disabled={openPdf.pendingId === apac.id} onClick={() => openPdf.open(apac.id)}>
+              {openPdf.pendingId === apac.id ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <FileTextIcon data-icon="inline-start" />
+              )}
               Ver PDF
-            </a>
-          )}
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

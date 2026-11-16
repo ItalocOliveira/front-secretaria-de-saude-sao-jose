@@ -4,7 +4,6 @@
       "id": "e77ae171-f0b0-489d-93a8-4f82e29a6af8",
       "name": "Ana Ribeiro",
       "cpf_hash": "534a4a8eafcd8489af32356d5a7a25f88c70cfe0448539a7c42964c1b897a359",
-      "cpf_encrypted": "enc:MTExMTExMTExMTE",
       "role": "DEV",
       "created_at": "2026-01-12T09:00:00.000Z",
       "updated_at": "2026-01-12T09:00:00.000Z"
@@ -13,7 +12,6 @@
       "id": "68998502-6549-49c2-9b6d-b1ebddc460a9",
       "name": "Carlos Menezes",
       "cpf_hash": "d5996b25e580c95b90cfc8a69898b31ee8edb66bea003ac99801b8cab34c2bb4",
-      "cpf_encrypted": "enc:MjIyMjIyMjIyMjI",
       "role": "DIRETOR",
       "created_at": "2026-01-12T09:00:00.000Z",
       "updated_at": "2026-01-12T09:00:00.000Z"
@@ -22,7 +20,6 @@
       "id": "ce0f1b4c-ee1c-4038-857c-c8a13a1982a9",
       "name": "Beatriz Fontes",
       "cpf_hash": "90bdb56dba0745a3236c1c38f185878fcdce441ee4e5ab171dfe0e08a6170016",
-      "cpf_encrypted": "enc:MzMzMzMzMzMzMzM",
       "role": "SECRETARIO",
       "created_at": "2026-01-12T09:00:00.000Z",
       "updated_at": "2026-01-12T09:00:00.000Z"
@@ -31,7 +28,6 @@
       "id": "d9c61580-67cd-48cd-97e5-9d7ef730d810",
       "name": "Diego Alcântara",
       "cpf_hash": "34ce32f4cacdd770d6bb0977e066f74724b170f3ccf7002baa802170711f99df",
-      "cpf_encrypted": "enc:NDQ0NDQ0NDQ0NDQ",
       "role": "RECEPCIONISTA",
       "created_at": "2026-01-12T09:00:00.000Z",
       "updated_at": "2026-01-12T09:00:00.000Z"
@@ -40,7 +36,6 @@
       "id": "8f340c75-f6f7-43b9-9d52-29f1589f1840",
       "name": "Elisa Tavares",
       "cpf_hash": "a96fb099c9fe2b2866c515ce063539186c7103dd14b9df1a91741a7afd7f94fd",
-      "cpf_encrypted": "enc:NTU1NTU1NTU1NTU",
       "role": "REGULADOR",
       "created_at": "2026-01-12T09:00:00.000Z",
       "updated_at": "2026-01-12T09:00:00.000Z"
@@ -49,7 +44,6 @@
       "id": "8d54931b-6189-4751-bda2-a339293bfb47",
       "name": "Caio Nogueira",
       "cpf_hash": "463222884392617ea340376783c428936fb6f5e93383822cc710bedfb4baf678",
-      "cpf_encrypted": "enc:NjY2NjY2NjY2NjY",
       "role": "COORDENADOR",
       "created_at": "2026-01-12T09:00:00.000Z",
       "updated_at": "2026-01-12T09:00:00.000Z"
