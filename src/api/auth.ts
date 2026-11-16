@@ -23,6 +23,18 @@ export type AuthenticatedUser = {
   role: UserRole
 }
 
+/**
+ * Logos do município (`.docs/att-backend/2026-11-16-logos-municipio.md`): URLs assinadas do R2
+ * que **expiram em 1 hora** — vão direto no `<img src>`, nunca para `localStorage`. `null` = sem logo.
+ * Enviadas só pelo painel admin; PNG, JPEG ou WEBP.
+ */
+export type TenantLogos = {
+  prefeitura: string | null
+  secretaria: string | null
+}
+
+export type TenantLogoKind = keyof TenantLogos
+
 /** Resposta de `GET /auth/tenant`. `slug` serve só para exibir — o header usa o do endereço. */
 export type TenantInfo = {
   name: string
@@ -32,6 +44,8 @@ export type TenantInfo = {
    * dão `401` (`.docs/att-backend/2026-11-13-municipio-suspenso.md`).
    */
   active: boolean
+  /** Opcional por segurança: API anterior ao comunicado não manda o campo (= sem logos). */
+  logos?: TenantLogos
 }
 
 export function login(payload: LoginPayload) {

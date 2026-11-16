@@ -500,10 +500,18 @@ async function login(req, res) {
 // `mari.pb` está suspenso (`.docs/att-backend/2026-11-13-municipio-suspenso.md`).
 // Não há município padrão: sem `X-Tenant`, login e `/auth/tenant` dão `400`
 // (`.docs/att-backend/2026-11-13-x-tenant-obrigatorio.md`).
+// `logos` (`.docs/att-backend/2026-11-16-logos-municipio.md`): na API são URLs assinadas do R2 (1 h);
+// aqui são os arquivos de `public/`, servidos pelo próprio front. Salgado fica sem logo (`null`).
+const NO_LOGOS = { prefeitura: null, secretaria: null }
 const TENANTS = [
-  { name: "São José dos Ramos", slug: "saojosedosramos.pb", active: true },
-  { name: "Salgado de São Félix", slug: "salgadodesaofelix.pb", active: true },
-  { name: "Mari", slug: "mari.pb", active: false },
+  {
+    name: "São José dos Ramos",
+    slug: "saojosedosramos.pb",
+    active: true,
+    logos: { prefeitura: "/logo_prefeitura.png", secretaria: "/logo_secretaria.png" },
+  },
+  { name: "Salgado de São Félix", slug: "salgadodesaofelix.pb", active: true, logos: NO_LOGOS },
+  { name: "Mari", slug: "mari.pb", active: false, logos: NO_LOGOS },
 ]
 const missingTenant = (res) => send(res, 400, { message: "Município não informado." })
 const SUSPENDED_MESSAGE = "Acesso deste município suspenso. Procure o suporte do ICOS."
