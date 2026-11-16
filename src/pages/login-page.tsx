@@ -39,7 +39,9 @@ function BrandPanel() {
       />
 
       <div className="relative flex max-w-120 flex-col gap-3">
-        <img src="/logo_icos.png" alt="" className="mb-4 size-18 object-contain" />
+        <div className="mb-4 flex size-18 items-center justify-center rounded-2xl bg-brand-panel-foreground p-2.5">
+          <img src="/logo_icos.png" alt="" className="size-full object-contain" />
+        </div>
         <h2 className="text-[clamp(1.75rem,2.6vw,2.5rem)] leading-tight font-extrabold tracking-tight">
           Interface de Controle Operacional da Saúde
         </h2>
