@@ -263,6 +263,22 @@
          Curtas: duas por linha e nunca partidas. Longas: largura total, partem entre
          linhas e repetem o cabeçalho (título incluso) em cada página. */
 
+      /* Fatia de tabela em folha própria: sempre no topo de uma folha nova. */
+      .sheet-break {
+        break-before: page;
+      }
+      @media screen {
+        .sheet-break {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px dashed var(--border-strong);
+        }
+      }
+      table.dist .title .cont {
+        font-weight: 400;
+        color: var(--muted-foreground);
+      }
+
       .grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -278,7 +294,9 @@
         border-radius: var(--radius);
         font-size: 8.5pt;
       }
-      table.dist.short {
+      /* Tabela nunca é partida: se não cabe, desce inteira para a próxima folha.
+         (Maior que uma folha o navegador parte mesmo assim — por isso Procedimento é fatiado.) */
+      table.dist {
         break-inside: avoid;
       }
       table.dist th,
@@ -497,6 +515,7 @@
       <a href="?preset=pequeno">pequeno</a>
       <a href="?preset=realista">realista</a>
       <a href="?preset=grande">grande</a>
+      <a href="?preset=realista&itens=100">100 itens</a>
       <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
     </nav>
 
@@ -515,9 +534,13 @@
       }
 
       const presetName = new URLSearchParams(location.search).get("preset") ?? "realista"
-      const preset = PRESETS[presetName] ?? PRESETS.realista
+      const query = new URLSearchParams(location.search)
+      const preset = { ...(PRESETS[presetName] ?? PRESETS.realista) }
+      // ?itens=N troca só a quantidade de itens do almoxarifado (ex.: ?itens=100).
+      const itemsOverride = Number.parseInt(query.get("itens") ?? "", 10)
+      if (itemsOverride > 0) preset.items = itemsOverride
       document.querySelectorAll(".toolbar a").forEach((link) => {
-        link.setAttribute("aria-current", String(link.getAttribute("href") === `?preset=${presetName}`))
+        link.setAttribute("aria-current", String(link.getAttribute("href") === location.search))
       })
 
       // PRNG com semente: o mesmo preset sempre gera os mesmos números.
@@ -634,6 +657,19 @@
         "Equipamento",
       ]
       const ITEM_NAMES = [
+        "ÁGUA DESTILADA GALÃO 5L",
+        "ALCOOL 70% 1L",
+        "AVENTAL MANGA LONGA DESCARTÁVEL 30G C/10 UND.",
+        "CAMPO OPERATÓRIO COMPRESSA CIRÚRGICA NÃO ESTEÉRIL 45CM X 50CM PCT C/50UND",
+        "COMPRESSA DE GAZE ESTÉRIL 11 FIOS PCT C/10UND",
+        "ESPECULO VAGINAL DESCARTAVEL TAMANHO (G)",
+        "ESPECULO VAGINAL DESCARTAVEL TAMANHO (M)",
+        "ESPECULO VAGINAL DESCARTAVEL TAMANHO (P)",
+        "LANCETA MODELO G-423L MICROLANCETA 28G CAIXA C/100UND",
+        "PAPEL ECG 80MM X 30M",
+        "SACO P/LIXO HOSPITALAR 100L PCT C/100UND",
+        "SERINGA DESCARTAVEL 1ML C/AGULHA ACOPLADA 13X0,45",
+        "SERINGA DESCARTAVEL 3ML C/AGULHA 25X0,70",
         "AVENTAL MANGA LONGA DESCARTÁVEL",
         "DIPIRONA 500MG",
         "PARACETAMOL 750MG",
@@ -755,15 +791,60 @@
 
       /** Até aqui a tabela é "curta": fica inteira, lado a lado com outra. */
       const SHORT_ROWS = 8
+      /** Tabela em folha própria (Procedimento): fatias deste tamanho, cada uma no topo de uma folha. */
+      const ROWS_PER_SHEET = 30
 
-      function distTable({ title, sub, entries, empty = "Sem dados no período.", unit = "Qtd." }) {
+      function distTable({ title, sub, entries, empty = "Sem dados no período.", unit = "Qtd.", ownSheet = false }) {
         const sorted = [...entries].filter((entry) => entry.count > 0).sort((a, b) => b.count - a.count)
         const total = sorted.reduce((sum, entry) => sum + entry.count, 0)
-        const short = sorted.length <= SHORT_ROWS
+        const short = !ownSheet && sorted.length <= SHORT_ROWS
+
+        if (ownSheet) {
+          const slices = []
+          for (let start = 0; start < Math.max(sorted.length, 1); start += ROWS_PER_SHEET) {
+            slices.push(sorted.slice(start, start + ROWS_PER_SHEET))
+          }
+          const html = slices
+            .map((slice, index) => {
+              const from = index * ROWS_PER_SHEET + 1
+              const range =
+                sorted.length > ROWS_PER_SHEET ? ` · linhas ${from}–${from + slice.length - 1} de ${sorted.length}` : ""
+              return `<div class="sheet-break">${tableHtml({
+                title: index > 0 ? `${title}<span class="cont"> (continuação)</span>` : title,
+                sub: `${esc(sub)}${range}`,
+                entries: slice,
+                total,
+                showTotal: index === slices.length - 1 && sorted.length > 1,
+                empty,
+                unit,
+                className: "short",
+              })}</div>`
+            })
+            .join("")
+          return { short: false, html }
+        }
+
+        return {
+          short,
+          html: tableHtml({
+            title: esc(title),
+            sub: esc(sub),
+            entries: sorted,
+            total,
+            showTotal: sorted.length > 1,
+            empty,
+            unit,
+            className: short ? "short" : "long",
+          }),
+        }
+      }
+
+      /** `title`/`sub` já vêm escapados (o título pode levar "(continuação)"). */
+      function tableHtml({ title, sub, entries, total, showTotal, empty, unit, className }) {
         const rows =
-          sorted.length === 0
+          entries.length === 0
             ? `<tr class="empty-row"><td colspan="3">${esc(empty)}</td></tr>`
-            : sorted
+            : entries
                 .map((entry) => {
                   const pct = total === 0 ? 0 : (entry.count / total) * 100
                   return `<tr>
@@ -774,16 +855,13 @@
                 })
                 .join("")
 
-        return {
-          short,
-          html: `<table class="dist ${short ? "short" : "long"}">
+        return `<table class="dist ${className}">
             <thead>
-              <tr class="title"><th colspan="3">${esc(title)}<span class="sub">${esc(sub)}</span></th></tr>
+              <tr class="title"><th colspan="3">${title}<span class="sub">${sub}</span></th></tr>
               <tr class="cols"><th>Descrição</th><th class="num">${unit}</th><th class="bar">Participação</th></tr>
             </thead>
-            <tbody>${rows}${sorted.length > 1 ? `<tr class="total"><td>Total</td><td class="num">${fmt(total)}</td><td></td></tr>` : ""}</tbody>
-          </table>`,
-        }
+            <tbody>${rows}${showTotal ? `<tr class="total"><td>Total</td><td class="num">${fmt(total)}</td><td></td></tr>` : ""}</tbody>
+          </table>`
       }
 
       /** Curtas em pares (2 colunas), longas em largura total — na ordem em que vieram. */
@@ -883,7 +961,7 @@
           if ((current + " " + word).trim().length > maxChars && current) lines.push(word)
           else lines[lines.length - 1] = (current + " " + word).trim()
         }
-        if (lines.length > 2) lines.splice(2, lines.length - 2, lines.slice(1).join(" ").slice(0, maxChars - 1) + "…")
+        if (lines.length > 2) return [lines[0], `${lines.slice(1).join(" ").slice(0, maxChars - 1)}…`]
         return lines
       }
 
@@ -959,7 +1037,7 @@
             distTable({ title: "Prioridade", sub: "APACs criadas no período", entries: report.priority }),
             distTable({ title: "Município", sub: "APACs criadas no período", entries: report.municipality }),
             distTable({ title: "Agente Comunitário de Saúde", sub: "APACs criadas no período", entries: report.acs }),
-            distTable({ title: "Procedimento", sub: "APACs criadas no período", entries: report.procedure }),
+            distTable({ title: "Procedimento", sub: "APACs criadas no período", entries: report.procedure, ownSheet: true }),
           ])}
         </section>`
 

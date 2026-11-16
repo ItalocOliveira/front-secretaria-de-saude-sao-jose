@@ -346,6 +346,8 @@ export function ReportPrintDocument({
               title: "Procedimento",
               description: "APACs criadas no período",
               entries: toBreakdown(report.countByProcedureInPeriod, procedureLabel),
+              // Lista que mais cresce: folha própria, 30 por folha, nada encostado na borda.
+              ownSheet: true,
             },
           ]}
         />
