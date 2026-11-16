@@ -6,6 +6,7 @@ import {
   FileTextIcon,
   HistoryIcon,
   LayoutDashboardIcon,
+  MailIcon,
   PackageIcon,
   SettingsIcon,
   TriangleAlertIcon,
@@ -66,6 +67,8 @@ const SUPPORT_ITEMS: NavItem[] = [
   { title: "Configurações", icon: SettingsIcon },
   { title: "Ajuda", icon: CircleQuestionMarkIcon },
 ]
+
+const SUPPORT_EMAIL = "italo.oliveira@wirgo.com.br"
 
 const APP_VERSION = "2.1.0"
 
@@ -149,6 +152,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>Suporte</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMenu items={SUPPORT_ITEMS} />
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip={SUPPORT_EMAIL} render={<a href={`mailto:${SUPPORT_EMAIL}`} />}>
+                  <MailIcon />
+                  <span className="truncate">{SUPPORT_EMAIL}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
