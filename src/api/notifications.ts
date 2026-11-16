@@ -45,6 +45,8 @@ export type SupportActionDetails = {
   source?: string
   /** Quem da plataforma fez a ação. */
   platformAdmin?: string
+  /** `PLATFORM_USER_DELETED` (só no `GET /activity-logs`). */
+  reason?: string
 }
 
 /** Ação da plataforma (painel admin/suporte) no município. */

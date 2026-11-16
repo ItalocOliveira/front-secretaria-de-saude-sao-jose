@@ -1,25 +1,34 @@
+import { Link } from "react-router"
 import { HistoryIcon, LifeBuoyIcon } from "lucide-react"
 
 import type { SupportActivityDto } from "@/api/notifications"
 import { AUDIT_TAB, type AuditTab } from "@/lib/dashboard"
+import { useActivityLogs } from "@/hooks/use-activity-logs"
+import { ActivityLogList } from "@/components/audit/activity-log-list"
 import { SupportActivityList } from "@/components/dashboard/support-activity-list"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const DESCRIPTION: Record<AuditTab, string> = {
-  municipio: "Quem fez o quê neste município.",
+  municipio: "Quem fez o quê neste município — as ações mais recentes.",
   suporte: "Alterações feitas pela equipe da plataforma neste município.",
 }
 
+/** Últimas ações no card; o histórico completo, com filtros, fica em `/auditoria`. */
+const RECENT_LOGS = { pageSize: 6 }
+
+const SKELETON_ROWS = Array.from({ length: 3 }, (_, index) => index)
+
 /**
- * Auditoria do município, em duas abas:
- * - **Município** (todos os perfis do dashboard): registro de atividade dos próprios usuários
- *   (`APAC_PDF_VIEWED`, `USER_CREATED` com `source: "MUNICIPIO"`…). A API grava, mas ainda **não
- *   tem rota de leitura** para o front — a aba mostra o aviso até ela existir.
- * - **Suporte** (só `SECRETARIO`/`DIRETOR`, que recebem `support` no `GET /notifications`): ações da
- *   plataforma. Sem `support` (`null`), a aba nem aparece.
+ * Auditoria do município — só `SECRETARIO`/`DIRETOR` (`canSeeAudit`); a página nem renderiza o card
+ * para os outros. Duas abas:
+ * - **Município**: últimas ações de `GET /activity-logs` (comunicado 2026-11-16-auditoria-municipio).
+ * - **Suporte**: `support` do `GET /notifications` (ações da plataforma nos últimos 30 dias). Sem
+ *   `support` (`null`), a aba não aparece.
  */
 export function DashboardAuditCard({
   support,
@@ -33,6 +42,7 @@ export function DashboardAuditCard({
 }) {
   const hasSupport = support !== null && support !== undefined
   const current = hasSupport ? tab : AUDIT_TAB.MUNICIPIO
+  const logs = useActivityLogs(RECENT_LOGS)
 
   return (
     <Card>
@@ -57,18 +67,30 @@ export function DashboardAuditCard({
 
         <CardContent className="pt-4">
           <TabsContent value={AUDIT_TAB.MUNICIPIO}>
-            <Empty className="border border-dashed p-6">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <HistoryIcon />
-                </EmptyMedia>
-                <EmptyTitle>Registro de atividade em breve</EmptyTitle>
-                <EmptyDescription>
-                  A API já registra quem abriu PDFs de APAC e quem criou usuários, mas ainda não disponibiliza esse
-                  histórico para consulta. Ele aparece aqui assim que a rota for publicada.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            {logs.error !== null && logs.data === undefined ? (
+              <Alert variant="destructive">
+                <AlertTitle>Não foi possível carregar a auditoria</AlertTitle>
+                <AlertDescription>{logs.error.message}</AlertDescription>
+              </Alert>
+            ) : logs.data === undefined ? (
+              <div className="flex flex-col gap-2">
+                {SKELETON_ROWS.map((row) => (
+                  <Skeleton key={row} className="h-14 w-full" />
+                ))}
+              </div>
+            ) : logs.data.data.length === 0 ? (
+              <Empty className="p-6">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <HistoryIcon />
+                  </EmptyMedia>
+                  <EmptyTitle>Nenhuma atividade registrada</EmptyTitle>
+                  <EmptyDescription>As ações dos usuários do município aparecem aqui.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <ActivityLogList logs={logs.data.data} />
+            )}
           </TabsContent>
 
           {hasSupport ? (
@@ -91,6 +113,17 @@ export function DashboardAuditCard({
             </TabsContent>
           ) : null}
         </CardContent>
+
+        {current === AUDIT_TAB.MUNICIPIO && logs.data !== undefined && logs.data.pagination.total > 0 ? (
+          <CardFooter className="justify-between gap-2 text-[0.8125rem] text-muted-foreground">
+            <span>
+              Mostrando {logs.data.data.length} de {logs.data.pagination.total.toLocaleString("pt-BR")}
+            </span>
+            <Link to="/auditoria" className="font-medium text-muted-foreground hover:text-foreground hover:underline">
+              Ver registro completo
+            </Link>
+          </CardFooter>
+        ) : null}
       </Tabs>
     </Card>
   )
