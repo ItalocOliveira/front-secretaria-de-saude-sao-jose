@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 import type { InventoryItem } from "@/api/itens"
 import type { ApacsReport, ReportInventory } from "@/api/reports"
 import { useTenantName } from "@/hooks/use-tenant"
+import { TenantLogo } from "@/components/tenant-logo"
 import { ITEM_STATUS, ITEM_TYPE_LIST, isLowStock } from "@/lib/itens"
 import {
   acsLabel,
@@ -275,11 +276,16 @@ export function ReportPrintDocument({
       }`}</style>
 
       <header className="mb-4.5 flex items-end justify-between gap-4 border-b-2 border-primary pb-2.5">
-        <div>
-          <div className="text-[8pt] tracking-wider text-muted-foreground uppercase">
-            ICOS{tenantName ? ` · Secretaria de Saúde de ${tenantName}` : ""}
+        <div className="flex items-end gap-3">
+          {/* Logos do município (URLs do R2): sem logo cadastrada, nada aparece. */}
+          <TenantLogo kind="prefeitura" alt="Brasão da prefeitura" className="h-[34pt] w-auto shrink-0" />
+          <TenantLogo kind="secretaria" alt="Logo da Secretaria de Saúde" className="h-[34pt] w-auto shrink-0" />
+          <div>
+            <div className="text-[8pt] tracking-wider text-muted-foreground uppercase">
+              ICOS{tenantName ? ` · Secretaria de Saúde de ${tenantName}` : ""}
+            </div>
+            <h1 className="m-0 mt-0.5 text-[17pt] leading-tight font-semibold">{title}</h1>
           </div>
-          <h1 className="m-0 mt-0.5 text-[17pt] leading-tight font-semibold">{title}</h1>
         </div>
         <dl className="m-0 grid grid-cols-[auto_auto] gap-x-2.5 gap-y-px text-right text-[8.5pt]">
           <dt className="text-muted-foreground">Período</dt>

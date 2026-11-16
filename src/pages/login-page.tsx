@@ -8,6 +8,7 @@ import { formatCpf, onlyDigits } from "@/lib/utils"
 import { useLogin } from "@/hooks/use-auth"
 import { useSession } from "@/hooks/use-session"
 import { useTenantName } from "@/hooks/use-tenant"
+import { TenantLogo } from "@/components/tenant-logo"
 import { useTheme } from "@/components/theme-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -25,15 +26,16 @@ const MODULES = [
 
 const PULSE_PATH = "M0 80 H250 L272 80 L286 56 L300 80 L318 80 L334 12 L352 128 L368 80 L392 80 L410 64 L428 80 H800"
 
-// Painel institucional (só em telas largas). Estático: fica fora do componente da página.
+// Painel institucional (só em telas largas). Fica fora do componente da página.
 function BrandPanel() {
   return (
     <aside
       aria-label="Sobre o ICOS"
       className="relative hidden flex-col justify-between overflow-hidden bg-brand-panel px-[clamp(2rem,5vw,4.5rem)] py-14 text-brand-panel-foreground lg:flex"
     >
-      <img
-        src="/logo_prefeitura.png"
+      {/* Marca d'água com o brasão do município; sem logo cadastrada, o painel fica só com a do ICOS. */}
+      <TenantLogo
+        kind="prefeitura"
         alt=""
         className="pointer-events-none absolute top-[60%] right-[7%] w-[min(36%,300px)] -translate-y-1/2 opacity-15 grayscale"
       />
@@ -216,7 +218,12 @@ export function LoginPage() {
 
         <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-2.5">
-            <img src="/logo_prefeitura.png" alt="Brasão de São José dos Ramos" className="h-7 w-auto shrink-0" />
+            <TenantLogo
+              kind="prefeitura"
+              alt={tenantName === undefined ? "Brasão da prefeitura" : `Brasão de ${tenantName}`}
+              className="h-7 w-auto shrink-0"
+            />
+            <TenantLogo kind="secretaria" alt="Logo da Secretaria de Saúde" className="h-7 w-auto shrink-0" />
             <span className="leading-tight">
               {tenantName === undefined ? "Prefeitura Municipal" : `Prefeitura de ${tenantName}`}
               <br />
