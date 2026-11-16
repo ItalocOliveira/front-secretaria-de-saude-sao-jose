@@ -49,6 +49,48 @@ export type ApacsReport = {
     /** `date` = "YYYY-MM-DD" já no fuso local, com lacunas preenchidas com 0. */
     points: { date: string; count: number }[]
   }
+  /**
+   * Seção do almoxarifado (`.docs/att-backend/2026-11-16-relatorio-almoxarifado.md`).
+   * `null` para quem não acessa o almoxarifado (`RECEPCIONISTA`) — esconda a seção.
+   */
+  inventory: ReportInventory | null
+}
+
+export type MovementTotals = { count: number; units: number }
+
+export type ReportTopOutputItem = {
+  id: string
+  name: string
+  type: string
+  /** Estoque **atual** do item. */
+  amount: number
+  /** Unidades retiradas no período. */
+  units: number
+}
+
+export type ReportInventory = {
+  /** Estado atual do estoque, sem filtro de data. */
+  stock: {
+    totalItems: number
+    totalUnits: number
+    /** Itens com `amount < min_amount` — mesmo critério do sino. */
+    lowStockCount: number
+    /** Todos os tipos sempre presentes, mesmo zerados. */
+    byType: Record<string, { items: number; units: number }>
+    /** Todos os status sempre presentes, mesmo zerados. */
+    byStatus: Record<string, number>
+  }
+  /** Movimentações com `dateTime` dentro de `period`. */
+  movementsInPeriod: {
+    entries: MovementTotals
+    outputs: MovementTotals
+    /** Entradas − saídas, em unidades. Pode ser negativo. */
+    balance: number
+    /** Saídas agrupadas pelo texto livre de `destination`. */
+    outputsByDestination: Record<string, MovementTotals>
+    /** Até 10 itens mais retirados no período (por unidades). */
+    topOutputItems: ReportTopOutputItem[]
+  }
 }
 
 export function getApacsReport(body: ApacsReportRequest, signal?: AbortSignal) {

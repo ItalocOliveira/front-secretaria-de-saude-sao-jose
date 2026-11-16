@@ -35,7 +35,7 @@ function ComparisonBadge({ comparison }: { comparison: ApacsReport["comparisonWi
   )
 }
 
-function StatIcon({ icon: Icon }: { icon: typeof FilePlus2Icon }) {
+export function StatIcon({ icon: Icon }: { icon: typeof FilePlus2Icon }) {
   return (
     <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
       <Icon className="size-4" />

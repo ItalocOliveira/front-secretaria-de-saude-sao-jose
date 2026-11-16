@@ -681,7 +681,7 @@ function createdMs(apac) {
   return Date.parse(apac.created_at ?? apac.createdAt)
 }
 
-async function reportApacs(req, res) {
+async function reportApacs(req, res, user) {
   const body = (await readJsonBody(req)) ?? {}
   const interval = body.interval ?? "day"
   if (interval !== "day" && interval !== "week") {
@@ -759,7 +759,68 @@ async function reportApacs(req, res) {
     countByMunicipalityInPeriod: countBy(inPeriod, (apac) => apac.municipality || "NAO_INFORMADO"),
     pendingQueue: { statuses: ["PENDENTE", "AGUARDO"], total: queue.length, byPriority },
     createdOverTime: { interval, timeZone: "America/Fortaleza", points },
+    // `.docs/att-backend/2026-11-16-relatorio-almoxarifado.md`: `null` para quem não acessa o almoxarifado.
+    inventory: ACCESS.itens.includes(user.role) ? reportInventory(start, end) : null,
   })
+}
+
+const ITEM_STATUSES = ["DISPONIVEL", "EMPRESTADO"]
+
+/** Seção `inventory` do relatório: `stock` é o estado atual; `movementsInPeriod` filtra por `dateTime`. */
+function reportInventory(start, end) {
+  const itens = db.data.itens
+  const byType = Object.fromEntries(ITEM_TYPES.map((type) => [type, { items: 0, units: 0 }]))
+  const byStatus = Object.fromEntries(ITEM_STATUSES.map((status) => [status, 0]))
+  for (const item of itens) {
+    byType[item.type] ??= { items: 0, units: 0 }
+    byType[item.type].items += 1
+    byType[item.type].units += item.amount
+    byStatus[item.status] = (byStatus[item.status] ?? 0) + 1
+  }
+
+  const entries = { count: 0, units: 0 }
+  const outputs = { count: 0, units: 0 }
+  const outputsByDestination = {}
+  const outputsByItem = new Map()
+  for (const item of itens) {
+    for (const movement of item.movements ?? []) {
+      const at = Date.parse(movement.dateTime)
+      if (Number.isNaN(at) || at < start || at > end) continue
+      if (movement.movementType === "ENTRADA") {
+        entries.count += 1
+        entries.units += movement.amount
+        continue
+      }
+      outputs.count += 1
+      outputs.units += movement.amount
+      const destination = (outputsByDestination[movement.destination] ??= { count: 0, units: 0 })
+      destination.count += 1
+      destination.units += movement.amount
+      outputsByItem.set(item, (outputsByItem.get(item) ?? 0) + movement.amount)
+    }
+  }
+
+  const topOutputItems = [...outputsByItem]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([item, units]) => ({ id: item.id, name: item.name, type: item.type, amount: item.amount, units }))
+
+  return {
+    stock: {
+      totalItems: itens.length,
+      totalUnits: itens.reduce((sum, item) => sum + item.amount, 0),
+      lowStockCount: itens.filter((item) => (item.min_amount ?? 0) > 0 && item.amount < item.min_amount).length,
+      byType,
+      byStatus,
+    },
+    movementsInPeriod: {
+      entries,
+      outputs,
+      balance: entries.units - outputs.units,
+      outputsByDestination,
+      topOutputItems,
+    },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1474,7 +1535,7 @@ const server = createServer(async (req, res) => {
 
   // `reports` não é coleção do json-server: só `POST /reports/apacs` existe.
   if (collection === "reports") {
-    if (method === "POST" && rest.length === 1 && rest[0] === "apacs") return reportApacs(req, res)
+    if (method === "POST" && rest.length === 1 && rest[0] === "apacs") return reportApacs(req, res, user)
     return send(res, 404, { message: "Rota não encontrada." })
   }
 

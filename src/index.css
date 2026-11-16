@@ -178,6 +178,14 @@
   [data-slot="sidebar-inset"] {
     display: block !important;
   }
+
+  /* O contorno do card é `ring` (box-shadow): quando o Chrome empurra o card para
+     a página seguinte, a sombra fica desenhada como um fiapo no fim da anterior.
+     Borda de verdade acompanha o card. */
+  [data-slot="card"] {
+    box-shadow: none;
+    border: 1px solid var(--border);
+  }
 }
 
 @layer base {

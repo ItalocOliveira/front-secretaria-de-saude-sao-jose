@@ -12,6 +12,7 @@ import {
   type ApacProcedure,
   type ApacStatus,
 } from "@/lib/apac"
+import { ITEM_STATUS_LABEL, ITEM_TYPE_LABEL, type ItemStatus, type ItemType } from "@/lib/itens"
 
 /** Maior período personalizado aceito por `POST /reports/apacs` — acima disso, `400`. */
 export const REPORT_MAX_DAYS = 366
@@ -83,3 +84,12 @@ export const priorityLabel = (key: string) => APAC_PRIORITY_LABEL[key as ApacPri
 export const procedureLabel = (key: string) => APAC_PROCEDURE_LABEL[key as ApacProcedure] ?? key
 export const acsLabel = (key: string) => APAC_ACS_LABEL[key as ApacAcs] ?? key
 export const municipalityLabel = (key: string) => (key === "NAO_INFORMADO" ? "Não informado" : key)
+export const itemTypeLabel = (key: string) => ITEM_TYPE_LABEL[key as ItemType] ?? key
+export const itemStatusLabel = (key: string) => ITEM_STATUS_LABEL[key as ItemStatus] ?? key
+/** `destination` é texto livre: a própria chave já é o rótulo. */
+export const destinationLabel = (key: string) => key
+
+/** `Record<chave, { …, units }>` → `Record<chave, units>`, formato aceito por `toBreakdown`. */
+export function unitsOf<T extends { units: number }>(record: Record<string, T>): Record<string, number> {
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [key, value.units]))
+}

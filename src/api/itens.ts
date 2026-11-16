@@ -1,6 +1,6 @@
 import type { ItemStatus, ItemType, MovementType } from "@/lib/itens"
 import { request } from "@/api/client"
-import { toListQuery, type ListParams, type Paginated } from "@/api/pagination"
+import { MAX_PAGE_SIZE, toListQuery, type ListParams, type Paginated } from "@/api/pagination"
 
 export type ItemMovementDto = {
   id: string
@@ -104,6 +104,32 @@ export type CreateItemMovementPayload = {
 /** `GET /itens` paginado, mais recentes primeiro. */
 export function listItens(params: ListParams<ItemStatus>, signal?: AbortSignal) {
   return request<Paginated<ItemDto>>(`/itens${toListQuery(params)}`, { signal })
+}
+
+/** Só o que o inventário completo do relatório exibe — sem `movements`/`image_url`. */
+export type InventoryItem = Pick<ItemDto, "id" | "name" | "type" | "status" | "amount" | "min_amount">
+
+/**
+ * Todos os itens do almoxarifado, para o inventário completo do relatório. `GET /itens` só
+ * entrega 100 por página: busca a primeira para saber o total e as demais em paralelo.
+ */
+export async function listAllItens(signal?: AbortSignal): Promise<InventoryItem[]> {
+  const pageSize = MAX_PAGE_SIZE
+  const first = await listItens({ page: 1, pageSize }, signal)
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(first.pagination.totalPages - 1, 0) }, (_, index) =>
+      listItens({ page: index + 2, pageSize }, signal)
+    )
+  )
+
+  // Um item cadastrado entre uma página e outra pode aparecer duas vezes: deduplica pelo id.
+  const byId = new Map<string, InventoryItem>()
+  for (const page of [first, ...rest]) {
+    for (const { id, name, type, status, amount, min_amount } of page.data) {
+      byId.set(id, { id, name, type, status, amount, min_amount })
+    }
+  }
+  return [...byId.values()]
 }
 
 export function createItem(payload: CreateItemPayload) {

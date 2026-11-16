@@ -18,11 +18,13 @@ export function ReportBreakdownCard({
   description,
   entries,
   isPending,
+  emptyDescription = "Nenhuma APAC criada no período.",
 }: {
   title: string
   description: string
   entries: BreakdownEntry[]
   isPending: boolean
+  emptyDescription?: string
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -46,7 +48,7 @@ export function ReportBreakdownCard({
                 <ChartNoAxesColumnIcon />
               </EmptyMedia>
               <EmptyTitle>Sem dados</EmptyTitle>
-              <EmptyDescription>Nenhuma APAC criada no período.</EmptyDescription>
+              <EmptyDescription>{emptyDescription}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (

@@ -5,6 +5,7 @@ import {
   createItem,
   createItemMovement,
   deleteItem,
+  listAllItens,
   listItens,
   updateItem,
   uploadItemImage,
@@ -15,14 +16,16 @@ import { ApiError } from "@/api/client"
 import type { ListParams } from "@/api/pagination"
 import type { ItemStatus } from "@/lib/itens"
 import { NOTIFICATIONS_QUERY_KEY } from "@/hooks/use-notifications"
+import { REPORTS_QUERY_KEY } from "@/hooks/use-reports"
 
 export const ITENS_QUERY_KEY = ["itens"] as const
 
-/** Estoque e `min_amount` alimentam o sino (`lowStock`) — toda mutação de item atualiza os dois. */
+/** Estoque e `min_amount` alimentam o sino (`lowStock`) e a seção do almoxarifado do relatório. */
 function invalidateItens(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: ITENS_QUERY_KEY }),
     queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: REPORTS_QUERY_KEY }),
   ])
 }
 
@@ -31,6 +34,18 @@ export function useItens(params: ListParams<ItemStatus>) {
     queryKey: [...ITENS_QUERY_KEY, params],
     queryFn: ({ signal }) => listItens(params, signal),
     placeholderData: keepPreviousData,
+  })
+}
+
+/**
+ * Todos os itens (todas as páginas) para o inventário completo do relatório. Fica sob
+ * `ITENS_QUERY_KEY`, então qualquer mutação de item já o invalida.
+ */
+export function useAllItens(enabled: boolean) {
+  return useQuery({
+    queryKey: [...ITENS_QUERY_KEY, "all"],
+    queryFn: ({ signal }) => listAllItens(signal),
+    enabled,
   })
 }
 
