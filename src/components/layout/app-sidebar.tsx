@@ -1,14 +1,13 @@
 import { Link, useLocation } from "react-router"
 import {
   ChartColumnIcon,
-  CircleQuestionMarkIcon,
   FileSignatureIcon,
   FileTextIcon,
   HistoryIcon,
   LayoutDashboardIcon,
   MailIcon,
+  MessageCircleIcon,
   PackageIcon,
-  SettingsIcon,
   TriangleAlertIcon,
   UserCogIcon,
 } from "lucide-react"
@@ -63,12 +62,13 @@ const NAV_ITEMS: NavItem[] = [
   { title: "Auditoria", icon: HistoryIcon, url: "/auditoria", roles: AUDIT_ROLES },
 ]
 
-const SUPPORT_ITEMS: NavItem[] = [
-  { title: "Configurações", icon: SettingsIcon },
-  { title: "Ajuda", icon: CircleQuestionMarkIcon },
-]
-
 const SUPPORT_EMAIL = "italo.oliveira@wirgo.com.br"
+// Abre o Gmail já com o destinatário preenchido (mailto depende de um cliente de e-mail configurado).
+const SUPPORT_EMAIL_URL = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(SUPPORT_EMAIL)}`
+
+const SUPPORT_WHATSAPP_LABEL = "+55 (83) 9379-4071"
+const SUPPORT_WHATSAPP_MESSAGE = "Olá, gostaria de iniciar um atendimento de suporte."
+const SUPPORT_WHATSAPP_URL = `https://wa.me/558393794071?text=${encodeURIComponent(SUPPORT_WHATSAPP_MESSAGE)}`
 
 const APP_VERSION = "2.1.0"
 
@@ -151,12 +151,23 @@ export function AppSidebar() {
         <SidebarGroup className="mt-auto">
           <SidebarGroupLabel>Suporte</SidebarGroupLabel>
           <SidebarGroupContent>
-            <NavMenu items={SUPPORT_ITEMS} />
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip={SUPPORT_EMAIL} render={<a href={`mailto:${SUPPORT_EMAIL}`} />}>
+                <SidebarMenuButton
+                  tooltip={SUPPORT_EMAIL}
+                  render={<a href={SUPPORT_EMAIL_URL} target="_blank" rel="noopener noreferrer" />}
+                >
                   <MailIcon />
                   <span className="truncate">{SUPPORT_EMAIL}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip={`WhatsApp ${SUPPORT_WHATSAPP_LABEL}`}
+                  render={<a href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" />}
+                >
+                  <MessageCircleIcon />
+                  <span className="truncate">{SUPPORT_WHATSAPP_LABEL}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
