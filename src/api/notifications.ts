@@ -73,7 +73,7 @@ export type NotificationsDto = {
   lowStock: { count: number; items: LowStockItemDto[] }
   /** `items`: até 10, os mais antigos primeiro. `statuses`: status considerados "na fila". */
   urgentApacs: { count: number; statuses: ApacStatus[]; items: UrgentApacDto[] }
-  /** Só `SECRETARIO`/`DIRETOR` recebem; os outros cargos, `null` (e `undefined` numa API anterior). */
+  /** Só `DEV`/`SECRETARIO`/`DIRETOR` recebem; os outros cargos, `null` (e `undefined` numa API anterior). */
   support?: SupportActivityDto | null
 }
 

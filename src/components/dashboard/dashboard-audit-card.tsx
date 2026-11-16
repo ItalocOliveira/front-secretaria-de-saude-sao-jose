@@ -24,7 +24,7 @@ const RECENT_LOGS = { pageSize: 6 }
 const SKELETON_ROWS = Array.from({ length: 3 }, (_, index) => index)
 
 /**
- * Auditoria do município — só `SECRETARIO`/`DIRETOR` (`canSeeAudit`); a página nem renderiza o card
+ * Auditoria do município — só `DEV`/`SECRETARIO`/`DIRETOR` (`canSeeAudit`); a página nem renderiza o card
  * para os outros. Duas abas:
  * - **Município**: últimas ações de `GET /activity-logs` (comunicado 2026-11-16-auditoria-municipio).
  * - **Suporte**: `support` do `GET /notifications` (ações da plataforma nos últimos 30 dias). Sem
