@@ -4,7 +4,9 @@ import { ptBR } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 
 import { AUDIT_TAB, greetingFor, type AuditTab } from "@/lib/dashboard"
+import { canSeeAudit } from "@/lib/permissions"
 import { useNotifications } from "@/hooks/use-notifications"
+import { useSession } from "@/hooks/use-session"
 import { useApacsReport } from "@/hooks/use-reports"
 import { useTenantName } from "@/hooks/use-tenant"
 import { ApacFormSheet } from "@/components/apacs/apac-form-sheet"
@@ -33,6 +35,8 @@ export function DashboardPage() {
   const [formOpen, setFormOpen] = useState(false)
   const auditRef = useRef<HTMLDivElement>(null)
 
+  const { claims } = useSession()
+  const showAudit = claims !== null && canSeeAudit(claims.role)
   const tenantName = useTenantName()
   const report = useApacsReport(MONTH_REPORT_REQUEST)
   const notifications = useNotifications()
@@ -90,15 +94,23 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 *:min-w-0 xl:grid-cols-3">
-          <div ref={auditRef} className="scroll-mt-4 xl:col-span-2">
-            <DashboardAuditCard support={support} tab={auditTab} onTabChange={setAuditTab} />
+        {showAudit ? (
+          <div className="grid gap-4 *:min-w-0 xl:grid-cols-3">
+            <div ref={auditRef} className="scroll-mt-4 xl:col-span-2">
+              <DashboardAuditCard support={support} tab={auditTab} onTabChange={setAuditTab} />
+            </div>
+            <div className="flex flex-col gap-4">
+              {inventory === null ? null : <DashboardInventoryCard inventory={inventory} />}
+              <DashboardShortcuts onCreateApac={() => setFormOpen(true)} />
+            </div>
           </div>
-          <div className="flex flex-col gap-4">
+        ) : (
+          // Sem auditoria (cargos fora de `AUDIT_ROLES`): almoxarifado e atalhos lado a lado.
+          <div className="grid items-start gap-4 *:min-w-0 lg:grid-cols-2">
             {inventory === null ? null : <DashboardInventoryCard inventory={inventory} />}
             <DashboardShortcuts onCreateApac={() => setFormOpen(true)} />
           </div>
-        </div>
+        )}
       </div>
 
       <ApacFormSheet open={formOpen} onOpenChange={setFormOpen} />

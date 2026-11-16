@@ -4,6 +4,7 @@ import {
   CircleQuestionMarkIcon,
   FileSignatureIcon,
   FileTextIcon,
+  HistoryIcon,
   LayoutDashboardIcon,
   PackageIcon,
   SettingsIcon,
@@ -14,6 +15,7 @@ import {
 import type { UserRole } from "@/lib/apac"
 import {
   APAC_ROLES,
+  AUDIT_ROLES,
   DASHBOARD_ROLES,
   DOCUMENT_ROLES,
   homeRouteFor,
@@ -57,6 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   { title: "Almoxarifado", icon: PackageIcon, url: "/almoxarifado", roles: ITEM_ROLES },
   { title: "Ofícios", icon: FileSignatureIcon, url: "/documents", roles: DOCUMENT_ROLES },
   { title: "Relatórios", icon: ChartColumnIcon, url: "/relatorios", roles: REPORT_ROLES },
+  { title: "Auditoria", icon: HistoryIcon, url: "/auditoria", roles: AUDIT_ROLES },
 ]
 
 const SUPPORT_ITEMS: NavItem[] = [

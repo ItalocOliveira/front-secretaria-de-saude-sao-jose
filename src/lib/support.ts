@@ -7,6 +7,7 @@ export const SUPPORT_ACTION = {
   USER_CREATED: "PLATFORM_USER_CREATED",
   USER_UPDATED: "PLATFORM_USER_UPDATED",
   PASSWORD_RESET: "PLATFORM_USER_PASSWORD_RESET",
+  USER_DELETED: "PLATFORM_USER_DELETED",
 } as const
 
 /** Cargo desconhecido aparece cru em vez de sumir. */
@@ -43,6 +44,11 @@ export function describeSupportAction(item: SupportActionDto): { title: string; 
     }
     case SUPPORT_ACTION.PASSWORD_RESET:
       return { title: `Senha de ${userName} redefinida`, detail: null }
+    case SUPPORT_ACTION.USER_DELETED:
+      return {
+        title: `Usuário ${userName} excluído`,
+        detail: details.reason === undefined ? null : `Motivo: ${details.reason}`,
+      }
     default:
       return { title: item.action, detail: null }
   }

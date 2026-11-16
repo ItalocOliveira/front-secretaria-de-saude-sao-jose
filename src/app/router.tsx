@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router"
 
 import {
   APAC_ROLES,
+  AUDIT_ROLES,
   DASHBOARD_ROLES,
   DOCUMENT_ROLES,
   ITEM_ROLES,
@@ -14,6 +15,7 @@ import { RequireRole } from "@/components/auth/require-role"
 import { RouteErrorBoundary } from "@/components/error-boundary"
 import { AppShell } from "@/components/layout/app-shell"
 import { ApacsPage } from "@/pages/apacs-page"
+import { AuditPage } from "@/pages/audit-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { DocumentsPage } from "@/pages/documents-page"
 import { ItensPage } from "@/pages/itens-page"
@@ -41,6 +43,10 @@ export const router = createBrowserRouter([
               {
                 element: <RequireRole allowed={DASHBOARD_ROLES} />,
                 children: [{ path: "/dashboard", element: <DashboardPage />, errorElement: <RouteErrorBoundary /> }],
+              },
+              {
+                element: <RequireRole allowed={AUDIT_ROLES} />,
+                children: [{ path: "/auditoria", element: <AuditPage />, errorElement: <RouteErrorBoundary /> }],
               },
               {
                 element: <RequireRole allowed={APAC_ROLES} />,

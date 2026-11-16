@@ -75,6 +75,10 @@ Ordem: mais recentes primeiro; usuários em ordem alfabética. `pdf_url`/`image_
 
 `GET /notifications` (todos menos `RECEPCIONISTA`, que recebe `403`) calcula na hora os alertas do sino: itens com `amount < min_amount` (menor quantidade primeiro) e APACs `URGENTE` em `PENDENTE`/`AGUARDO` (mais antigas primeiro), até 10 de cada. As APACs do mock não têm `protocol_number`: o mock usa a posição na base. `POST`/`PATCH /itens` aceitam `min_amount` (inteiro 0–1.000.000, `null` = 0); itens antigos saem com `0` (sem alerta). Para `SECRETARIO`/`DIRETOR` vem também `support` com 4 ações fictícias da plataforma (datas relativas a agora, nomes dos usuários da base); os outros cargos recebem `null`. Contrato em [`.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`](../.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md).
 
+### Auditoria
+
+`GET /activity-logs` (só `SECRETARIO`/`DIRETOR`; os outros recebem `403`) devolve o registro de atividade paginado, com `action` e `userId` na query — contrato em [`.docs/att-backend/2026-11-16-auditoria-municipio.md`](../.docs/att-backend/2026-11-16-auditoria-municipio.md). O registro vive **em memória**: começa com ~18 ações fictícias relativas a "agora" e ganha registros reais de `LOGIN`/`LOGIN_FAILED` e `APAC_PDF_VIEWED` (`download-url`) enquanto o mock roda; reiniciar zera.
+
 ### Upload e download de PDF
 
 `POST /apacs` devolve `{ apac, uploadUrl }`. `uploadUrl` aponta pra um endpoint local (`PUT /mock-uploads/:id.pdf?exp=...`) que imita a presigned URL de upload do Cloudflare R2 da API real: sem `Authorization`, validade de 15 min (`exp` embutido na própria URL, não em token). Depois do `exp`, o `PUT` devolve `403`, igual a um link do R2 vencido. Os arquivos "enviados" ficam em `mock/uploads/` (gitignored).

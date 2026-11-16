@@ -50,6 +50,12 @@ export const REPORT_ROLES = ALL_ROLES
  */
 export const DASHBOARD_ROLES = FULL_ACCESS_ROLES
 
+/**
+ * Roles com acesso a `GET /activity-logs` (auditoria do município — comunicado
+ * 2026-11-16-auditoria-municipio). Os demais recebem `403`: a tela e o card somem.
+ */
+export const AUDIT_ROLES: readonly UserRole[] = ["SECRETARIO", "DIRETOR"]
+
 /** Roles com acesso a `GET /notifications` (sino do header). `RECEPCIONISTA` recebe `403`. */
 export const NOTIFICATION_ROLES = FULL_ACCESS_ROLES
 
@@ -93,6 +99,10 @@ export function canAccessDashboard(role: UserRole) {
   return DASHBOARD_ROLES.includes(role)
 }
 
+export function canSeeAudit(role: UserRole) {
+  return AUDIT_ROLES.includes(role)
+}
+
 /**
  * Primeira rota que o perfil consegue abrir.
  *
@@ -122,6 +132,10 @@ export function resolveDestination(from: string | undefined, role: UserRole) {
 
   if (from === undefined) {
     return home
+  }
+
+  if (from.startsWith("/auditoria")) {
+    return canSeeAudit(role) ? from : home
   }
 
   if (from.startsWith("/dashboard")) {

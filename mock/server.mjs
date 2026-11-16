@@ -298,6 +298,8 @@ const ACCESS = {
   documents: ALL_ROLES,
   reports: ALL_ROLES,
   notifications: ALL_EXCEPT_RECEPCIONISTA,
+  // Comunicado 2026-11-16-auditoria-municipio: só SECRETARIO e DIRETOR.
+  "activity-logs": ["SECRETARIO", "DIRETOR"],
 }
 
 /** Roles da rota específica: `DELETE /apacs/:id` e tudo de `/documents` além do `POST` são restritos. */
@@ -470,7 +472,12 @@ async function login(req, res) {
   const credential = db.data._credentials.find(
     (item) => item.cpf === String(body.cpf) && item.password === String(body.password)
   )
-  if (!credential) return invalid()
+  if (!credential) {
+    // CPF do município com senha errada → registro com o usuário; CPF desconhecido → `user: null`.
+    const known = db.data._credentials.find((item) => item.cpf === String(body.cpf))
+    recordActivity("LOGIN_FAILED", db.data.users.find((item) => item.id === known?.user_id))
+    return invalid()
+  }
 
   const user = db.data.users.find((item) => item.id === credential.user_id)
   if (!user) return invalid()
@@ -484,6 +491,7 @@ async function login(req, res) {
     exp: iat + TOKEN_TTL_SECONDS,
   })
 
+  recordActivity("LOGIN", user)
   return send(res, 200, { token })
 }
 
@@ -911,6 +919,107 @@ async function deleteDocument(res, id) {
 }
 
 // ---------------------------------------------------------------------------
+// GET /activity-logs — espelha `.docs/att-backend/2026-11-16-auditoria-municipio.md`
+// ---------------------------------------------------------------------------
+
+/**
+ * Registro de atividade em memória (some ao reiniciar). Começa com ações fictícias relativas a
+ * "agora" e ganha registros reais de `LOGIN`/`LOGIN_FAILED` e `APAC_PDF_VIEWED` enquanto o mock roda.
+ */
+const activityLogs = []
+
+function publicLogUser(user) {
+  return user ? { id: user.id, name: user.name, role: user.role } : null
+}
+
+function recordActivity(action, user, { targetId = null, details = null } = {}) {
+  activityLogs.unshift({
+    id: randomUUID(),
+    action,
+    created_at: new Date().toISOString(),
+    target_id: targetId,
+    details,
+    user: publicLogUser(user),
+  })
+}
+
+function seedActivityLogs() {
+  const users = db.data.users
+  const apacs = db.data.apacs
+  const pick = (index) => users[index % Math.max(users.length, 1)]
+  const minutesAgo = (minutes) => new Date(Date.now() - minutes * 60 * 1000).toISOString()
+  const entry = (minutes, action, user, targetId = null, details = null) => ({
+    id: randomUUID(),
+    action,
+    created_at: minutesAgo(minutes),
+    target_id: targetId,
+    details,
+    user: publicLogUser(user),
+  })
+  const apacId = (index) => apacs[index % Math.max(apacs.length, 1)]?.id ?? null
+  const platform = { source: "PLATAFORMA", platformAdmin: "Suporte ICO Saúde" }
+
+  activityLogs.push(
+    entry(12, "APAC_PDF_VIEWED", pick(4), apacId(0)),
+    entry(40, "APAC_UPDATED", pick(4), apacId(1), { fields: ["status", "acs"] }),
+    entry(65, "LOGIN", pick(4)),
+    entry(120, "PLATFORM_USER_PASSWORD_RESET", null, pick(0)?.id, { ...platform, userName: pick(0)?.name }),
+    entry(180, "ITEM_MOVEMENT", pick(1), null),
+    entry(240, "USER_CREATED", pick(2), null, { name: "PEDRO LINS", role: "RECEPCIONISTA", source: "MUNICIPIO" }),
+    entry(300, "APAC_CREATED", pick(3), apacId(2)),
+    entry(360, "APAC_PDF_CONFIRMED", pick(3), apacId(2)),
+    entry(420, "LOGIN_FAILED", null),
+    entry(600, "DOCUMENT_CREATED", pick(3), null),
+    entry(900, "ITEM_CREATED", pick(1), null, { name: "Seringa 10 ml" }),
+    entry(1440, "APAC_PDF_VIEWED", pick(5), apacId(3)),
+    entry(2 * 1440, "PLATFORM_USER_UPDATED", null, pick(1)?.id, {
+      ...platform,
+      userName: pick(1)?.name,
+      role: { from: "RECEPCIONISTA", to: "REGULADOR" },
+    }),
+    entry(3 * 1440, "USER_DELETED", pick(2), null, { name: "MARCOS TEIXEIRA", role: "REGULADOR" }),
+    entry(4 * 1440, "APAC_DELETED", pick(0), null, { deletedUserId: null }),
+    entry(5 * 1440, "DOCUMENT_UPDATED", null, null, { deletedUserId: "usuario-excluido" }),
+    entry(6 * 1440, "PLATFORM_USER_CREATED", null, pick(0)?.id, { ...platform, name: pick(0)?.name, role: pick(0)?.role }),
+    entry(20 * 1440, "PLATFORM_TENANT_CREATED", null, null, platform)
+  )
+}
+
+// Depois de `activityLogs` existir e do banco carregado (top-level await acima).
+seedActivityLogs()
+
+const ACTIVITY_ACTIONS = new Set([
+  "LOGIN", "LOGIN_FAILED", "USER_CREATED", "USER_DELETED", "APAC_CREATED", "APAC_UPDATED", "APAC_DELETED",
+  "APAC_PDF_CONFIRMED", "APAC_PDF_VIEWED", "DOCUMENT_CREATED", "DOCUMENT_UPDATED", "DOCUMENT_DELETED",
+  "ITEM_CREATED", "ITEM_UPDATED", "ITEM_DELETED", "ITEM_IMAGE_CONFIRMED", "ITEM_MOVEMENT",
+  "PLATFORM_TENANT_CREATED", "PLATFORM_USER_CREATED", "PLATFORM_USER_UPDATED", "PLATFORM_USER_PASSWORD_RESET",
+  "PLATFORM_USER_DELETED",
+])
+
+/** Paginado como as listagens (`page`, `pageSize` 1–100), filtros `action` e `userId`; sem IP. */
+function listActivityLogs(res, searchParams) {
+  const page = Number(searchParams.get("page") ?? 1)
+  const pageSize = Number(searchParams.get("pageSize") ?? 50)
+  if (!Number.isInteger(page) || page < 1) return send(res, 400, { message: "querystring/page must be >= 1" })
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+    return send(res, 400, { message: "querystring/pageSize must be <= 100" })
+  }
+
+  const action = searchParams.get("action")
+  if (action && !ACTIVITY_ACTIONS.has(action)) return send(res, 400, { message: "querystring/action must be equal to one of the allowed values" })
+  const userId = searchParams.get("userId")
+
+  const filtered = activityLogs.filter(
+    (log) => (!action || log.action === action) && (!userId || log.user?.id === userId)
+  )
+  const total = filtered.length
+  return send(res, 200, {
+    data: filtered.slice((page - 1) * pageSize, page * pageSize),
+    pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+  })
+}
+
+// ---------------------------------------------------------------------------
 // GET /notifications — espelha `.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`
 // ---------------------------------------------------------------------------
 
@@ -1218,7 +1327,7 @@ function toPublicUser(user) {
  * `.docs/temp/CONTRATO_PDF_APACS.md`. O `confirm` confere se o arquivo chegou em
  * `uploads/` antes de marcar `has_pdf` (409 se não chegou).
  */
-async function handleApacPdf(res, id, action) {
+async function handleApacPdf(res, id, action, user) {
   const apac = db.data.apacs.find((item) => item.id === id)
   if (!apac) return send(res, 404, { error: "APAC não encontrada." })
 
@@ -1228,6 +1337,7 @@ async function handleApacPdf(res, id, action) {
   // registro de atividade; o mock não tem esse registro.
   if (action === "download-url") {
     if (!apac.has_pdf) return send(res, 409, { message: "Esta APAC não tem PDF confirmado." })
+    recordActivity("APAC_PDF_VIEWED", db.data.users.find((item) => item.id === user?.id), { targetId: id })
     return send(res, 200, { downloadUrl: mockPdfUrl(id, APAC_PDF_DOWNLOAD_TTL_MS) })
   }
 
@@ -1400,6 +1510,7 @@ function routeIndex() {
       { method: "PATCH | DELETE", path: "/documents/:id", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "POST", path: "/reports/apacs", roles: ACCESS.reports.join(", ") },
       { method: "GET", path: "/notifications", roles: ACCESS.notifications.join(", ") },
+      { method: "GET", path: "/activity-logs", roles: ACCESS["activity-logs"].join(", ") },
       {
         method: "PUT",
         path: "/mock-uploads/:filename?exp=...",
@@ -1584,7 +1695,7 @@ const server = createServer(async (req, res) => {
 
   if (isApacPdfRoute) {
     if (method !== "POST") return send(res, 404, { message: "Rota não encontrada." })
-    return handleApacPdf(res, rest[0], rest[2])
+    return handleApacPdf(res, rest[0], rest[2], user)
   }
 
   if (isItemImageRoute) {
@@ -1604,6 +1715,13 @@ const server = createServer(async (req, res) => {
   }
 
   // `notifications` também não: só `GET /notifications`, sem id nem query.
+  if (collection === "activity-logs") {
+    if (method === "GET" && rest.length === 0) {
+      return listActivityLogs(res, new URL(req.url ?? "/", `http://${HOST}:${PORT}`).searchParams)
+    }
+    return send(res, 404, { message: "Rota não encontrada." })
+  }
+
   if (collection === "notifications") {
     if (method === "GET" && rest.length === 0) return getNotifications(res, user)
     return send(res, 404, { message: "Rota não encontrada." })
