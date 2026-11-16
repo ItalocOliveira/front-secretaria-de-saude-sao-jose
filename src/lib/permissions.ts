@@ -44,6 +44,12 @@ export const DOCUMENT_DELETE_ROLES = FULL_ACCESS_ROLES
 /** Roles com acesso a `POST /reports/apacs` (relatórios). */
 export const REPORT_ROLES = ALL_ROLES
 
+/**
+ * Roles com acesso ao dashboard geral (decisão de produto): todos menos `RECEPCIONISTA`. O dashboard
+ * se apoia no `GET /notifications`, que já dá `403` para ela.
+ */
+export const DASHBOARD_ROLES = FULL_ACCESS_ROLES
+
 /** Roles com acesso a `GET /notifications` (sino do header). `RECEPCIONISTA` recebe `403`. */
 export const NOTIFICATION_ROLES = FULL_ACCESS_ROLES
 
@@ -83,13 +89,21 @@ export function canSeeNotifications(role: UserRole) {
   return NOTIFICATION_ROLES.includes(role)
 }
 
+export function canAccessDashboard(role: UserRole) {
+  return DASHBOARD_ROLES.includes(role)
+}
+
 /**
  * Primeira rota que o perfil consegue abrir.
  *
- * Hoje todos os cargos acessam APACs, então todo mundo cai em `/apacs`. Os demais
- * ramos ficam como rede de segurança caso a matriz volte a ter cargos sem APACs.
+ * Quem acessa o dashboard cai nele; `RECEPCIONISTA` cai em `/apacs`. Os demais ramos ficam
+ * como rede de segurança caso a matriz volte a ter cargos sem APACs.
  */
 export function homeRouteFor(role: UserRole) {
+  if (canAccessDashboard(role)) {
+    return "/dashboard"
+  }
+
   if (canAccessApacs(role)) {
     return "/apacs"
   }
@@ -108,6 +122,10 @@ export function resolveDestination(from: string | undefined, role: UserRole) {
 
   if (from === undefined) {
     return home
+  }
+
+  if (from.startsWith("/dashboard")) {
+    return canAccessDashboard(role) ? from : home
   }
 
   if (from.startsWith("/apacs")) {
