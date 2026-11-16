@@ -73,13 +73,13 @@ Ordem: mais recentes primeiro; usuários em ordem alfabética. `pdf_url`/`image_
 
 ### Notificações e quantidade mínima
 
-`GET /notifications` (todos menos `RECEPCIONISTA`, que recebe `403`) calcula na hora os alertas do sino: itens com `amount < min_amount` (menor quantidade primeiro) e APACs `URGENTE` em `PENDENTE`/`AGUARDO` (mais antigas primeiro), até 10 de cada. As APACs do mock não têm `protocol_number`: o mock usa a posição na base. `POST`/`PATCH /itens` aceitam `min_amount` (inteiro 0–1.000.000, `null` = 0); itens antigos saem com `0` (sem alerta). Contrato em [`.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`](../.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md).
+`GET /notifications` (todos menos `RECEPCIONISTA`, que recebe `403`) calcula na hora os alertas do sino: itens com `amount < min_amount` (menor quantidade primeiro) e APACs `URGENTE` em `PENDENTE`/`AGUARDO` (mais antigas primeiro), até 10 de cada. As APACs do mock não têm `protocol_number`: o mock usa a posição na base. `POST`/`PATCH /itens` aceitam `min_amount` (inteiro 0–1.000.000, `null` = 0); itens antigos saem com `0` (sem alerta). Para `SECRETARIO`/`DIRETOR` vem também `support` com 4 ações fictícias da plataforma (datas relativas a agora, nomes dos usuários da base); os outros cargos recebem `null`. Contrato em [`.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`](../.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md).
 
 ### Upload e download de PDF
 
 `POST /apacs` devolve `{ apac, uploadUrl }`. `uploadUrl` aponta pra um endpoint local (`PUT /mock-uploads/:id.pdf?exp=...`) que imita a presigned URL de upload do Cloudflare R2 da API real: sem `Authorization`, validade de 15 min (`exp` embutido na própria URL, não em token). Depois do `exp`, o `PUT` devolve `403`, igual a um link do R2 vencido. Os arquivos "enviados" ficam em `mock/uploads/` (gitignored).
 
-`GET /apacs` devolve um `pdf_url` em cada item — `GET /mock-uploads/:id.pdf?exp=...`, mesma lógica de validade (1h) e mesmo `403` se expirado. Se o PDF ainda não foi enviado (nenhum arquivo em `mock/uploads/` com esse id), devolve `404`, igual a um objeto inexistente no R2.
+`GET /apacs` devolve um `pdf_url` em cada item — `GET /mock-uploads/:id.pdf?exp=...`, mesma lógica de validade (**5 min** para APACs, 1h para ofícios e imagens de itens) e mesmo `403` se expirado. O front não usa mais esse campo nas APACs: pede o link com `POST /apacs/:id/pdf/download-url` (`{ downloadUrl }`, 5 min, `409` sem PDF confirmado); o mock não tem o registro de atividade (`APAC_PDF_VIEWED`) da API real. Se o PDF ainda não foi enviado (nenhum arquivo em `mock/uploads/` com esse id), o link devolve `404`, igual a um objeto inexistente no R2.
 
 Anexar/substituir o PDF de uma APAC já cadastrada (`.docs/temp/CONTRATO_PDF_APACS.md`): `POST /apacs/:id/pdf/upload-url` devolve `{ uploadUrl }` (mesmo esquema acima) e, depois do `PUT`, `POST /apacs/:id/pdf/confirm` confere se o arquivo está em `mock/uploads/` e marca `has_pdf: true` (`409` se não chegou). Toda APAC sai com `has_pdf` (`false` em registros antigos do seed).
 

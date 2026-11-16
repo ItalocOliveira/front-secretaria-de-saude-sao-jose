@@ -34,7 +34,9 @@ const UPLOADS_DIR = join(HERE, "uploads")
 const JWT_SECRET = "mock-secret-nao-usar-em-producao"
 const TOKEN_TTL_SECONDS = 60 * 60 // 1 hora, como na API real
 const UPLOAD_TTL_MS = 15 * 60 * 1000 // validade da presigned URL de upload, como na API real
-const DOWNLOAD_TTL_MS = 60 * 60 * 1000 // validade da presigned URL de download, como na API real
+const DOWNLOAD_TTL_MS = 60 * 60 * 1000 // validade da presigned URL de download (ofícios e itens), como na API real
+// O `pdf_url` das APACs vale só 5 min (comunicado 2026-11-16-lgpd-users-e-pdf-apacs).
+const APAC_PDF_DOWNLOAD_TTL_MS = 5 * 60 * 1000
 
 const ROLES = ["DEV", "SECRETARIO", "DIRETOR", "RECEPCIONISTA", "REGULADOR", "COORDENADOR"]
 // Espelha `APAC_PROCEDURE` em `src/lib/apac.ts` — chave do enum Prisma
@@ -531,7 +533,7 @@ async function handleAuth(req, res, segments) {
   if (error) return sendError(res, error)
 
   if (action === "me" && segments.length === 1 && req.method === "GET") {
-    return send(res, 200, user)
+    return send(res, 200, toPublicUser(user))
   }
 
   if (action === "admin" && segments.length === 1 && req.method === "GET") {
@@ -579,7 +581,6 @@ async function createUser(req, res, creator) {
     id: randomUUID(),
     name: String(body.name),
     cpf_hash: fakeHash(cpf),
-    cpf_encrypted: fakeEncrypt(cpf),
     role: body.role,
     created_at: now,
     updated_at: now,
@@ -916,8 +917,60 @@ async function deleteDocument(res, id) {
 const NOTIFICATION_LIMIT = 10
 const URGENT_QUEUE_STATUSES = ["PENDENTE", "AGUARDO"]
 
+// `support` (comunicado 2026-11-16-lgpd-users-e-pdf-apacs, seção 3): ações da plataforma no município.
+const SUPPORT_DAYS = 30
+const SUPPORT_ROLES = ["SECRETARIO", "DIRETOR"]
+
+/**
+ * O mock não tem painel admin: gera ações fictícias relativas a "agora", com nomes de usuários da
+ * base. Só `SECRETARIO`/`DIRETOR` recebem; os outros cargos, `null`.
+ */
+function supportActivity(user) {
+  if (!SUPPORT_ROLES.includes(user.role)) return null
+
+  const [first, second] = db.data.users
+  const ago = (days) => new Date(Date.now() - days * DAY_MS).toISOString()
+  const items = [
+    {
+      id: "mock-support-1",
+      action: "PLATFORM_USER_PASSWORD_RESET",
+      created_at: ago(0.1),
+      target_id: first?.id ?? null,
+      details: { userName: first?.name ?? "USUÁRIO", source: "PLATAFORMA", platformAdmin: "Suporte ICO Saúde" },
+    },
+    {
+      id: "mock-support-2",
+      action: "PLATFORM_USER_UPDATED",
+      created_at: ago(2),
+      target_id: second?.id ?? null,
+      details: {
+        userName: second?.name ?? "USUÁRIO",
+        role: { from: "RECEPCIONISTA", to: "REGULADOR" },
+        source: "PLATAFORMA",
+        platformAdmin: "Suporte ICO Saúde",
+      },
+    },
+    {
+      id: "mock-support-3",
+      action: "PLATFORM_USER_CREATED",
+      created_at: ago(6),
+      target_id: first?.id ?? null,
+      details: { name: first?.name ?? "USUÁRIO", role: first?.role ?? "DEV", source: "PLATAFORMA", platformAdmin: "Suporte ICO Saúde" },
+    },
+    {
+      id: "mock-support-4",
+      action: "PLATFORM_TENANT_CREATED",
+      created_at: ago(20),
+      target_id: null,
+      details: { source: "PLATAFORMA", platformAdmin: "Suporte ICO Saúde" },
+    },
+  ]
+
+  return { count: items.length, days: SUPPORT_DAYS, items }
+}
+
 /** Alertas calculados na hora: itens com `amount < min_amount` e APACs urgentes na fila. */
-function getNotifications(res) {
+function getNotifications(res, user) {
   const lowStock = db.data.itens
     .filter((item) => (item.min_amount ?? 0) > 0 && item.amount < item.min_amount)
     .sort((a, b) => a.amount - b.amount)
@@ -952,6 +1005,8 @@ function getNotifications(res) {
         created_at: apac.created_at ?? apac.createdAt,
       })),
     },
+    // Não entra no `total`: vai para um card próprio da tela inicial.
+    support: supportActivity(user),
   })
 }
 
@@ -1143,13 +1198,23 @@ function mockPdfUrl(id, ttlMs) {
   return `http://${HOST}:${PORT}/mock-uploads/${id}.pdf?exp=${Date.now() + ttlMs}`
 }
 
-/** Injeta `pdf_url` (e `has_pdf`, `false` em registros antigos) em cada APAC, como a API real faz. */
-function withPdfUrl(apac) {
-  return apac?.id ? { ...apac, has_pdf: apac.has_pdf ?? false, pdf_url: mockPdfUrl(apac.id, DOWNLOAD_TTL_MS) } : apac
+/** Injeta `pdf_url` (e `has_pdf`, `false` em registros antigos) em cada APAC/ofício, como a API real faz. */
+function withPdfUrl(record, ttlMs = DOWNLOAD_TTL_MS) {
+  return record?.id ? { ...record, has_pdf: record.has_pdf ?? false, pdf_url: mockPdfUrl(record.id, ttlMs) } : record
+}
+
+/** APACs: `pdf_url` com 5 min de validade (ofícios seguem com 1h). */
+const withApacPdfUrl = (apac) => withPdfUrl(apac, APAC_PDF_DOWNLOAD_TTL_MS)
+
+/** `GET`/`POST /users` não expõem CPF em nenhuma forma (sem `cpf_hash`/`cpf_encrypted`), como a API real. */
+function toPublicUser(user) {
+  if (!user?.id) return user
+  const { cpf_hash, cpf_encrypted, ...rest } = user
+  return rest
 }
 
 /**
- * `POST /apacs/:id/pdf/upload-url` e `POST /apacs/:id/pdf/confirm` — espelham
+ * `POST /apacs/:id/pdf/upload-url`, `/confirm` e `/download-url` — espelham
  * `.docs/temp/CONTRATO_PDF_APACS.md`. O `confirm` confere se o arquivo chegou em
  * `uploads/` antes de marcar `has_pdf` (409 se não chegou).
  */
@@ -1158,6 +1223,13 @@ async function handleApacPdf(res, id, action) {
   if (!apac) return send(res, 404, { error: "APAC não encontrada." })
 
   if (action === "upload-url") return send(res, 200, { uploadUrl: mockPdfUrl(id, UPLOAD_TTL_MS) })
+
+  // Comunicado 2026-11-16-lgpd-users-e-pdf-apacs, seção 4. A API real grava `APAC_PDF_VIEWED` no
+  // registro de atividade; o mock não tem esse registro.
+  if (action === "download-url") {
+    if (!apac.has_pdf) return send(res, 409, { message: "Esta APAC não tem PDF confirmado." })
+    return send(res, 200, { downloadUrl: mockPdfUrl(id, APAC_PDF_DOWNLOAD_TTL_MS) })
+  }
 
   if (!existsSync(join(UPLOADS_DIR, `${id}.pdf`))) {
     return send(res, 409, {
@@ -1168,7 +1240,7 @@ async function handleApacPdf(res, id, action) {
   apac.has_pdf = true
   apac.updated_at = new Date().toISOString()
   await db.write()
-  return send(res, 200, withPdfUrl(apac))
+  return send(res, 200, withApacPdfUrl(apac))
 }
 
 // Nome do arquivo em disco não usa `/` — só a chave lógica (`itens/<id>`, sem
@@ -1314,6 +1386,7 @@ function routeIndex() {
       { method: "PATCH", path: "/apacs/:id", roles: ACCESS.apacs.join(", ") },
       { method: "POST", path: "/apacs/:id/pdf/upload-url", roles: ACCESS.apacs.join(", ") },
       { method: "POST", path: "/apacs/:id/pdf/confirm", roles: ACCESS.apacs.join(", ") },
+      { method: "POST", path: "/apacs/:id/pdf/download-url", roles: ACCESS.apacs.join(", ") },
       { method: "PUT", path: "/apacs/:id", roles: `${ACCESS.apacs.join(", ")} (extra do mock)` },
       { method: "DELETE", path: "/apacs/:id", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "POST", path: "/itens", roles: ACCESS.itens.join(", ") },
@@ -1353,7 +1426,7 @@ const LIST_STATUS = {
   users: { field: "role", values: ROLES },
 }
 
-const LIST_DECORATOR = { apacs: withPdfUrl, documents: withPdfUrl, itens: withImageUrl, users: (user) => user }
+const LIST_DECORATOR = { apacs: withApacPdfUrl, documents: withPdfUrl, itens: withImageUrl, users: toPublicUser }
 
 const badRequest = (message) => ({ status: 400, body: { statusCode: 400, error: "Bad Request", message } })
 
@@ -1490,7 +1563,10 @@ const server = createServer(async (req, res) => {
   // `/itens/:id/movements` é a única rota aninhada — todo o resto continua limitado a `/:collection[/:id]`.
   const isItemMovementsRoute = collection === "itens" && rest.length === 2 && rest[1] === "movements"
   const isApacPdfRoute =
-    collection === "apacs" && rest.length === 3 && rest[1] === "pdf" && ["upload-url", "confirm"].includes(rest[2])
+    collection === "apacs" &&
+    rest.length === 3 &&
+    rest[1] === "pdf" &&
+    ["upload-url", "confirm", "download-url"].includes(rest[2])
   const isItemImageRoute =
     collection === "itens" && rest.length === 3 && rest[1] === "image" && ["upload-url", "confirm"].includes(rest[2])
 
@@ -1529,7 +1605,7 @@ const server = createServer(async (req, res) => {
 
   // `notifications` também não: só `GET /notifications`, sem id nem query.
   if (collection === "notifications") {
-    if (method === "GET" && rest.length === 0) return getNotifications(res)
+    if (method === "GET" && rest.length === 0) return getNotifications(res, user)
     return send(res, 404, { message: "Rota não encontrada." })
   }
 
@@ -1564,7 +1640,7 @@ const server = createServer(async (req, res) => {
     if (rest.length === 1 && searchParams.size === 0) {
       const found = db.data.apacs.find((item) => item.id === rest[0])
       if (!found) return send(res, 404, { message: "APAC não encontrada." })
-      return send(res, 200, withPdfUrl(found))
+      return send(res, 200, withApacPdfUrl(found))
     }
   }
 

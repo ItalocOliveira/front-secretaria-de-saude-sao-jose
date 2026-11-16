@@ -30,13 +30,49 @@ export type UrgentApacDto = {
   created_at: string
 }
 
+/** `{ from, to }` de um campo alterado em `PLATFORM_USER_UPDATED`. */
+export type SupportChange = { from: string; to: string }
+
+/**
+ * `details` de uma ação do suporte — o formato varia com `action` (ver `describeSupportAction`):
+ * `PLATFORM_USER_CREATED` traz `name`/`role` como texto; `PLATFORM_USER_UPDATED` traz `userName` e
+ * `name`/`role` como `{ from, to }`; `PLATFORM_USER_PASSWORD_RESET` traz `userName`.
+ */
+export type SupportActionDetails = {
+  name?: string | SupportChange
+  role?: string | SupportChange
+  userName?: string
+  source?: string
+  /** Quem da plataforma fez a ação. */
+  platformAdmin?: string
+}
+
+/** Ação da plataforma (painel admin/suporte) no município. */
+export type SupportActionDto = {
+  id: string
+  /** `PLATFORM_TENANT_CREATED` | `PLATFORM_USER_CREATED` | `PLATFORM_USER_UPDATED` | `PLATFORM_USER_PASSWORD_RESET`. */
+  action: string
+  created_at: string
+  target_id: string | null
+  details: SupportActionDetails | null
+}
+
+/**
+ * Ações do suporte nos últimos `days` (30) dias — comunicado
+ * `.docs/att-backend/2026-11-16-lgpd-users-e-pdf-apacs.md`, seção 3. **Não entra no `total`** e
+ * não tem "lida": cada ação some sozinha depois de `days` dias.
+ */
+export type SupportActivityDto = { count: number; days: number; items: SupportActionDto[] }
+
 export type NotificationsDto = {
-  /** Número do badge (`lowStock.count + urgentApacs.count`). */
+  /** Número do badge (`lowStock.count + urgentApacs.count`) — `support` não conta. */
   total: number
   /** `items`: até 10, os de menor quantidade primeiro. `count` é o total. */
   lowStock: { count: number; items: LowStockItemDto[] }
   /** `items`: até 10, os mais antigos primeiro. `statuses`: status considerados "na fila". */
   urgentApacs: { count: number; statuses: ApacStatus[]; items: UrgentApacDto[] }
+  /** Só `SECRETARIO`/`DIRETOR` recebem; os outros cargos, `null` (e `undefined` numa API anterior). */
+  support?: SupportActivityDto | null
 }
 
 /** Sem body e sem query string. */

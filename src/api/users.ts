@@ -5,8 +5,6 @@ import { toListQuery, type ListParams, type Paginated } from "@/api/pagination"
 export type UserDto = {
   id: string
   name: string
-  /** Criptografado pela API — não é o CPF legível e não deve ser exibido. */
-  cpf_encrypted: string
   role: UserRole
   created_at?: string
   updated_at?: string

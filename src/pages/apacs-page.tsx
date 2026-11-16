@@ -5,6 +5,7 @@ import { PlusIcon } from "lucide-react"
 import { readApacsLocationState, toApacListFilters, type ApacFiltersValue } from "@/lib/apac-filters"
 import { useApacs } from "@/hooks/use-apacs"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { useNotifications } from "@/hooks/use-notifications"
 import { useApacsReport } from "@/hooks/use-reports"
 import { AppHeader } from "@/components/layout/app-header"
 import { ApacFilters } from "@/components/apacs/apac-filters"
@@ -12,6 +13,7 @@ import { ApacFlow } from "@/components/apacs/apac-flow"
 import { ApacFormSheet } from "@/components/apacs/apac-form-sheet"
 import { ApacsTableCard } from "@/components/apacs/apacs-table-card"
 import { ApacStats } from "@/components/apacs/apac-stats"
+import { SupportActivityCard } from "@/components/layout/support-activity-card"
 import { Button } from "@/components/ui/button"
 
 const NO_APACS: never[] = []
@@ -46,6 +48,8 @@ export function ApacsPage() {
     ...toApacListFilters(filters),
   })
   const report = useApacsReport(STATS_REPORT_REQUEST)
+  // Mesma query do sino (deduplicada pelo React Query). `support` só vem para SECRETARIO/DIRETOR.
+  const support = useNotifications().data?.support
 
   // Filtro novo sempre volta para a página 1 (a atual pode nem existir no resultado novo).
   const changeFilters = (next: ApacFiltersValue) => {
@@ -98,6 +102,10 @@ export function ApacsPage() {
           toolbar={<ApacFilters value={filters} onValueChange={changeFilters} />}
           onCreate={openForm}
         />
+
+        {support !== null && support !== undefined && support.items.length > 0 ? (
+          <SupportActivityCard support={support} />
+        ) : null}
 
         <ApacFlow />
       </div>
