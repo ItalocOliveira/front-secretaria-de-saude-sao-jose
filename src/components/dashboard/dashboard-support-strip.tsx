@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 
 /**
  * Campo pequeno com os avisos do suporte (`support` de `GET /notifications`, só
- * `SECRETARIO`/`DIRETOR`): total dos últimos `days` dias + a ação mais recente. O clique leva ao
+ * `DEV`/`SECRETARIO`/`DIRETOR`): total dos últimos `days` dias + a ação mais recente. O clique leva ao
  * card de auditoria já na aba "Suporte".
  */
 export function DashboardSupportStrip({ support, onOpen }: { support: SupportActivityDto; onOpen: () => void }) {

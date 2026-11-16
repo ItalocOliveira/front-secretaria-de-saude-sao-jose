@@ -54,7 +54,7 @@ function actionLabel(action: string) {
 
 /**
  * Registro de atividade do município (`GET /activity-logs`), mais recentes primeiro — só
- * `SECRETARIO`/`DIRETOR` (`AUDIT_ROLES`). Filtros vão para a API: ação (`action`) e pessoa (`userId`,
+ * `DEV`/`SECRETARIO`/`DIRETOR` (`AUDIT_ROLES`). Filtros vão para a API: ação (`action`) e pessoa (`userId`,
  * escolhida clicando no nome de quem fez). Não filtre no array carregado: ele é só uma página.
  */
 export function AuditPage() {

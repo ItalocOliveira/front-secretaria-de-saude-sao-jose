@@ -6,7 +6,7 @@ import { toListQuery, type ListParams, type Paginated } from "@/api/pagination"
  * Contrato de `GET /activity-logs` — `.docs/att-backend/2026-11-16-auditoria-municipio.md`.
  *
  * Registro de atividade do município do usuário logado, mais recentes primeiro, **sem IP**.
- * Só `SECRETARIO`/`DIRETOR` (os demais recebem `403` — use `canSeeAudit` antes de chamar).
+ * Só `DEV`/`SECRETARIO`/`DIRETOR` (os demais recebem `403` — use `canSeeAudit` antes de chamar).
  * `details` nunca traz senha, CPF nem CNS.
  */
 export type ActivityLogUser = { id: string; name: string; role: UserRole }

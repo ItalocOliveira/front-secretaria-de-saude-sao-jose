@@ -290,6 +290,10 @@ const ALL_ROLES = ["DEV", "DIRETOR", "SECRETARIO", "REGULADOR", "COORDENADOR", "
 // PATCH /apacs/:id e POST /reports/apacs. Os demais acessam todos os endpoints.
 const ALL_EXCEPT_RECEPCIONISTA = ALL_ROLES.filter((role) => role !== "RECEPCIONISTA")
 
+const USER_DELETE_ROLES = ["DEV", "SECRETARIO"]
+/** Cargos que contam como gestor do município — excluir o último dá `409`. */
+const MANAGER_ROLES = ["SECRETARIO", "DIRETOR"]
+
 /** Roles por coleção — a mais ampla entre as rotas dela. O recorte por método fica em `rolesFor`. */
 const ACCESS = {
   users: ALL_EXCEPT_RECEPCIONISTA,
@@ -298,13 +302,15 @@ const ACCESS = {
   documents: ALL_ROLES,
   reports: ALL_ROLES,
   notifications: ALL_EXCEPT_RECEPCIONISTA,
-  // Comunicado 2026-11-16-auditoria-municipio: só SECRETARIO e DIRETOR.
-  "activity-logs": ["SECRETARIO", "DIRETOR"],
+  // Comunicados 2026-11-16-auditoria-municipio e 2026-11-16-dev-acesso-total.
+  "activity-logs": ["DEV", "SECRETARIO", "DIRETOR"],
 }
 
 /** Roles da rota específica: `DELETE /apacs/:id` e tudo de `/documents` além do `POST` são restritos. */
 function rolesFor(collection, method, rest) {
   if (collection === "apacs" && method === "DELETE") return ALL_EXCEPT_RECEPCIONISTA
+  // Comunicados 2026-11-16-lgpd-users-e-pdf-apacs (seção 5) e 2026-11-16-dev-acesso-total.
+  if (collection === "users" && method === "DELETE") return USER_DELETE_ROLES
   if (collection === "documents" && !(method === "POST" && rest.length === 0)) return ALL_EXCEPT_RECEPCIONISTA
   return ACCESS[collection]
 }
@@ -563,6 +569,37 @@ async function handleAuth(req, res, segments) {
   }
 
   return send(res, 404, { message: "Rota não encontrada." })
+}
+
+// ---------------------------------------------------------------------------
+// DELETE /users/:id
+// ---------------------------------------------------------------------------
+
+async function deleteUser(res, id, actor) {
+  if (id === actor.id) return send(res, 400, { message: "Você não pode excluir o seu próprio usuário." })
+
+  const target = db.data.users.find((item) => item.id === id)
+  if (!target) return send(res, 404, { message: "Usuário não encontrado." })
+
+  if (target.role === "DEV" && actor.role !== "DEV") {
+    return send(res, 403, { message: "Seu cargo não pode excluir usuários com o cargo DEV." })
+  }
+
+  const managers = db.data.users.filter((item) => MANAGER_ROLES.includes(item.role))
+  if (MANAGER_ROLES.includes(target.role) && managers.length <= 1) {
+    return send(res, 409, { message: "O município ficaria sem nenhum gestor." })
+  }
+
+  db.data.users = db.data.users.filter((item) => item.id !== id)
+  db.data._credentials = db.data._credentials.filter((item) => item.user_id !== id)
+  await db.write()
+
+  recordActivity(
+    "USER_DELETED",
+    db.data.users.find((item) => item.id === actor.id),
+    { targetId: id, details: { name: target.name, role: target.role } }
+  )
+  res.writeHead(204).end()
 }
 
 // ---------------------------------------------------------------------------
@@ -1036,11 +1073,11 @@ const URGENT_QUEUE_STATUSES = ["PENDENTE", "AGUARDO"]
 
 // `support` (comunicado 2026-11-16-lgpd-users-e-pdf-apacs, seção 3): ações da plataforma no município.
 const SUPPORT_DAYS = 30
-const SUPPORT_ROLES = ["SECRETARIO", "DIRETOR"]
+const SUPPORT_ROLES = ["DEV", "SECRETARIO", "DIRETOR"]
 
 /**
  * O mock não tem painel admin: gera ações fictícias relativas a "agora", com nomes de usuários da
- * base. Só `SECRETARIO`/`DIRETOR` recebem; os outros cargos, `null`.
+ * base. Só `DEV`/`SECRETARIO`/`DIRETOR` recebem; os outros cargos, `null`.
  */
 function supportActivity(user) {
   if (!SUPPORT_ROLES.includes(user.role)) return null
@@ -1497,6 +1534,7 @@ function routeIndex() {
       { method: "GET", path: "/auth/admin", roles: ALL_EXCEPT_RECEPCIONISTA.join(", ") },
       { method: "POST", path: "/users", roles: ACCESS.users.join(", ") },
       { method: "GET", path: "/users", roles: ACCESS.users.join(", ") },
+      { method: "DELETE", path: "/users/:id", roles: USER_DELETE_ROLES.join(", ") },
       { method: "GET", path: "/users/:id", roles: `${ACCESS.users.join(", ")} (extra do mock)` },
       { method: "POST", path: "/apacs", roles: ACCESS.apacs.join(", ") },
       { method: "GET", path: "/apacs", roles: ACCESS.apacs.join(", ") },
@@ -1747,6 +1785,10 @@ const server = createServer(async (req, res) => {
 
   if (method === "PATCH" && collection === "documents" && rest.length === 1) {
     return updateDocument(req, res, rest[0])
+  }
+
+  if (method === "DELETE" && collection === "users" && rest.length === 1) {
+    return deleteUser(res, rest[0], user)
   }
 
   if (method === "DELETE" && collection === "documents" && rest.length === 1) {

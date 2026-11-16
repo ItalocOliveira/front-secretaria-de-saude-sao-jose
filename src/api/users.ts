@@ -23,6 +23,15 @@ export function listUsers(params: ListParams<UserRole>, signal?: AbortSignal) {
 }
 
 /**
+ * `DELETE /users/:id` (`204`) — só `DEV`/`SECRETARIO` (`canDeleteUser`). `400` excluir a si mesmo,
+ * `403` cargo sem permissão (ou alvo `DEV` para quem não é `DEV`), `404` inexistente/outro município,
+ * `409` o município ficaria sem gestor. A sessão aberta do excluído continua válida até expirar.
+ */
+export function deleteUser(id: string) {
+  return request<void>(`/users/${encodeURIComponent(id)}`, { method: "DELETE" })
+}
+
+/**
  * `POST /users` — todos os cargos menos `RECEPCIONISTA`. Só `DEV` cria `DEV` (`403` para os
  * outros); CPF já cadastrado → `409`.
  */

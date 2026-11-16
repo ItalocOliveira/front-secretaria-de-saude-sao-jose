@@ -2,7 +2,8 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import type { UserRole } from "@/lib/apac"
 import type { ListParams } from "@/api/pagination"
-import { createUser, listUsers } from "@/api/users"
+import { createUser, deleteUser, listUsers } from "@/api/users"
+import { ACTIVITY_LOGS_QUERY_KEY } from "@/hooks/use-activity-logs"
 
 export const USERS_QUERY_KEY = ["users"] as const
 
@@ -20,5 +21,19 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: createUser,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY }),
+  })
+}
+
+/** Exclusão gera `USER_DELETED` na auditoria: invalida a lista de usuários e o registro de atividade. */
+export function useDeleteUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: deleteUser,
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ACTIVITY_LOGS_QUERY_KEY }),
+      ]),
   })
 }

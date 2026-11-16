@@ -26,6 +26,12 @@ export const APAC_DELETE_ROLES = FULL_ACCESS_ROLES
 /** Roles com acesso a `/users` (listar e criar). */
 export const USER_MANAGEMENT_ROLES = FULL_ACCESS_ROLES
 
+/**
+ * Roles que podem chamar `DELETE /users/:id` (comunicados 2026-11-16-lgpd-users-e-pdf-apacs, seção 5,
+ * e 2026-11-16-dev-acesso-total). Os demais recebem `403`: o botão de excluir não aparece.
+ */
+export const USER_DELETE_ROLES: readonly UserRole[] = ["DEV", "SECRETARIO"]
+
 /** Roles com acesso a `/itens` (almoxarifado). */
 export const ITEM_ROLES = FULL_ACCESS_ROLES
 
@@ -51,10 +57,11 @@ export const REPORT_ROLES = ALL_ROLES
 export const DASHBOARD_ROLES = FULL_ACCESS_ROLES
 
 /**
- * Roles com acesso a `GET /activity-logs` (auditoria do município — comunicado
- * 2026-11-16-auditoria-municipio). Os demais recebem `403`: a tela e o card somem.
+ * Roles com acesso a `GET /activity-logs` (auditoria do município — comunicados
+ * 2026-11-16-auditoria-municipio e 2026-11-16-dev-acesso-total). Os demais recebem `403`: a tela e o
+ * card somem. Os mesmos cargos recebem `support` no `GET /notifications`.
  */
-export const AUDIT_ROLES: readonly UserRole[] = ["SECRETARIO", "DIRETOR"]
+export const AUDIT_ROLES: readonly UserRole[] = ["DEV", "SECRETARIO", "DIRETOR"]
 
 /** Roles com acesso a `GET /notifications` (sino do header). `RECEPCIONISTA` recebe `403`. */
 export const NOTIFICATION_ROLES = FULL_ACCESS_ROLES
@@ -69,6 +76,14 @@ export function canDeleteApacs(role: UserRole) {
 
 export function canManageUsers(role: UserRole) {
   return USER_MANAGEMENT_ROLES.includes(role)
+}
+
+/**
+ * Se `role` pode excluir uma conta com o cargo `target`. Só `DEV` exclui `DEV` (o `SECRETARIO` recebe
+ * `403`). Excluir a si mesmo (`400`) e o último gestor (`409`) quem barra é a API.
+ */
+export function canDeleteUser(role: UserRole, target: UserRole) {
+  return USER_DELETE_ROLES.includes(role) && (target !== "DEV" || role === "DEV")
 }
 
 export function canAccessItens(role: UserRole) {

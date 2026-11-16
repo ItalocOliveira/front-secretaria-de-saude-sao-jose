@@ -73,11 +73,13 @@ Ordem: mais recentes primeiro; usuários em ordem alfabética. `pdf_url`/`image_
 
 ### Notificações e quantidade mínima
 
-`GET /notifications` (todos menos `RECEPCIONISTA`, que recebe `403`) calcula na hora os alertas do sino: itens com `amount < min_amount` (menor quantidade primeiro) e APACs `URGENTE` em `PENDENTE`/`AGUARDO` (mais antigas primeiro), até 10 de cada. As APACs do mock não têm `protocol_number`: o mock usa a posição na base. `POST`/`PATCH /itens` aceitam `min_amount` (inteiro 0–1.000.000, `null` = 0); itens antigos saem com `0` (sem alerta). Para `SECRETARIO`/`DIRETOR` vem também `support` com 4 ações fictícias da plataforma (datas relativas a agora, nomes dos usuários da base); os outros cargos recebem `null`. Contrato em [`.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`](../.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md).
+`GET /notifications` (todos menos `RECEPCIONISTA`, que recebe `403`) calcula na hora os alertas do sino: itens com `amount < min_amount` (menor quantidade primeiro) e APACs `URGENTE` em `PENDENTE`/`AGUARDO` (mais antigas primeiro), até 10 de cada. As APACs do mock não têm `protocol_number`: o mock usa a posição na base. `POST`/`PATCH /itens` aceitam `min_amount` (inteiro 0–1.000.000, `null` = 0); itens antigos saem com `0` (sem alerta). Para `DEV`/`SECRETARIO`/`DIRETOR` vem também `support` com 4 ações fictícias da plataforma (datas relativas a agora, nomes dos usuários da base); os outros cargos recebem `null`. Contrato em [`.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`](../.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md).
 
 ### Auditoria
 
-`GET /activity-logs` (só `SECRETARIO`/`DIRETOR`; os outros recebem `403`) devolve o registro de atividade paginado, com `action` e `userId` na query — contrato em [`.docs/att-backend/2026-11-16-auditoria-municipio.md`](../.docs/att-backend/2026-11-16-auditoria-municipio.md). O registro vive **em memória**: começa com ~18 ações fictícias relativas a "agora" e ganha registros reais de `LOGIN`/`LOGIN_FAILED` e `APAC_PDF_VIEWED` (`download-url`) enquanto o mock roda; reiniciar zera.
+`DELETE /users/:id` (só `DEV`/`SECRETARIO`; só `DEV` exclui `DEV`) responde `204` e grava `USER_DELETED` no registro de atividade; `400` para a própria conta e `409` se o alvo for o último `SECRETARIO`/`DIRETOR` (gestor) — comunicado [`.docs/att-backend/2026-11-16-lgpd-users-e-pdf-apacs.md`](../.docs/att-backend/2026-11-16-lgpd-users-e-pdf-apacs.md), seção 5. Excluir apaga a conta do `db.json` (recupere com `pnpm api:mock --reset`).
+
+`GET /activity-logs` (só `DEV`/`SECRETARIO`/`DIRETOR`; os outros recebem `403`) devolve o registro de atividade paginado, com `action` e `userId` na query — contrato em [`.docs/att-backend/2026-11-16-auditoria-municipio.md`](../.docs/att-backend/2026-11-16-auditoria-municipio.md). O registro vive **em memória**: começa com ~18 ações fictícias relativas a "agora" e ganha registros reais de `LOGIN`/`LOGIN_FAILED` e `APAC_PDF_VIEWED` (`download-url`) enquanto o mock roda; reiniciar zera.
 
 ### Upload e download de PDF
 
