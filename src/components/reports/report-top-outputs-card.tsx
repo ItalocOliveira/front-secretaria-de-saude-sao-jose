@@ -18,7 +18,7 @@ const CHART_FALLBACK = <Skeleton className="h-56 w-full" />
 
 const SKELETON_ROWS = Array.from({ length: 4 }, (_, index) => index)
 
-/** Itens mais retirados: gráfico só na tela (no PDF ele vai para a folha de gráficos) + tabela com os números. */
+/** Itens mais retirados: gráfico + tabela com os números (a versão do PDF fica em `report-print-document.tsx`). */
 export function ReportTopOutputsCard({ items }: { items: ReportTopOutputItem[] | undefined }) {
   return (
     <Card>
@@ -42,11 +42,9 @@ export function ReportTopOutputsCard({ items }: { items: ReportTopOutputItem[] |
           </Empty>
         ) : (
           <>
-            <div className="print:hidden">
-              <Suspense fallback={CHART_FALLBACK}>
-                <ReportTopOutputsChart items={items} />
-              </Suspense>
-            </div>
+            <Suspense fallback={CHART_FALLBACK}>
+              <ReportTopOutputsChart items={items} />
+            </Suspense>
 
             <Table>
               <TableHeader>
@@ -59,7 +57,7 @@ export function ReportTopOutputsCard({ items }: { items: ReportTopOutputItem[] |
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.id} className="break-inside-avoid">
+                  <TableRow key={item.id}>
                     <TableCell className="max-w-64 truncate font-medium" title={item.name}>
                       {item.name}
                     </TableCell>

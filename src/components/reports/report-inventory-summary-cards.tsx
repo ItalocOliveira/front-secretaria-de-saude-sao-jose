@@ -28,7 +28,7 @@ export function ReportInventorySummaryCards({ inventory }: { inventory: ReportIn
     )
 
   return (
-    <div className="grid gap-4 *:min-w-0 *:break-inside-avoid sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 *:min-w-0 sm:grid-cols-2 xl:grid-cols-4">
       <Card size="sm">
         <CardHeader>
           <CardDescription>Itens cadastrados</CardDescription>

@@ -32,7 +32,7 @@ export function ReportBreakdownCard({
   const hiddenCount = entries.length - COLLAPSED_LIMIT
 
   return (
-    <Card className="print:break-inside-avoid">
+    <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -53,11 +53,10 @@ export function ReportBreakdownCard({
           </Empty>
         ) : (
           entries.map((entry, index) => (
-            // Recolhido só na tela: no PDF a lista sai completa.
             <Progress
               key={entry.key}
               value={total === 0 ? 0 : (entry.count / total) * 100}
-              className={cn(!expanded && index >= COLLAPSED_LIMIT && "hidden print:flex")}
+              className={cn(!expanded && index >= COLLAPSED_LIMIT && "hidden")}
             >
               <ProgressLabel className="min-w-0 flex-1 truncate" title={entry.label}>
                 {entry.label}
@@ -69,7 +68,7 @@ export function ReportBreakdownCard({
       </CardContent>
 
       {!isPending && hiddenCount > 0 ? (
-        <CardFooter className="print:hidden">
+        <CardFooter>
           <Button variant="ghost" size="sm" onClick={() => setExpanded((value) => !value)}>
             {expanded ? "Mostrar menos" : `Ver todos (+${hiddenCount})`}
           </Button>

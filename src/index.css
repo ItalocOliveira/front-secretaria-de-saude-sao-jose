@@ -152,13 +152,13 @@
   }
 }
 
-/* Exportação do relatório em PDF (impressão do navegador): some a navegação,
-   mantém as cores de fundo (barras, badges). O gráfico tem versão própria para
-   impressão em `report-created-chart.tsx`. */
+/* Exportação do relatório em PDF (impressão do navegador): some a navegação e
+   mantém as cores de fundo. O conteúdo do papel é o `ReportPrintDocument`; o
+   rodapé com "Página X de Y" ele mesmo declara (margin boxes do @page). */
 @media print {
   @page {
     size: A4;
-    margin: 12mm;
+    margin: 14mm 12mm 16mm;
   }
 
   html {
@@ -177,14 +177,6 @@
   [data-slot="sidebar-wrapper"],
   [data-slot="sidebar-inset"] {
     display: block !important;
-  }
-
-  /* O contorno do card é `ring` (box-shadow): quando o Chrome empurra o card para
-     a página seguinte, a sombra fica desenhada como um fiapo no fim da anterior.
-     Borda de verdade acompanha o card. */
-  [data-slot="card"] {
-    box-shadow: none;
-    border: 1px solid var(--border);
   }
 }
 

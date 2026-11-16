@@ -26,8 +26,8 @@ import {
 import { DateRangePicker } from "@/components/apacs/date-range-picker"
 import { AppHeader } from "@/components/layout/app-header"
 import { ReportBreakdownCard } from "@/components/reports/report-breakdown-card"
-import { ReportChartsPrintSheet } from "@/components/reports/report-charts-print-sheet"
 import { ReportInventoryListCard } from "@/components/reports/report-inventory-list-card"
+import { ReportPrintDocument } from "@/components/reports/report-print-document"
 import { ReportInventorySummaryCards } from "@/components/reports/report-inventory-summary-cards"
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards"
 import { ReportTopOutputsCard } from "@/components/reports/report-top-outputs-card"
@@ -46,15 +46,12 @@ const ReportCreatedChart = lazy(() =>
 
 const CHART_FALLBACK = <Skeleton className="h-72 w-full" />
 
-const INTERVAL_LABEL: Record<ReportInterval, string> = { day: "dia", week: "semana" }
-
 const GENERATED_AT_FORMAT = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" })
 
 /*
- * Ordem do PDF: (1) APACs — resumo e quebras; (2) almoxarifado, a partir de uma
- * página nova; (3) inventário completo, também em página nova (2 colunas se for
- * grande); (4) folha só de gráficos (`ReportChartsPrintSheet`). Na tela, cada
- * gráfico fica junto da sua seção e some na impressão (`print:hidden`).
+ * Tela e PDF são árvores separadas: tudo o que está aqui some na impressão
+ * (`print:hidden`) e o papel mostra só o `ReportPrintDocument` — APACs,
+ * almoxarifado, inventário completo e gráficos, cada um a partir de uma página nova.
  */
 export function ReportsPage() {
   const [period, setPeriod] = useState<DateRange | undefined>(undefined)
@@ -93,26 +90,17 @@ export function ReportsPage() {
     <>
       <AppHeader section="Relatórios" />
 
-      <div className="flex flex-1 flex-col gap-4 p-4">
+      <div className="flex flex-1 flex-col gap-4 p-4 print:hidden">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="font-heading text-xl font-medium">
-              <span className="print:hidden">Relatórios</span>
-              <span className="hidden print:inline">{reportTitle}</span>
-            </h1>
-            <p className="text-sm text-muted-foreground print:hidden">
+            <h1 className="font-heading text-xl font-medium">Relatórios</h1>
+            <p className="text-sm text-muted-foreground">
               Indicadores de APACs{showInventory ? " e do almoxarifado" : ""} por período.
-            </p>
-            {/* Os filtros não vão para o PDF; este resumo substitui eles no papel. */}
-            <p className="hidden text-sm text-muted-foreground print:block">
-              Período: {periodText} · Gráfico de APACs agrupado por {INTERVAL_LABEL[interval]} · Gerado em{" "}
-              {GENERATED_AT_FORMAT.format(new Date())}
             </p>
           </div>
 
           <Button
             variant="outline"
-            className="print:hidden"
             disabled={report === undefined || isFetching || (inventory ? allItens.isPending : false)}
             onClick={exportPdf}
           >
@@ -121,7 +109,7 @@ export function ReportsPage() {
           </Button>
         </div>
 
-        <Card className="print:hidden">
+        <Card>
           <CardContent>
             <FieldGroup className="grid gap-4 sm:grid-cols-[minmax(0,20rem)_auto]">
               <Field>
@@ -171,7 +159,7 @@ export function ReportsPage() {
         </Card>
 
         {error ? (
-          <Alert variant="destructive" className="print:hidden">
+          <Alert variant="destructive">
             <AlertTitle>Não foi possível gerar o relatório</AlertTitle>
             <AlertDescription>{error.message}</AlertDescription>
           </Alert>
@@ -182,7 +170,7 @@ export function ReportsPage() {
 
           <ReportSummaryCards report={report} isPending={isPending} />
 
-          <Card className="print:hidden">
+          <Card>
             <CardHeader>
               <CardTitle>APACs criadas ao longo do tempo</CardTitle>
               <CardDescription>
@@ -200,7 +188,7 @@ export function ReportsPage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 *:min-w-0 lg:grid-cols-2 print:grid-cols-2">
+          <div className="grid gap-4 *:min-w-0 lg:grid-cols-2">
             <ReportBreakdownCard
               title="Status no período"
               description="Situação atual das APACs criadas no período"
@@ -242,7 +230,7 @@ export function ReportsPage() {
 
         {showInventory ? (
           // No PDF o almoxarifado começa numa página nova, separado das APACs.
-          <section className="flex flex-col gap-4 pt-4 print:break-before-page print:pt-0">
+          <section className="flex flex-col gap-4 pt-4">
             <div className="flex flex-col gap-1">
               <h2 className="font-heading text-lg font-medium">Almoxarifado</h2>
               <p className="text-sm text-muted-foreground">
@@ -252,7 +240,7 @@ export function ReportsPage() {
 
             <ReportInventorySummaryCards inventory={inventory ?? undefined} />
 
-            <div className="grid gap-4 *:min-w-0 lg:grid-cols-2 print:grid-cols-2">
+            <div className="grid gap-4 *:min-w-0 lg:grid-cols-2">
               <ReportBreakdownCard
                 title="Estoque por tipo"
                 description="Unidades em estoque hoje"
@@ -284,13 +272,20 @@ export function ReportsPage() {
         ) : null}
 
         {showInventory ? (
-          <section className="flex flex-col gap-4 print:break-before-page">
+          <section className="flex flex-col gap-4">
             <ReportInventoryListCard items={allItens.data} isPending={allItens.isPending} error={allItens.error} />
           </section>
         ) : null}
-
-        {report === undefined ? null : <ReportChartsPrintSheet report={report} />}
       </div>
+
+      {report === undefined ? null : (
+        <ReportPrintDocument
+          report={report}
+          inventoryItems={allItens.data}
+          title={reportTitle}
+          generatedAt={GENERATED_AT_FORMAT.format(new Date())}
+        />
+      )}
     </>
   )
 }
