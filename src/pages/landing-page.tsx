@@ -24,12 +24,21 @@ export function LandingPage() {
     <div className="flex min-h-svh flex-col bg-background">
       <main className="flex flex-1 items-center justify-center p-6">
         <div className="flex w-full max-w-md flex-col items-center gap-8 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <img src="/logo_icos.png" alt="" className="size-20 object-contain" />
-            <div className="flex flex-col gap-2">
-              <h1 className="text-4xl font-extrabold tracking-tight">ICOS</h1>
-              <p className="text-muted-foreground">Sistema de gestão para secretarias municipais de saúde.</p>
-            </div>
+          <div className="flex flex-col items-center gap-6">
+            <h1 className="w-full max-w-sm">
+              {/* Duas versões da logo: o texto azul-marinho some no tema escuro. */}
+              <img
+                src="/logo_icos_completa.png"
+                alt="ICOS — Interface de Controle Operacional da Saúde"
+                className="w-full dark:hidden"
+              />
+              <img
+                src="/logo_icos_completa_dark.png"
+                alt="ICOS — Interface de Controle Operacional da Saúde"
+                className="hidden w-full dark:block"
+              />
+            </h1>
+            <p className="text-muted-foreground">Sistema de gestão para secretarias municipais de saúde.</p>
           </div>
 
           <Alert className="text-left">
