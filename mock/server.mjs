@@ -774,7 +774,7 @@ async function reportApacs(req, res, user) {
   const previousTotal = inRange(prevStart, prevEnd).length
   const difference = total - previousTotal
 
-  const queue = apacs.filter((apac) => apac.status === "PENDENTE" || apac.status === "AGUARDO")
+  const queue = apacs.filter((apac) => apac.status === "PENDENTE" || apac.status === "INSERIDO")
   const byPriority = Object.fromEntries(PRIORITIES.map((priority) => [priority, 0]))
   for (const apac of queue) byPriority[apac.priority] = (byPriority[apac.priority] ?? 0) + 1
 
@@ -812,7 +812,7 @@ async function reportApacs(req, res, user) {
     countByPriorityInPeriod: countBy(inPeriod, (apac) => apac.priority),
     countByAcsInPeriod: countBy(inPeriod, (apac) => apac.acs),
     countByMunicipalityInPeriod: countBy(inPeriod, (apac) => apac.municipality || "NAO_INFORMADO"),
-    pendingQueue: { statuses: ["PENDENTE", "AGUARDO"], total: queue.length, byPriority },
+    pendingQueue: { statuses: ["PENDENTE", "INSERIDO"], total: queue.length, byPriority },
     createdOverTime: { interval, timeZone: "America/Fortaleza", points },
     // `.docs/att-backend/2026-11-16-relatorio-almoxarifado.md`: `null` para quem não acessa o almoxarifado.
     inventory: ACCESS.itens.includes(user.role) ? reportInventory(start, end) : null,
@@ -1070,7 +1070,7 @@ function listActivityLogs(res, searchParams) {
 // ---------------------------------------------------------------------------
 
 const NOTIFICATION_LIMIT = 10
-const URGENT_QUEUE_STATUSES = ["PENDENTE", "AGUARDO"]
+const URGENT_QUEUE_STATUSES = ["PENDENTE", "INSERIDO"]
 
 // `support` (comunicado 2026-11-16-lgpd-users-e-pdf-apacs, seção 3): ações da plataforma no município.
 const SUPPORT_DAYS = 30
@@ -1578,7 +1578,7 @@ function routeIndex() {
 
 /** Valores aceitos em `?status=` por listagem. Em `/users` o parâmetro filtra o `role`. */
 const LIST_STATUS = {
-  apacs: { field: "status", values: ["PENDENTE", "AGUARDO", "APROVADO", "CANCELADO", "NEGADO", "ENTREGUE"] },
+  apacs: { field: "status", values: ["PENDENTE", "INSERIDO", "APROVADO", "CANCELADO", "NEGADO", "ENTREGUE"] },
   documents: { field: "status", values: DOCUMENT_STATUSES },
   itens: { field: "status", values: ["DISPONIVEL", "EMPRESTADO"] },
   users: { field: "role", values: ROLES },

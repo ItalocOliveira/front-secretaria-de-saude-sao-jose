@@ -9,7 +9,7 @@ import { normalizeSearchText } from "@/lib/search"
 
 export const APAC_STATUS = {
   PENDENTE: "PENDENTE",
-  AGUARDO: "AGUARDO",
+  INSERIDO: "INSERIDO",
   APROVADO: "APROVADO",
   CANCELADO: "CANCELADO",
   NEGADO: "NEGADO",
@@ -275,7 +275,7 @@ export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE]
 
 export const APAC_STATUS_LABEL: Record<ApacStatus, string> = {
   PENDENTE: "Pendente",
-  AGUARDO: "Em análise",
+  INSERIDO: "Inserido",
   APROVADO: "Aprovada",
   CANCELADO: "Cancelada",
   NEGADO: "Negada",
@@ -285,7 +285,7 @@ export const APAC_STATUS_LABEL: Record<ApacStatus, string> = {
 /** Variante de `Badge` usada para cada status — só tokens semânticos. */
 export const APAC_STATUS_BADGE: Record<ApacStatus, "default" | "success" | "warning" | "destructive"> = {
   PENDENTE: "warning",
-  AGUARDO: "warning",
+  INSERIDO: "warning",
   APROVADO: "success",
   CANCELADO: "destructive",
   NEGADO: "destructive",

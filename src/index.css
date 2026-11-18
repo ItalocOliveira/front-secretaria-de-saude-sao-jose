@@ -72,7 +72,7 @@
   --accent: oklch(0.967 0.001 286.375);
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
-  /* Status de APAC: verde = aprovado, amarelo = pendente/em análise. */
+  /* Status de APAC: verde = aprovado, amarelo = pendente/inserido. */
   --success: oklch(0.527 0.154 150.069);
   --warning: oklch(0.555 0.13 70);
   --border: oklch(0.92 0.004 286.32);
