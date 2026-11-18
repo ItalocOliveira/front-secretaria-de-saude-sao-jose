@@ -15,7 +15,7 @@ type Stat = {
 const STATS: Stat[] = [
   { label: "Total", status: ALL },
   { label: "Pendentes", status: APAC_STATUS.PENDENTE },
-  { label: "Em análise", status: APAC_STATUS.AGUARDO },
+  { label: "Inserido", status: APAC_STATUS.INSERIDO },
   { label: "Aprovadas", status: APAC_STATUS.APROVADO },
   { label: "Negadas", status: APAC_STATUS.NEGADO },
   { label: "Entregues", status: APAC_STATUS.ENTREGUE },

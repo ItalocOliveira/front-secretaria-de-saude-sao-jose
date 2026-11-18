@@ -420,7 +420,7 @@
             <a class="card kpi" href="#">
               <span class="kpi-label"><svg class="icon"><use href="#i-alert" /></svg>Fila de APACs</span>
               <span class="kpi-value">21</span>
-              <span class="kpi-extra"><span class="badge" style="color: var(--destructive)">6 urgentes</span> pendentes e em análise</span>
+              <span class="kpi-extra"><span class="badge" style="color: var(--destructive)">6 urgentes</span> pendentes e inseridas</span>
             </a>
             <a class="card kpi alert" href="#">
               <span class="kpi-label"><svg class="icon"><use href="#i-package" /></svg>Estoque abaixo do mínimo</span>
@@ -479,14 +479,14 @@
                 <div class="card-header">
                   <div>
                     <div class="card-title">Urgentes na fila</div>
-                    <div class="card-desc">6 APACs urgentes pendentes ou em análise</div>
+                    <div class="card-desc">6 APACs urgentes pendentes ou inseridas</div>
                   </div>
                   <a class="link" href="#">Ver todas ›</a>
                 </div>
                 <div class="card-content">
                   <ul class="list">
                     <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">Rafael Queiroz</span><span class="row-sub">Consulta em urologia · há 9 dias</span></span><span class="badge warning">Pendente</span></a></li>
-                    <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">Maria Aparecida Souza</span><span class="row-sub">Consulta em cirurgia plástica · há 6 dias</span></span><span class="badge info">Em análise</span></a></li>
+                    <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">Maria Aparecida Souza</span><span class="row-sub">Consulta em cirurgia plástica · há 6 dias</span></span><span class="badge info">Inserido</span></a></li>
                     <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">José Lima Neto</span><span class="row-sub">Ressonância magnética · há 4 dias</span></span><span class="badge warning">Pendente</span></a></li>
                     <li><a class="row" href="#"><span class="row-media urgent"><svg class="icon"><use href="#i-signal" /></svg></span><span class="row-main"><span class="row-title">Helena Duarte</span><span class="row-sub">Consulta em cardiologia · há 2 dias</span></span><span class="badge warning">Pendente</span></a></li>
                   </ul>
@@ -680,7 +680,7 @@
       // Ordem fixa = ordem do fluxo, nunca por tamanho (a cor segue o status, não o ranking).
       const STATUS = [
         ["Pendentes", 15, "var(--warning)"],
-        ["Em análise", 6, "var(--bar)"],
+        ["Inserido", 6, "var(--bar)"],
         ["Aprovadas", 142, "var(--success)"],
         ["Entregues", 31, "oklch(0.6 0.12 200)"],
         ["Negadas", 12, "var(--destructive)"],
