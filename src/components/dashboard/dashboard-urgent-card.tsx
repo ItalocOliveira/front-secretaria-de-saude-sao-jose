@@ -42,7 +42,7 @@ export function DashboardUrgentCard({ urgent }: { urgent: NotificationsDto["urge
       <CardHeader>
         <CardTitle>Urgentes na fila</CardTitle>
         <CardDescription>
-          {urgent === undefined ? "Carregando…" : `${urgent.count} APACs urgentes pendentes ou inseridas`}
+          {urgent === undefined ? "Carregando…" : `${urgent.count} APACs urgentes pendentes, inseridas ou em análise`}
         </CardDescription>
         <CardAction>
           <Link

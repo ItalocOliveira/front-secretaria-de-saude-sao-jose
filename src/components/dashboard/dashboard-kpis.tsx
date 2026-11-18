@@ -103,7 +103,7 @@ export function DashboardKpis({ report }: { report: ApacsReport | undefined }) {
           report === undefined ? null : (
             <>
               {urgent > 0 ? <Badge variant="destructive">{urgent} urgentes</Badge> : null}
-              <span>pendentes e inseridas</span>
+              <span>pendentes, inseridas ou em análise</span>
             </>
           )
         }

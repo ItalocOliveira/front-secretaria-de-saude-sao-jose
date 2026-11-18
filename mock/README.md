@@ -56,7 +56,7 @@ Além do que a doc marca como implementado, o mock também responde a rotas aind
 - `GET /users/:id`, `GET /apacs/:id`
 - `PATCH`, `PUT`, `DELETE` em `/users/:id` e `/apacs/:id`
 
-Elas usam as mesmas roles da coleção. Atenção: `PATCH /apacs/:id` aceita qualquer `status` — a transição `PENDENTE → INSERIDO → APROVADO | CANCELADO | NEGADO` **não** é validada aqui.
+Elas usam as mesmas roles da coleção. Atenção: `PATCH /apacs/:id` aceita qualquer `status` — a transição `PENDENTE → INSERIDO → EM_ANALISE → APROVADO | CANCELADO | NEGADO` **não** é validada aqui.
 
 ### Query params
 
@@ -73,7 +73,7 @@ Ordem: mais recentes primeiro; usuários em ordem alfabética. `pdf_url`/`image_
 
 ### Notificações e quantidade mínima
 
-`GET /notifications` (todos menos `RECEPCIONISTA`, que recebe `403`) calcula na hora os alertas do sino: itens com `amount < min_amount` (menor quantidade primeiro) e APACs `URGENTE` em `PENDENTE`/`INSERIDO` (mais antigas primeiro), até 10 de cada. As APACs do mock não têm `protocol_number`: o mock usa a posição na base. `POST`/`PATCH /itens` aceitam `min_amount` (inteiro 0–1.000.000, `null` = 0); itens antigos saem com `0` (sem alerta). Para `DEV`/`SECRETARIO`/`DIRETOR` vem também `support` com 4 ações fictícias da plataforma (datas relativas a agora, nomes dos usuários da base); os outros cargos recebem `null`. Contrato em [`.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`](../.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md).
+`GET /notifications` (todos menos `RECEPCIONISTA`, que recebe `403`) calcula na hora os alertas do sino: itens com `amount < min_amount` (menor quantidade primeiro) e APACs `URGENTE` em `PENDENTE`/`INSERIDO`/`EM_ANALISE` (mais antigas primeiro), até 10 de cada. As APACs do mock não têm `protocol_number`: o mock usa a posição na base. `POST`/`PATCH /itens` aceitam `min_amount` (inteiro 0–1.000.000, `null` = 0); itens antigos saem com `0` (sem alerta). Para `DEV`/`SECRETARIO`/`DIRETOR` vem também `support` com 4 ações fictícias da plataforma (datas relativas a agora, nomes dos usuários da base); os outros cargos recebem `null`. Contrato em [`.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md`](../.docs/att-backend/2026-11-12-notificacoes-e-estoque-minimo.md).
 
 ### Auditoria
 
