@@ -22,12 +22,14 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-chart-delivered: var(--chart-delivered);
+  --color-chart-inserted: var(--chart-inserted);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -72,9 +74,10 @@
   --accent: oklch(0.967 0.001 286.375);
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
-  /* Status de APAC: verde = aprovado, amarelo = pendente/inserido. */
+  /* Status de APAC: verde = aprovado/inserido, amarelo = pendente, azul (`--info`) = em análise. */
   --success: oklch(0.527 0.154 150.069);
   --warning: oklch(0.555 0.13 70);
+  --info: oklch(0.55 0.17 265);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.705 0.015 286.067);
@@ -85,6 +88,8 @@
   --chart-5: oklch(0.473 0.137 46.201);
   /* "Entregue" na pizza de status do dashboard: azul-esverdeado, distinto de sucesso/aviso/destrutivo. */
   --chart-delivered: oklch(0.56 0.1 210);
+  /* "Inserido" na pizza: verde distinto do `--success` (Aprovado), que fica ao lado. */
+  --chart-inserted: oklch(0.72 0.15 132);
   --radius: 0.625rem;
   --sidebar: oklch(0.93 0.003 286);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
@@ -121,6 +126,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.765 0.177 145);
   --warning: oklch(0.82 0.15 85);
+  --info: oklch(0.72 0.14 265);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.552 0.016 285.938);
@@ -130,6 +136,7 @@
   --chart-4: oklch(0.555 0.163 48.998);
   --chart-5: oklch(0.473 0.137 46.201);
   --chart-delivered: oklch(0.74 0.11 210);
+  --chart-inserted: oklch(0.6 0.13 132);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.623 0.214 259.815);

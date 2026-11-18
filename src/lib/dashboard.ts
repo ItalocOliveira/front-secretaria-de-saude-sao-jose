@@ -7,6 +7,7 @@ import { APAC_STATUS, type ApacStatus } from "@/lib/apac"
 export const DASHBOARD_STATUS_ORDER: readonly ApacStatus[] = [
   APAC_STATUS.PENDENTE,
   APAC_STATUS.INSERIDO,
+  APAC_STATUS.EM_ANALISE,
   APAC_STATUS.APROVADO,
   APAC_STATUS.ENTREGUE,
   APAC_STATUS.NEGADO,
@@ -16,7 +17,8 @@ export const DASHBOARD_STATUS_ORDER: readonly ApacStatus[] = [
 /** Cor de cada status na pizza — só tokens do tema (`src/index.css`). */
 export const DASHBOARD_STATUS_COLOR: Record<ApacStatus, string> = {
   PENDENTE: "var(--warning)",
-  INSERIDO: "var(--sidebar-primary)",
+  INSERIDO: "var(--chart-inserted)",
+  EM_ANALISE: "var(--info)",
   APROVADO: "var(--success)",
   ENTREGUE: "var(--chart-delivered)",
   NEGADO: "var(--destructive)",

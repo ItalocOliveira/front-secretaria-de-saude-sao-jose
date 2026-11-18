@@ -16,6 +16,7 @@ const STATS: Stat[] = [
   { label: "Total", status: ALL },
   { label: "Pendentes", status: APAC_STATUS.PENDENTE },
   { label: "Inserido", status: APAC_STATUS.INSERIDO },
+  { label: "Em análise", status: APAC_STATUS.EM_ANALISE },
   { label: "Aprovadas", status: APAC_STATUS.APROVADO },
   { label: "Negadas", status: APAC_STATUS.NEGADO },
   { label: "Entregues", status: APAC_STATUS.ENTREGUE },
@@ -35,7 +36,7 @@ export function ApacStats({
   onStatusChange: (status: ApacStatus | typeof ALL) => void
 }) {
   return (
-    <section aria-label="Resumo por status" className="grid grid-cols-2 gap-3 *:min-w-0 sm:grid-cols-3 xl:grid-cols-6">
+    <section aria-label="Resumo por status" className="grid grid-cols-2 gap-3 *:min-w-0 sm:grid-cols-3 xl:grid-cols-7">
       {STATS.map((stat) => {
         const value =
           stat.status === ALL
