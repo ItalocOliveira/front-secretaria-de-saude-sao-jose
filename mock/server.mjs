@@ -285,6 +285,8 @@ const ACS_LIST = [
   "DEYSE",
   "JOELMA_FERNANDES",
   "FLAVIO",
+  "SUENIA",
+  "MARIA_GIRLEIDE",
 ]
 
 /** Roles com acesso a cada coleção, conforme `.docs/temp/PERMISSOES.md`. */
