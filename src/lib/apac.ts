@@ -259,6 +259,8 @@ export const APAC_ACS = {
   DEYSE: "DEYSE",
   JOELMA_FERNANDES: "JOELMA_FERNANDES",
   FLAVIO: "FLAVIO",
+  SUENIA: "SUENIA",
+  MARIA_GIRLEIDE: "MARIA_GIRLEIDE",
 } as const
 
 export type ApacAcs = (typeof APAC_ACS)[keyof typeof APAC_ACS]
@@ -534,6 +536,8 @@ export const APAC_ACS_LABEL: Record<ApacAcs, string> = {
   DEYSE: "Deyse",
   JOELMA_FERNANDES: "Joelma Fernandes",
   FLAVIO: "Flávio",
+  SUENIA: "Suenia",
+  MARIA_GIRLEIDE: "Maria Girleide",
 }
 
 export const USER_ROLE_LABEL: Record<UserRole, string> = {

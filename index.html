@@ -1,7 +1,13 @@
 <!doctype html>
-<html lang="en">
+<!--
+  `lang="pt-BR"` + `translate="no"` + `notranslate`: o Google Tradutor do Chrome reescreve os nós de
+  texto do DOM e o React quebra ao reconciliar ("Failed to execute 'insertBefore' on 'Node'") —
+  chamado .docs/chamados/2026-11-24-tradutor-chrome-quebra-react.md. Não remova.
+-->
+<html lang="pt-BR" translate="no" class="notranslate">
   <head>
     <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
