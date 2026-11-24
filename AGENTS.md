@@ -280,6 +280,7 @@ Contrato em [.docs/api-backend.md](.docs/api-backend.md); como este frontend con
 
 ## Notas e armadilhas comuns
 
+- **`index.html` com `lang="pt-BR"`, `translate="no"` e `notranslate` — não remova.** O Google Tradutor do Chrome reescreve o DOM e o React quebra com `NotFoundError` em `insertBefore`/`removeChild` (a ação chega na API, mas a tela cai no "Algo deu errado"). Chamado [2026-11-24-tradutor-chrome-quebra-react](.docs/chamados/2026-11-24-tradutor-chrome-quebra-react.md).
 - **Porta 3001**, não 3000 — 3000 é da API (real ou `pnpm api:mock`).
 - **`DropdownMenuLabel`/`SelectLabel` são `GroupLabel` do Base UI**: fora de um `Group`/`RadioGroup` eles **lançam em runtime**, não degradam. Todo label precisa viver dentro do grupo que nomeia.
 - **`SelectValue` renderiza o valor cru**, não o texto do item. Quando `value` difere do label (enums, sentinelas), passe uma função como `children`.
