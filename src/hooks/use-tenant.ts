@@ -14,6 +14,11 @@ export function useTenant() {
     enabled: TENANT_SLUG !== undefined,
     staleTime: Infinity,
     gcTime: Infinity,
+    // Sem isto, a API em 500 vira loop: o `TenantGate` libera as telas depois das tentativas,
+    // cada componente que lê o município (login, sidebar, `TenantLogo`) monta e refaz a busca,
+    // a query volta a `pending` (não há `data`) e o gate troca tudo pelo spinner de novo.
+    // Chamados `.docs/chamados/2026-11-16-*` e `2026-11-24-*`.
+    retryOnMount: false,
   })
 }
 
